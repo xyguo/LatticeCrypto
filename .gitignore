@@ -1,0 +1,6 @@
+/.lake
+/.venv
+main.py
+pyproject.toml
+uv.lock
+.python-version

@@ -1,0 +1,19 @@
+name = "latticecrypto"
+version = "0.1.0"
+defaultTargets = ["latticecrypto"]
+
+[[lean_lib]]
+name = "LatticeCrypto"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+
+[[require]]
+name = "Canonical"
+scope = "chasenorman"
+
+[[require]]
+name = "batteries"
+scope = "leanprover-community"
+rev = "main"
