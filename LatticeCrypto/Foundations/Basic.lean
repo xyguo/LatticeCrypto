@@ -29,13 +29,21 @@ abbrev 𝔼 (n : ℕ+) := EuclideanSpace ℝ (Fin n)
     Use as `ℝⁿ n` in code. -/
 notation "ℝⁿ" => fun (n : ℕ+) => EuclideanSpace ℝ (Fin n)
 
+/-!
+  We define the mathematical notion of a lattice as a discrete additive subgroup
+  of a finite-dimensional inner product space over the reals. We also define several related
+  concepts, such as
+  * Specializations: integral lattices, (TODO) ideal lattices (over polynomial rings)
+  * Core concepts used in lattice cryptography: cosets, quotient spaces, (TODO) successive minimas, (TODO) dual lattices.
+-/
 section Lattice
 
 -- V is our ambient space, usually EuclideanSpace ℝ (Fin n)
 variable (V : Type*) [NormedAddCommGroup V] [InnerProductSpace ℝ V] [FiniteDimensional ℝ V]
 
 /--
-  The Abstract Lattice: A bundled Discrete Subgroup of full rank.
+  The Abstract Lattice: A bundled Discrete Subgroup in the ambient space.
+  Note we do not require full rank here in order to allow for sublattices.
   This is the object you use for security reductions and geometric proofs.
 -/
 structure AbstractLattice where
@@ -71,38 +79,60 @@ structure IntegralLattice extends AbstractLattice V where
 
 end Lattice
 
+/-!
+  We define a computable basis for a lattice using rational vectors that can be used to implement actual algorithms.
+  We also provide the function converting such a basis to an AbstractLattice, given proof of full rank.
+-/
 section LatticeBasis
 
-variable {n : ℕ+}
+variable {n k : ℕ+}
 -- A computable basis for a lattice, using rational vectors
 -- We assume n = m for a full-rank lattice in V = ℝⁿ
-structure LatticeBasis (n : ℕ+) where
+structure LatticeBasis (n k : ℕ+) where
   /- A ℚ-basis of ℚⁿ, represented as column vectors in ℚⁿ.
      Via coercion ℚ → ℝ, these live naturally in the Euclidean space
      `EuclideanSpace ℝ (Fin n) ≃ (Fin n → ℝ)` with the standard
      inner product and norm, using the EuclideanSpace.equiv tactic. -/
-  basis : Matrix (Fin n) (Fin n) ℚ
+  basis : Matrix (Fin n) (Fin k) ℚ
 
 /-- Convert a LatticeBasis with rational entries to a matrix with real entries. -/
-noncomputable def LatticeBasis.to_real_matrix (B : LatticeBasis n) : Matrix (Fin n) (Fin n) ℝ :=
+noncomputable def LatticeBasis.to_real_matrix (B : LatticeBasis n k) : Matrix (Fin n) (Fin k) ℝ :=
   Matrix.map B.basis (Rat.cast : ℚ → ℝ)
 
+/-- Helper: Linear equivalence between EuclideanSpace ℝ (Fin n) and the function space (Fin n → ℝ). -/
+noncomputable def eucToPi : EuclideanSpace ℝ (Fin n) ≃ₗ[ℝ] (Fin n → ℝ) :=
+  (EuclideanSpace.equiv (Fin n) ℝ).toLinearEquiv
+
+noncomputable def piToEuc : (Fin n → ℝ) ≃ₗ[ℝ] EuclideanSpace ℝ (Fin n) :=
+  (EuclideanSpace.equiv (Fin n) ℝ).symm.toLinearEquiv
+
+@[simp] lemma piToEuc_apply (f : Fin n → ℝ) (i : Fin n) :
+  (eucToPi (piToEuc f)) i = f i := by simp[piToEuc, eucToPi]
+
+@[simp] lemma eucToPi_apply (x : EuclideanSpace ℝ (Fin n)) :
+  piToEuc (eucToPi x) = x := by simp[piToEuc, eucToPi]
+
 /-- Convert the columns of a LatticeBasis to vectors in Euclidean space over ℝ. -/
-noncomputable def LatticeBasis.real_cols (B : LatticeBasis n) :
-    Fin n → EuclideanSpace ℝ (Fin n) :=
-  fun j => (EuclideanSpace.equiv (Fin n) ℝ).symm (fun i => B.to_real_matrix i j)
+noncomputable def LatticeBasis.real_cols (B : LatticeBasis n k) :
+    Fin k → EuclideanSpace ℝ (Fin n) :=
+  fun j => piToEuc (fun i => B.to_real_matrix i j)
 
 /-- Convert the rows of a LatticeBasis to vectors in Euclidean space over ℝ. -/
-noncomputable def LatticeBasis.real_rows (B : LatticeBasis n) :
-    Fin n → EuclideanSpace ℝ (Fin n) :=
-  fun i => (EuclideanSpace.equiv (Fin n) ℝ).symm (fun j => B.to_real_matrix i j)
+noncomputable def LatticeBasis.real_rows (B : LatticeBasis n k) :
+    Fin n → EuclideanSpace ℝ (Fin k) :=
+  fun i => piToEuc (fun j => B.to_real_matrix i j)
 
 /-- Allows user to provide a proof that the lattice basis is full rank. -/
-def LatticeBasis.LinearIndependentReal (B : LatticeBasis n) : Prop :=
+def LatticeBasis.LinearIndependentReal (B : LatticeBasis n k) : Prop :=
   LinearIndependent ℝ (B.real_cols)
 
-/-- Convert a LatticeBasis to a Module.Basis, given proof of full rank -/
-noncomputable def LatticeBasis.to_module_basis (B : LatticeBasis n) (fullrank: B.LinearIndependentReal) :
+/--
+  A Square Lattice Basis is just the general case where n = k.
+-/
+abbrev SquareLatticeBasis (n : ℕ+) := LatticeBasis n n
+
+/-- Convert a SquareLatticeBasis to a Module.Basis, given proof of full rank -/
+noncomputable def LatticeBasis.to_module_basis (B : SquareLatticeBasis n) (fullrank: B.LinearIndependentReal) :
     Module.Basis (Fin n) ℝ (𝔼 n) :=
   let h_span : Submodule.span ℝ (Set.range B.real_cols) = ⊤ := by
     have h_dim : Fintype.card (Fin n) = finrank ℝ (EuclideanSpace ℝ (Fin n)) := by
@@ -111,8 +141,8 @@ noncomputable def LatticeBasis.to_module_basis (B : LatticeBasis n) (fullrank: B
       LinearIndependent.span_eq_top_of_card_eq_finrank fullrank h_dim
   Module.Basis.mk fullrank h_span.ge
 
-/-- Convert a LatticeBasis to an AbstractLattice, given proof of full rank -/
-noncomputable def LatticeBasis.toAbstractLattice (B : LatticeBasis n) (fullrank: B.LinearIndependentReal) :
+/-- Convert a SquareLatticeBasis to an AbstractLattice, given proof of full rank -/
+noncomputable def LatticeBasis.toAbstractLattice' (B : SquareLatticeBasis n) (fullrank: B.LinearIndependentReal) :
     AbstractLattice (𝔼 n) :=
   let module_basis : Module.Basis (Fin n) ℝ (𝔼 n) := B.to_module_basis fullrank
   let carrier_module := Submodule.span ℤ (Set.range module_basis)
@@ -130,17 +160,54 @@ noncomputable def LatticeBasis.toAbstractLattice (B : LatticeBasis n) (fullrank:
   }
 
 /--
-  Separately, we prove that if the basis was full rank,
+  Separately, we prove that if the square basis was full rank,
   the resulting lattice is Full Rank.
 -/
-instance (B : LatticeBasis n) (h : B.LinearIndependentReal) :
-    IsFullRank (B.toAbstractLattice h) where
+instance (B : SquareLatticeBasis n) (h : B.LinearIndependentReal) :
+    IsFullRank (B.toAbstractLattice' h) where
   span_top := by
     let module_basis := B.to_module_basis h
-    have : (B.toAbstractLattice h).carrier = Submodule.span ℤ (Set.range module_basis) := rfl
+    have : (B.toAbstractLattice' h).carrier = Submodule.span ℤ (Set.range module_basis) := rfl
 
     rw [this]
     exact ZSpan.span_top module_basis
+
+/-- Proof that any linear independent set of n vectors over ℝ^n has a discrete z-span -/
+lemma discrete_zspan' {n : ℕ+} {v : Fin n → 𝔼 n} (h : LinearIndependent ℝ v) :
+    DiscreteTopology (Submodule.span ℤ (Set.range v) : Submodule ℤ (𝔼 n)) := by
+  let h_span : Submodule.span ℝ (Set.range v) = ⊤ := by
+    have h_dim : Fintype.card (Fin n) = finrank ℝ (EuclideanSpace ℝ (Fin n)) := by
+      simp [finrank_euclideanSpace]
+    apply
+      LinearIndependent.span_eq_top_of_card_eq_finrank h h_dim
+  let module_basis :=Module.Basis.mk h h_span.ge
+  let carrier_module := Submodule.span ℤ (Set.range module_basis)
+  have h_range : Set.range v = Set.range module_basis := by
+    simp [module_basis]
+  have : DiscreteTopology ↥(Submodule.span ℤ (Set.range module_basis)) := by exact inferInstance
+  rw [h_range]
+  exact this
+
+/-- Proof that any linear independent set of k (k ≤ n) vectors over ℝ^n has a discrete z-span -/
+theorem discrete_zspan {v : Fin k → 𝔼 n} (h : LinearIndependent ℝ v) :
+  DiscreteTopology (Submodule.span ℤ (Set.range v) : Submodule ℤ (𝔼 n)) := by
+  admit
+
+noncomputable def LatticeBasis.toAbstractLattice (B : LatticeBasis n k) (fullrank: B.LinearIndependentReal) :
+    AbstractLattice (𝔼 n) :=
+  let carrier_module := Submodule.span ℤ (Set.range B.real_cols)
+  {
+    carrier := carrier_module
+
+    fg := by
+      have h_fin : (Set.range B.real_cols).Finite :=
+        Set.finite_range _
+      exact Submodule.fg_span h_fin
+
+    discrete := by
+      exact discrete_zspan fullrank
+  }
+
 
 end LatticeBasis
 
