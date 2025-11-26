@@ -9,13 +9,14 @@ name = "LatticeCrypto"
 name = "mathlib"
 scope = "leanprover-community"
 # Uncomment to pin mathlib to a specific version. Note to also specify lean version in the lean-toolchain file, and delete the lake-manifest.json before `lake update` and `lake exec cache get`.
-# version = "v4.24.0"
+version = "git#v4.24.0"
 
 [[require]]
 name = "Canonical"
 scope = "chasenorman"
+rev = "v4.24.0"
 
 [[require]]
 name = "batteries"
 scope = "leanprover-community"
-rev = "main"
+rev = "v4.24.0"
