@@ -4,3 +4,5 @@ main.py
 pyproject.toml
 uv.lock
 .python-version
+Aristotle-*
+.DS_Store

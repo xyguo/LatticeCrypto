@@ -1,22 +1,22 @@
--- This module serves as the root of the `Lattice` library.
+-- This module serves as the root of the `LatticeCrypto` library.
 -- Import modules here that should be built as part of the library.
 
 -- Phase 1: Mathematical Foundations
-import Lattice.Foundations.Basic
-import Lattice.Foundations.Algorithms
-import Lattice.Foundations.Hardness
+import LatticeCrypto.Foundations.Lattice.Defs
+import LatticeCrypto.Foundations.Algorithms
+import LatticeCrypto.Foundations.Hardness
 
 -- Phase 2: Cryptographic Primitives
-import Lattice.Primitives.LWE
-import Lattice.Primitives.SIS
-import Lattice.Primitives.RingLWE
+import LatticeCrypto.Primitives.LWE
+import LatticeCrypto.Primitives.SIS
+import LatticeCrypto.Primitives.RingLWE
 
 -- Phase 3: Cryptographic Schemes
-import Lattice.Schemes.PKE
-import Lattice.Schemes.Signatures
-import Lattice.Schemes.KeyExchange
+import LatticeCrypto.Schemes.PKE
+import LatticeCrypto.Schemes.Signatures
+import LatticeCrypto.Schemes.KeyExchange
 
 -- Phase 4: Advanced Constructions
-import Lattice.Advanced.FHE
-import Lattice.Advanced.ZKProofs
-import Lattice.Advanced.PostQuantum
+import LatticeCrypto.Advanced.FHE
+import LatticeCrypto.Advanced.ZKProofs
+import LatticeCrypto.Advanced.PostQuantum
