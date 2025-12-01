@@ -27,10 +27,12 @@ universe u
   We also define its computational representation using rational bases, and how to convert between them.
 
   * `AbstractLattice`: a discrete additive subgroup of a finite-dimensional inner-product space over the reals, such that its \R-span is the whole space.
-  * `LatticeBasis`: a computable basis for a lattice using *rational* vectors.
-  * `LatticeWithBasis`: a lattice bundled with a computable basis using rational vectors, which is implemented as a subclass of `AbstractLattice`.
+  * `LatticeBasis`: a linear independent basis for a lattice.
+  * `LatticeWithBasis`: a lattice bundled with a basis, which is implemented as a subclass of `AbstractLattice`.
   * `FullRank`: a predicate that claims the lattice has full rank, meaning its \R-span is the entire ambient space.
 -/
+
+noncomputable section Lattice
 
 /-- Notation for n-dimensional Euclidean space over ℝ. -/
 abbrev 𝔼 (n : ℕ+) := EuclideanSpace ℝ (Fin n)
@@ -40,10 +42,12 @@ abbrev 𝔼 (n : ℕ+) := EuclideanSpace ℝ (Fin n)
 notation "ℝⁿ" => fun (n : ℕ+) => EuclideanSpace ℝ (Fin n)
 
 
-section Lattice
-
 -- V is our ambient space, usually EuclideanSpace ℝ (Fin n)
 variable (V : Type*) [NormedAddCommGroup V] [InnerProductSpace ℝ V] [FiniteDimensional ℝ V]
+
+-- Throughout this file we will use n to denote the dimension of the space where the lattice lives,
+-- and k to denote the rank of the lattice
+variable {n k : ℕ+}
 
 /--
   The Abstract Lattice: A bundled Discrete Subgroup in the ambient space.
@@ -70,35 +74,23 @@ structure IntegralLattice extends AbstractLattice V where
   We also provide the function converting such a basis to an AbstractLattice, given proof of full rank.
 -/
 
-variable {n k : ℕ+}
--- A computable basis for a lattice, using rational vectors
--- We assume n = m for a full-rank lattice in V = ℝⁿ
 structure LatticeBasis (n k : ℕ+) where
   /- A ℚ-basis of ℚⁿ, represented as column vectors in ℚⁿ.
      Via coercion ℚ → ℝ, these live naturally in the Euclidean space
      `EuclideanSpace ℝ (Fin n) ≃ (Fin n → ℝ)` with the standard
      inner product and norm, using the EuclideanSpace.equiv tactic. -/
-  basis : Matrix (Fin n) (Fin k) ℚ
+  basis : Fin k → 𝔼 n
   /-- The number of vectors k must be less than or equal to the dimension n. -/
   le_dim : k ≤ n
+  /-- The vectors are linear independent -/
+  li : LinearIndependent ℝ basis
 
 @[ext] protected theorem ext {B1 B2 : LatticeBasis n k} (h : B1.basis = B2.basis) : B1 = B2 := by
   cases B1
   cases B2
   simp at h
-  (expose_names; exact congrFun (congrArg LatticeBasis.mk h) le_dim)
-
-def LatticeBasis.cols (B : LatticeBasis n k) :
-    Fin k → Fin n → ℚ :=
-  fun j => fun i => B.basis i j
-
-def LatticeBasis.rows (B : LatticeBasis n k) :
-    Fin n → Fin k → ℚ :=
-  fun i => fun j => B.basis i j
-
-/-- Convert a LatticeBasis with rational entries to a matrix with real entries. -/
-noncomputable def LatticeBasis.toRealMatrix (B : LatticeBasis n k) : Matrix (Fin n) (Fin k) ℝ :=
-  Matrix.map B.basis (Rat.cast : ℚ → ℝ)
+  -- Since the basis functions are equal, the LatticeBasis instances are equal.
+  simp [h]
 
 /--
   A Square Lattice Basis is just the general case where n = k.
@@ -106,10 +98,10 @@ noncomputable def LatticeBasis.toRealMatrix (B : LatticeBasis n k) : Matrix (Fin
 abbrev SquareLatticeBasis (n : ℕ+) := LatticeBasis n n
 
 /-- Helper: Linear equivalence between EuclideanSpace ℝ (Fin n) and the function space (Fin n → ℝ). -/
-noncomputable def eucToPi : EuclideanSpace ℝ (Fin n) ≃ₗ[ℝ] (Fin n → ℝ) :=
+def eucToPi : EuclideanSpace ℝ (Fin n) ≃ₗ[ℝ] (Fin n → ℝ) :=
   (EuclideanSpace.equiv (Fin n) ℝ).toLinearEquiv
 
-noncomputable def piToEuc : (Fin n → ℝ) ≃ₗ[ℝ] EuclideanSpace ℝ (Fin n) :=
+def piToEuc : (Fin n → ℝ) ≃ₗ[ℝ] EuclideanSpace ℝ (Fin n) :=
   (EuclideanSpace.equiv (Fin n) ℝ).symm.toLinearEquiv
 
 @[simp] lemma piToEuc_apply (f : Fin n → ℝ) (i : Fin n) :
@@ -118,29 +110,77 @@ noncomputable def piToEuc : (Fin n → ℝ) ≃ₗ[ℝ] EuclideanSpace ℝ (Fin 
 @[simp] lemma eucToPi_apply (x : EuclideanSpace ℝ (Fin n)) :
   piToEuc (eucToPi x) = x := by simp[piToEuc, eucToPi]
 
+lemma Z_linearIndependent_if_R_linearIndependent {v : Fin k → 𝔼 n} (li : LinearIndependent ℝ v) : LinearIndependent ℤ v := by
+   -- If the cols are linearly independent over ℝ, then any linear combination with integer coefficients that equals zero must have all coefficients zero.
+  have h_int_lin_ind : ∀ (c : Fin k → ℤ), (∑ i, c i • v i = 0) → (∀ i, c i = 0) := by
+    -- Since the coefficients are integers, they are also real numbers. Therefore, if the sum is zero in ℝ, then each coefficient must be zero.
+    intros c hc
+    have h_real : ∑ i, (c i : ℝ) • v i = 0 := by
+      convert hc using 1;
+      congr! 2;
+      -- Since the scalar multiplication in the real numbers is the same as in the integers when the scalar is an integer, the two functions are equal.
+      ext; simp;
+    exact fun i => by have := Fintype.linearIndependent_iff.mp li ( c · ) h_real i; aesop;
+  rw [ Fintype.linearIndependent_iff ] ; aesop
+
+lemma Q_linearIndependent_if_R_linearIndependent {v : Fin k → 𝔼 n} (li : LinearIndependent ℝ v) : LinearIndependent ℚ v := by
+   -- If the cols are linearly independent over ℝ, then any linear combination with integer coefficients that equals zero must have all coefficients zero.
+  have h_int_lin_ind : ∀ (c : Fin k → ℚ), (∑ i, c i • v i = 0) → (∀ i, c i = 0) := by
+    -- Since the coefficients are integers, they are also real numbers. Therefore, if the sum is zero in ℝ, then each coefficient must be zero.
+    intros c hc
+    have h_real : ∑ i, (c i : ℝ) • v i = 0 := by
+      convert hc using 1;
+    exact fun i => by have := Fintype.linearIndependent_iff.mp li ( c · ) h_real i; aesop;
+  rw [ Fintype.linearIndependent_iff ] ; aesop
+
+
 /-- Convert the columns of a LatticeBasis to vectors in Euclidean space over ℝ. -/
-noncomputable def LatticeBasis.realCols (B : LatticeBasis n k) :
-    Fin k → EuclideanSpace ℝ (Fin n) :=
-  fun j => piToEuc (fun i => B.toRealMatrix i j)
+def LatticeBasis.cols (B : LatticeBasis n k) :
+    Fin k → 𝔼 n :=
+    B.basis
 
 /-- Convert the rows of a LatticeBasis to vectors in Euclidean space over ℝ. -/
-noncomputable def LatticeBasis.realRows (B : LatticeBasis n k) :
-    Fin n → EuclideanSpace ℝ (Fin k) :=
-  fun i => piToEuc (fun j => B.toRealMatrix i j)
+def LatticeBasis.rows (B : LatticeBasis n k) :
+    Fin n → 𝔼 k :=
+  fun i => piToEuc (fun j => B.basis j i)
 
-/-- Allows user to provide a proof that the lattice basis is full rank. -/
-def LatticeBasis.LinearIndependentReal (B : LatticeBasis n k) : Prop :=
-  LinearIndependent ℝ (B.realCols)
-
-/-- Convert a SquareLatticeBasis to a Module.Basis, given proof of full rank -/
-noncomputable def LatticeBasis.toModuleBasis (B : SquareLatticeBasis n) (fullrank: B.LinearIndependentReal) :
+/-- Convert a SquareLatticeBasis to a Basis of the ambient space -/
+def LatticeBasis.asTopBasis (B : SquareLatticeBasis n) :
     Module.Basis (Fin n) ℝ (𝔼 n) :=
-  let h_span : Submodule.span ℝ (Set.range B.realCols) = ⊤ := by
+  let h_span : Submodule.span ℝ (Set.range B.cols) = ⊤ := by
     have h_dim : Fintype.card (Fin n) = finrank ℝ (EuclideanSpace ℝ (Fin n)) := by
       simp [finrank_euclideanSpace]
     apply
-      LinearIndependent.span_eq_top_of_card_eq_finrank fullrank h_dim
-  Module.Basis.mk fullrank h_span.ge
+      LinearIndependent.span_eq_top_of_card_eq_finrank B.li h_dim
+  Module.Basis.mk B.li h_span.ge
+
+/-- Convert a LatticeBasis to a real-span Basis of the k-dimensional subspace the lattice lives in -/
+def LatticeBasis.asRealSpanBasis (B : LatticeBasis n k) :
+    Module.Basis (Fin k) ℝ (Submodule.span ℝ (Set.range B.basis)) :=
+    Basis.span B.li
+
+/-- Convert a LatticeBasis to a ZSpan Basis of the lattice -/
+def LatticeBasis.asZSpanBasis (B : LatticeBasis n k) :
+    Module.Basis (Fin k) ℤ (Submodule.span ℤ (Set.range B.basis)) :=
+    have li_z : LinearIndependent ℤ B.basis := by
+     exact Z_linearIndependent_if_R_linearIndependent B.li
+    Basis.span li_z
+
+/-- Convert a LatticeBasis to a matrix representation. -/
+def LatticeBasis.asMatrix (B : LatticeBasis n k) :
+    Matrix (Fin n) (Fin k) ℝ :=
+  Matrix.of (fun i j => B.basis j i)
+
+/-- Convert a full rank matrix representation to a LatticeBasis. -/
+def LatticeBasis.fromMatrix (M : Matrix (Fin n) (Fin k) ℝ) (le_dim : k ≤ n) (li : LinearIndependent ℝ (fun j => piToEuc (M.col j))) : LatticeBasis n k :=
+  {
+    basis := fun i => M.col i
+
+    le_dim := le_dim
+
+    li := li
+  }
+
 
 /-- Proof that any linear independent set of k (k ≤ n) vectors over ℝ^n has a discrete z-span -/
 theorem discrete_zspan {v : Fin k → 𝔼 n} (li : LinearIndependent ℝ v) :
@@ -172,28 +212,28 @@ theorem discrete_zspan {v : Fin k → 𝔼 n} (li : LinearIndependent ℝ v) :
 
 /-- Allow to claim a basis generates a lattice -/
 def LatticeBasis.isBasisFor (B : LatticeBasis n k) (L : AbstractLattice (𝔼 n)) : Prop :=
-  L.carrier = Submodule.span ℤ (Set.range B.realCols)
+  L.carrier = Submodule.span ℤ (Set.range B.cols)
 
 
 /-- A lattice together with a chosen basis. -/
 structure LatticeWithBasis (n k : ℕ+) extends AbstractLattice (𝔼 n) where
   basis   : LatticeBasis n k
-  is_basis : Submodule.span ℤ (Set.range basis.realCols) = carrier
+  is_basis : Submodule.span ℤ (Set.range basis.cols) = carrier
   rank : ℕ+
 
-noncomputable def LatticeBasis.toLattice (B : LatticeBasis n k) (fullrank: B.LinearIndependentReal) :
+noncomputable def LatticeBasis.toLattice (B : LatticeBasis n k) :
     LatticeWithBasis n k :=
-  let carrier_module := Submodule.span ℤ (Set.range B.realCols)
+  let carrier_module := Submodule.span ℤ (Set.range B.cols)
   {
     carrier := carrier_module
 
     fg := by
-      have h_fin : (Set.range B.realCols).Finite :=
+      have h_fin : (Set.range B.cols).Finite :=
         Set.finite_range _
       exact Submodule.fg_span h_fin
 
     discrete := by
-      exact discrete_zspan fullrank
+      exact discrete_zspan B.li
 
     basis := B
 
@@ -208,19 +248,19 @@ noncomputable def LatticeBasis.toLattice (B : LatticeBasis n k) (fullrank: B.Lin
 class FullRank {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℝ V] [FiniteDimensional ℝ V] (L : AbstractLattice V) : Prop where
   span_top : Submodule.span ℝ (L.carrier : Set V) = ⊤
 
-instance (B : SquareLatticeBasis n) (li : B.LinearIndependentReal) :
-    FullRank (B.toLattice li).toAbstractLattice where
+instance (B : SquareLatticeBasis n) :
+    FullRank B.toLattice.toAbstractLattice where
   span_top := by
-    let L := B.toLattice li
+    let L := B.toLattice
     --  expand the goal by def
-    have h_carrier : L.carrier = Submodule.span ℤ (Set.range B.realCols) := by rfl
+    have h_carrier : L.carrier = Submodule.span ℤ (Set.range B.cols) := by rfl
     rw [h_carrier]
     -- The basis spans the whole space because it's fullrank
-    have h_B_span_eq_top : Submodule.span ℝ (Set.range (B.realCols)) = ⊤ := by
-      apply LinearIndependent.span_eq_top_of_card_eq_finrank li
+    have h_B_span_eq_top : Submodule.span ℝ (Set.range (B.cols)) = ⊤ := by
+      apply LinearIndependent.span_eq_top_of_card_eq_finrank B.li
       exact Eq.symm finrank_euclideanSpace
     -- The span of L is a supset of the span of its basis
-    have h_supset : Submodule.span ℝ (Set.range (B.realCols)) ≤ Submodule.span ℝ (L.carrier : Set (𝔼 n)) := by
+    have h_supset : Submodule.span ℝ (Set.range (B.cols)) ≤ Submodule.span ℝ (L.carrier : Set (𝔼 n)) := by
       apply Submodule.span_mono
       exact Submodule.span_le.mp fun ⦃x⦄ a => a
 
@@ -239,16 +279,44 @@ abbrev UnimodularMatrix (k : ℕ+) := Matrix.GeneralLinearGroup (Fin k) ℤ
 -/
 def LatticeBasis.mul_unimodular (B : LatticeBasis n k) (U : UnimodularMatrix k) :
     LatticeBasis n k :=
+    let basis_mat : Matrix (Fin n) (Fin k) ℝ := B.asMatrix * (Matrix.map U (Int.castRingHom ℝ))
+    have h_li : LinearIndependent ℝ (fun j => basis_mat.col j) := by
+      -- Since $B$ is a lattice basis, its columns are linearly independent. Multiplying by an invertible matrix $U$ preserves linear independence.
+      have h_lin_ind : LinearIndependent ℝ (fun j => B.asMatrix.col j) := by
+        convert B.li;
+      -- Since $U$ is invertible, the only solution to $Ux = 0$ is $x = 0$. Therefore, if the columns of $B.asMatrix$ are linearly independent, then the columns of $B.asMatrix * U$ are also linearly independent.
+      have h_inv : ∀ x : Fin k → ℝ, B.asMatrix.mulVec x = 0 → x = 0 := by
+        rw [ Fintype.linearIndependent_iff ] at h_lin_ind;
+        intro x hx;
+        exact funext fun i => h_lin_ind x ( by ext j; simpa [ Matrix.mulVec, dotProduct, mul_comm ] using congr_fun hx j ) i;
+      have h_linear_comb : ∀ (x : Fin k → ℝ), basis_mat.mulVec x = 0 → x = 0 := by
+        intro x hx
+        have hUx : B.asMatrix.mulVec (Matrix.mulVec (U.map (Int.castRingHom ℝ)) x) = 0 := by
+          simp +zetaDelta at *;
+          exact hx;
+        specialize h_inv _ hUx;
+        exact Matrix.eq_zero_of_mulVec_eq_zero ( show ( Matrix.GeneralLinearGroup.map ( Int.castRingHom ℝ ) U : Matrix ( Fin k ) ( Fin k ) ℝ ).det ≠ 0 from by
+              -- Since $U$ is a unimodular matrix, its determinant is $\pm 1$. When we map it to $\mathbb{R}$, the determinant remains $\pm 1$, which is non-zero.
+          have h_det : (U.map (Int.castRingHom ℝ)).det = (U.det : ℝ) := by
+            simp +decide [ Matrix.det_apply' ];
+          aesop;
+          exact absurd a ( by exact Matrix.det_ne_zero_of_left_inverse U.inv_mul ) ) h_inv;
+      rw [ Fintype.linearIndependent_iff ] ; aesop;
+      specialize h_linear_comb g;
+      contrapose! h_linear_comb;
+      exact ⟨ by ext i; simpa [ Matrix.mulVec, dotProduct, mul_comm ] using congr_fun a i, fun h => h_linear_comb <| h ▸ rfl ⟩
   {
-    -- Convert U from ℤ to ℚ and multiply: (n×k) * (k×k) -> (n×k)
-    basis := B.basis * (Matrix.map U (Int.castRingHom ℚ))
+    basis :=  fun i => basis_mat.col i
 
     -- Rank/Dimensions are preserved
     le_dim := B.le_dim
+
+    li := h_li
   }
 
 -- Allow the infix notation B ◾ U for readability
 infixl:75 " ◾ " => LatticeBasis.mul_unimodular
+
 
 /--
   Two bases are unimodularly equivalent if there exists a U such that B2 = B1 ◾ U.
@@ -261,47 +329,64 @@ theorem LatticeBasis.UnimodularEquiv.refl (B : LatticeBasis n k) :
     B.UnimodularEquiv B := by
   use 1
   simp [LatticeBasis.mul_unimodular]
+  bound
 
 theorem LatticeBasis.UnimodularEquiv.symm {B1 B2 : LatticeBasis n k}
     (h : B1.UnimodularEquiv B2) : B2.UnimodularEquiv B1 := by
-  obtain ⟨U, h_eq⟩ := h
-  use U⁻¹
-  -- Proof: B2 * U⁻¹ = (B1 * U) * U⁻¹ = B1 * (U * U⁻¹) = B1
-  simp [h_eq, LatticeBasis.mul_unimodular, Matrix.mul_assoc]
-  -- Since $U * U⁻¹ = 1$, we have $((U : Matrix (Fin k) (Fin k) ℤ).map (Int.castRingHom ℚ) * (U⁻¹ : Matrix (Fin k) (Fin k) ℤ).map (Int.castRingHom ℚ)) = 1$.
-  have h_id : ((U : Matrix (Fin k) (Fin k) ℤ).map (Int.castRingHom ℚ) * (U⁻¹ : Matrix (Fin k) (Fin k) ℤ).map (Int.castRingHom ℚ)) = 1 := by
-    exact Matrix.GeneralLinearGroup.coe_map_mul_map_inv (Int.castRingHom ℚ) U;
-  aesop
+  -- Since $U$ is unimodular, its inverse $U^{-1}$ is also unimodular. Therefore, we can take $U' = U^{-1}$.
+  obtain ⟨U, hU⟩ := h;
+  use U⁻¹;
+  aesop;
+  -- By definition of matrix multiplication and the properties of unimodular matrices, we have:
+  have h_mul : (B1.mul_unimodular U).mul_unimodular U⁻¹ = B1.mul_unimodular (U * U⁻¹) := by
+    -- By definition of matrix multiplication and the properties of unimodular matrices, we can show that multiplying by U and then by U⁻¹ is the same as multiplying by the identity matrix.
+    have h_mul : (B1.mul_unimodular U).mul_unimodular U⁻¹ = B1.mul_unimodular (U * U⁻¹) := by
+      have h_assoc : ∀ (B : LatticeBasis n k) (U V : Matrix.GeneralLinearGroup (Fin k) ℤ), (B.mul_unimodular U).mul_unimodular V = B.mul_unimodular (U * V) := by
+        -- By definition of matrix multiplication, we can show that the columns of B.mul_unimodular U are equal to the columns of B multiplied by U.
+        intros B U V
+        ext i
+        simp [LatticeBasis.mul_unimodular];
+        simp +decide [ Matrix.mul_apply, LatticeBasis.asMatrix ];
+        simp +decide only [Finset.sum_mul, mul_assoc, Finset.mul_sum _ _ _];
+        rw [ Finset.sum_comm ]
+      -- Apply the associativity hypothesis h_assoc with V = U⁻¹.
+      apply h_assoc;
+    exact h_mul;
+  aesop;
+  unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.mul_unimodular; aesop;
 
 theorem LatticeBasis.UnimodularEquiv.trans {B1 B2 B3 : LatticeBasis n k}
     (h1 : B1.UnimodularEquiv B2) (h2 : B2.UnimodularEquiv B3) :
     B1.UnimodularEquiv B3 := by
-  obtain ⟨U, rfl⟩ := h1
-  obtain ⟨V, rfl⟩ := h2
-  -- Note the order: B3 = (B1 * U) * V = B1 * (U * V)
-  use U * V
-  simp [LatticeBasis.mul_unimodular, Matrix.mul_assoc]
-  -- Matrix.map_mul ensures the cast from ℤ to ℚ works over multiplication
-  -- The product of two matrices over a field is the same as the product of their entries.
-  ext; simp [Matrix.mul_apply]
+  cases h1 ; cases h2 ; aesop;
+  -- By definition of unimodular equivalence, we need to show that B1 and (B1.mul_unimodular w).mul_unimodular w_1 are related by a unimodular transformation.
+  use w * w_1;
+  -- By definition of matrix multiplication, we can rewrite the left-hand side as $(B1 * w) * w_1$.
+  simp [LatticeBasis.mul_unimodular];
+  -- By the associativity of matrix multiplication, we can rewrite the left-hand side as B1.asMatrix * (w * w_1).
+  have h_assoc : (B1.asMatrix * (w : Matrix (Fin k) (Fin k) ℤ).map (Int.castRingHom ℝ)) * (w_1 : Matrix (Fin k) (Fin k) ℤ).map (Int.castRingHom ℝ) = B1.asMatrix * ((w : Matrix (Fin k) (Fin k) ℤ) * (w_1 : Matrix (Fin k) (Fin k) ℤ)).map (Int.castRingHom ℝ) := by
+    ext i j;
+    -- By the associativity of matrix multiplication, we can rearrange the terms to show that the two expressions are equal.
+    simp [Matrix.mul_assoc];
+    simp +decide [ Matrix.mul_apply, Matrix.map_apply ];
+  convert congr_arg ( fun m => fun i => m.col i ) h_assoc using 1
 
 -- Helper: Just showing the linear algebra expansion without the full proof
-lemma realCols_mul_unimodular (B : LatticeBasis n k) (U : UnimodularMatrix k) (i : Fin k) :
-    (B ◾ U).realCols i = ∑ j : Fin k, (U.val j i : ℝ) • B.realCols j := by
-  -- 1. Unfold definitions of realCols and matrix multiplication
-  unfold LatticeBasis.realCols LatticeBasis.mul_unimodular;
-  -- 2. Use the fact that projection to Euclidean space is linear
-  ext j; simp +decide [ Matrix.mul_apply, LatticeBasis.toRealMatrix ];
-  simp +decide [ piToEuc];
-  -- 3. Show that the casting from ℚ to ℝ commutes with the sum
+lemma cols_mul_unimodular (B : LatticeBasis n k) (U : UnimodularMatrix k) (i : Fin k) :
+    (B ◾ U).cols i = ∑ j : Fin k, (U.val j i : ℝ) • B.cols j := by
+  unfold LatticeBasis.cols;
+  ext; simp ;
+  unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.mul_unimodular; aesop;
+  simp +decide [ Matrix.mul_apply ];
   rw [ Finset.sum_apply, Finset.sum_congr rfl ] ; aesop;
-  ring
+  exact mul_comm _ _
+
 /--
   Helper Lemma: Multiplying a basis by an integer matrix (even if not invertible)
   results in a sublattice. The span of the new columns is contained in the span of the old.
 -/
 lemma span_le_of_mul (B : LatticeBasis n k) (U : Matrix.GeneralLinearGroup (Fin k) ℤ) :
-    Submodule.span ℤ (Set.range (B ◾ U).realCols) ≤ Submodule.span ℤ (Set.range B.realCols) := by
+    Submodule.span ℤ (Set.range (B ◾ U).cols) ≤ Submodule.span ℤ (Set.range B.cols) := by
   -- We use the property that span A ≤ span B iff every element of A is in span B
   rw [Submodule.span_le]
 
@@ -309,7 +394,7 @@ lemma span_le_of_mul (B : LatticeBasis n k) (U : Matrix.GeneralLinearGroup (Fin 
   rintro v ⟨i, rfl⟩
 
   -- We need to show that column 'i' of (B ◾ U) is in the Z-span of B
-  rw [realCols_mul_unimodular]
+  rw [cols_mul_unimodular]
   -- The column is a sum: ∑ U_{ji} • (B_j).
   -- Since U_{ji} are integers, the sum of integer multiples of lattice vectors
   -- is essentially the definition of being in the lattice span.
@@ -328,40 +413,38 @@ lemma span_le_of_mul (B : LatticeBasis n k) (U : Matrix.GeneralLinearGroup (Fin 
   We return it as a function (Fin k → ℤ).
 -/
 noncomputable def get_integer_coeffs {v : 𝔼 n} {B : LatticeBasis n k}
-  (h_mem : v ∈ Submodule.span ℤ (Set.range B.realCols))
-  (h_li : B.LinearIndependentReal) : Fin k → ℤ := by
+  (h_mem : v ∈ Submodule.span ℤ (Set.range B.cols)) : Fin k → ℤ := by
   -- Use Mathlib's linear algebra API to extract coordinates
   -- We know v = ∑ c_i • b_i. Since B is LI over ℝ, it is LI over ℤ.
   -- Thus the representation is unique.
-  have h_li_z : LinearIndependent ℤ B.realCols := by
-    -- If the realCols are linearly independent over ℝ, then any linear combination with integer coefficients that equals zero must have all coefficients zero.
-    have h_int_lin_ind : ∀ (c : Fin k → ℤ), (∑ i, c i • B.realCols i = 0) → (∀ i, c i = 0) := by
+  have h_li_z : LinearIndependent ℤ B.cols := by
+    -- If the cols are linearly independent over ℝ, then any linear combination with integer coefficients that equals zero must have all coefficients zero.
+    have h_int_lin_ind : ∀ (c : Fin k → ℤ), (∑ i, c i • B.cols i = 0) → (∀ i, c i = 0) := by
       -- Since the coefficients are integers, they are also real numbers. Therefore, if the sum is zero in ℝ, then each coefficient must be zero.
       intros c hc
-      have h_real : ∑ i, (c i : ℝ) • B.realCols i = 0 := by
+      have h_real : ∑ i, (c i : ℝ) • B.cols i = 0 := by
         convert hc using 1;
         congr! 2;
         -- Since the scalar multiplication in the real numbers is the same as in the integers when the scalar is an integer, the two functions are equal.
         ext; simp;
-      exact fun i => by have := Fintype.linearIndependent_iff.mp h_li ( c · ) h_real i; aesop;
+      exact fun i => by have := Fintype.linearIndependent_iff.mp B.li ( c · ) h_real i; aesop;
     rw [ Fintype.linearIndependent_iff ] ; aesop
   let module_basis := Basis.span h_li_z
-  let v_in_span : Submodule.span ℤ (Set.range B.realCols) := ⟨v, h_mem⟩
+  let v_in_span : Submodule.span ℤ (Set.range B.cols) := ⟨v, h_mem⟩
   exact (module_basis.repr v_in_span : Fin k → ℤ)
 
 /--
   The constructed integer matrix U that B2 = B1 * U.
 -/
 noncomputable def transition_matrix (B1 B2 : LatticeBasis n k)
-  (h_subset : Submodule.span ℤ (Set.range B2.realCols) ≤ Submodule.span ℤ (Set.range B1.realCols))
-  (li1 : B1.LinearIndependentReal) : Matrix (Fin k) (Fin k) ℤ :=
+  (h_subset : Submodule.span ℤ (Set.range B2.cols) ≤ Submodule.span ℤ (Set.range B1.cols)) : Matrix (Fin k) (Fin k) ℤ :=
   fun j i =>
     -- The (i, j)-th entry is the i-th coefficient of the j-th column of B2
     -- when expressed in basis B1.
-    let col_j := B2.realCols j
-    let h_mem_j : col_j ∈ Submodule.span ℤ (Set.range B1.realCols) := by
+    let col_j := B2.cols j
+    let h_mem_j : col_j ∈ Submodule.span ℤ (Set.range B1.cols) := by
       exact h_subset <| Submodule.subset_span <| Set.mem_range_self _
-    get_integer_coeffs h_mem_j li1 i
+    get_integer_coeffs h_mem_j i
 
 
 /--
@@ -370,7 +453,7 @@ noncomputable def transition_matrix (B1 B2 : LatticeBasis n k)
 -/
 theorem LatticeBasis.span_eq_of_UnimodularEquiv {B1 B2 : LatticeBasis n k}
     (h : B1.UnimodularEquiv B2) :
-    Submodule.span ℤ (Set.range B1.realCols) = Submodule.span ℤ (Set.range B2.realCols) := by
+    Submodule.span ℤ (Set.range B1.cols) = Submodule.span ℤ (Set.range B2.cols) := by
   obtain ⟨U, rfl⟩ := h
 
   -- Use antisymmetry: L1 ≤ L2 and L2 ≤ L1 implies L1 = L2
@@ -379,13 +462,19 @@ theorem LatticeBasis.span_eq_of_UnimodularEquiv {B1 B2 : LatticeBasis n k}
   · -- Direction 1: span(B1) ≤ span(B1 ◾ U)
     -- Trick: B1 can be written as (B1 ◾ U) ◾ U⁻¹
     have h_eq : B1 = (B1 ◾ U) ◾ U⁻¹ := by
-      -- Proof that B * U * U⁻¹ = B
-      -- This requires associativity of your `◾` operation
-      unfold LatticeBasis.mul_unimodular; aesop;
-      -- Since $U$ is invertible, $U * U⁻¹ = 1$, the identity matrix. Therefore, multiplying $B1$'s basis by $U$ and then by $U⁻¹$ gives $B1$'s basis back.
-      have h_id : (B1.basis * (U : Matrix (Fin k) (Fin k) ℤ).map (Int.castRingHom ℚ)) * (U⁻¹ : Matrix (Fin k) (Fin k) ℤ).map (Int.castRingHom ℚ) = B1.basis * (1 : Matrix (Fin k) (Fin k) ℚ) := by
-        rw [ Matrix.mul_assoc, ← Matrix.map_mul ] ; aesop;
-      aesop
+      -- Since $U$ is unimodular, we have $U * U⁻¹ = 1$, the identity matrix.
+      have h_unit : U.val * U⁻¹.val = 1 := by
+        aesop;
+      ext i j ; aesop;
+      -- Since $U$ is unimodular, we have $U * U⁻¹ = 1$, the identity matrix. Therefore, $B1 * U * U⁻¹ = B1$.
+      have h_unit : B1.asMatrix * (U.val.map (Int.castRingHom ℝ)) * (U⁻¹.val.map (Int.castRingHom ℝ)) = B1.asMatrix := by
+        have h_unit : (U.val.map (Int.castRingHom ℝ)) * (U⁻¹.val.map (Int.castRingHom ℝ)) = 1 := by
+          rw [ ← Matrix.map_mul ] ; aesop;
+        -- Since multiplying by the identity matrix doesn't change the matrix, we can conclude that B1.asMatrix * (U.val.map (Int.castRingHom ℝ)) * (U⁻¹.val.map (Int.castRingHom ℝ)) = B1.asMatrix.
+        rw [Matrix.mul_assoc, h_unit, Matrix.mul_one];
+      convert congr_fun ( congr_fun h_unit j ) i using 1;
+      · exact?;
+      · convert congr_fun ( congr_fun h_unit j ) i using 1
 
     -- Rewrite B1 and apply the helper lemma
     nth_rw 1 [h_eq]
@@ -395,105 +484,80 @@ theorem LatticeBasis.span_eq_of_UnimodularEquiv {B1 B2 : LatticeBasis n k}
     -- This is exactly our helper lemma
     apply span_le_of_mul
 
-
+/-- Two (n k) lattice bases are unimodularly equivalent if and only if their spans are equal. -/
 theorem LatticeBasis.UnimodularEquiv_of_span_eq {B1 B2 : LatticeBasis n k}
-    (h : Submodule.span ℤ (Set.range B1.realCols) = Submodule.span ℤ (Set.range B2.realCols)) (li1 : B1.LinearIndependentReal) (li2 : B2.LinearIndependentReal): B1.UnimodularEquiv B2 := by
-  -- Since the spans are equal, each column of B2 can be written as a linear combination of the columns of B1 with integer coefficients.
-  have h_comb : ∀ j : Fin k, ∃ c : Fin k → ℤ, B2.realCols j = ∑ i, c i • B1.realCols i := by
-    intro j
-    have h_mem : B2.realCols j ∈ Submodule.span ℤ (Set.range B1.realCols) := by
-      exact h ▸ Submodule.subset_span ( Set.mem_range_self j );
-    rw [ Finsupp.mem_span_range_iff_exists_finsupp ] at h_mem;
-    exact ⟨ h_mem.choose, by simpa [ Finsupp.sum_fintype ] using h_mem.choose_spec.symm ⟩;
-  -- Construct the matrix U such that B2 = B1 * U.
-  obtain ⟨U, hU⟩ : ∃ U : Matrix (Fin k) (Fin k) ℤ, B2.basis = B1.basis * Matrix.map U (Int.castRingHom ℚ) := by
-    choose c hc using h_comb;
-    use Matrix.of (fun i j => c j i);
-    ext i j;
-    -- By definition of matrix multiplication and the hypothesis hc, we can rewrite the right-hand side of the equation.
-    have h_eq : B2.basis i j = ∑ x : Fin k, c j x * B1.basis i x := by
-      have h_col : B2.realCols j = ∑ x : Fin k, c j x • B1.realCols x := hc j
-      convert congr_fun ( congr_arg ( fun x : EuclideanSpace ℝ ( Fin n ) => eucToPi x ) h_col ) i using 1;
-      simp +decide [ ← @Rat.cast_inj ℝ];
-      unfold LatticeBasis.realCols; aesop;
-    simpa [ Matrix.mul_apply, mul_comm ] using h_eq;
-  -- Since U is an integer matrix and the spans are equal, U must be invertible over the integers.
-  have h_inv : ∃ V : Matrix (Fin k) (Fin k) ℤ, U * V = 1 := by
-    -- Since $B1$ and $B2$ are both bases for the same lattice, $B1$ can be written as $B2 * V$ for some integer matrix $V$.
-    obtain ⟨V, hV⟩ : ∃ V : Matrix (Fin k) (Fin k) ℤ, B1.basis = B2.basis * Matrix.map V (Int.castRingHom ℚ) := by
-      have h_comb : ∀ j : Fin k, ∃ c : Fin k → ℤ, B1.realCols j = ∑ i, c i • B2.realCols i := by
-        -- Since the spans are equal, any element in the span of B1.realCols is also in the span of B2.realCols. Therefore, B1.realCols j is in the span of B2.realCols.
-        have h_span : ∀ j : Fin k, B1.realCols j ∈ Submodule.span ℤ (Set.range B2.realCols) := by
-          exact fun j => h ▸ Submodule.subset_span ( Set.mem_range_self j );
-        intro j; specialize h_span j; rw [ Submodule.mem_span_range_iff_exists_fun ] at h_span; tauto;
-      choose c hc using h_comb;
-      use Matrix.of (fun i j => c j i);
-      -- By definition of matrix multiplication and the hypothesis hc, we can show that B1.basis is equal to B2.basis multiplied by the matrix of coefficients c.
-      ext i j; simp [Matrix.mul_apply];
-      convert congr_fun ( hc j ) i using 1;
-      simp +decide [ LatticeBasis.realCols, mul_comm ];
-      simp +decide [ piToEuc, LatticeBasis.toRealMatrix ];
-      erw [ Finset.sum_apply ] ; norm_num [ WithLp.toLp ];
-      norm_cast;
-    -- Since $B1$ and $B2$ are both bases for the same lattice, $B1$ can be written as $B2 * V$ for some integer matrix $V$. Substitute $B2$ from $hU$ into $hV$.
-    have h_subst : B1.basis = (B1.basis * U.map (Int.castRingHom ℚ)) * V.map (Int.castRingHom ℚ) := by
-      rw [ ← hU, hV ];
-    -- Since $B1$ and $B2$ are both bases for the same lattice, $B1$ can be written as $B2 * V$ for some integer matrix $V$. Substitute $B2$ from $hU$ into $hV$ and simplify.
-    have h_simplified : B1.basis * (U.map (Int.castRingHom ℚ) * V.map (Int.castRingHom ℚ) - 1) = 0 := by
-      rw [ Matrix.mul_sub, Matrix.mul_one, ← Matrix.mul_assoc, ← h_subst, sub_self ];
-    -- Since $B1$ is a basis, the only solution to $B1 * X = 0$ is $X = 0$.
-    have h_basis : ∀ X : Matrix (Fin k) (Fin k) ℚ, B1.basis * X = 0 → X = 0 := by
-      intro X hX
-      have h_lin_ind : ∀ (v : Fin k → ℚ), B1.basis.mulVec v = 0 → v = 0 := by
-        intro v hv
-        have h_lin_ind : ∀ (v : Fin k → ℝ), Matrix.mulVec (B1.toRealMatrix) v = 0 → v = 0 := by
-          intro v hv;
-          have := Fintype.linearIndependent_iff.mp li1;
-          ext i;
-          convert this v _ i;
-          ext i;
-          convert congr_fun hv i using 1;
-          simp +decide [ Matrix.mulVec, dotProduct, mul_comm ];
-          rw [ Finset.sum_apply, Finset.sum_congr rfl ] ; intros ; simp +decide ;
-          exact Or.inl rfl;
-        contrapose! h_lin_ind;
-        use fun i => v i;
-        -- Since $v$ is a rational vector and not zero, when we cast it to real numbers, it should still not be zero.
-        have h_real_v_ne_zero : (fun i => (v i : ℝ)) ≠ 0 := by
-          exact fun h => h_lin_ind <| funext fun i => by simpa using congr_fun h i;
-        exact ⟨ by ext i; simpa [ Matrix.mulVec, dotProduct ] using congr_arg ( fun x : Fin n → ℚ => ( x i : ℝ ) ) hv, h_real_v_ne_zero ⟩;
-      -- Apply h_lin_ind to each column of X.
-      have h_col_zero : ∀ j : Fin k, B1.basis.mulVec (X.mulVec (Pi.single j 1)) = 0 := by
-        intro j
-        have h_col_zero : B1.basis.mulVec (X.mulVec (Pi.single j 1)) = (B1.basis * X).mulVec (Pi.single j 1) := by
-          rw [ Matrix.mulVec_mulVec ];
-        rw [ h_col_zero, hX, Matrix.zero_mulVec ];
-      exact Matrix.ext fun i j => by simpa using congr_fun ( h_lin_ind _ ( h_col_zero j ) ) i;
-    specialize h_basis _ h_simplified;
-    norm_num [ ← Matrix.ext_iff ] at *;
-    -- Since $(U * V) i j = 1 i j$ for all $i$ and $j$, this implies that $U * V$ is the identity matrix.
-    use V;
-    -- Since the entries of U and V are integers, the equality (U * V) i j = 1 i j holds in the integers as well.
-    intros i j
-    have := h_basis i j
-    simp [Matrix.mul_apply, Matrix.one_apply] at this;
-    norm_cast at this;
-    simpa [ Matrix.one_apply ] using eq_of_sub_eq_zero this;
-  -- Since U is invertible over the integers, it is a unimodular matrix.
-  have h_unimodular : IsUnit U := by
-    exact Matrix.isUnit_of_right_inverse h_inv.choose_spec;
-  use h_unimodular.unit;
-  cases B1 ; cases B2 ; aesop
+    (h : Submodule.span ℤ (Set.range B1.cols) = Submodule.span ℤ (Set.range B2.cols)) : B1.UnimodularEquiv B2 := by
+  -- Since the spans are equal, there exists a matrix U with integer entries such that B2 = B1 * U.
+  obtain ⟨U, hU⟩ : ∃ U : Matrix (Fin k) (Fin k) ℤ, B2.asMatrix = B1.asMatrix * Matrix.map U (Int.castRingHom ℝ) := by
+    -- Since $B2$'s columns are in the span of $B1$'s columns, each column of $B2$ can be written as a linear combination of the columns of $B1$ with integer coefficients.
+    have h_comb : ∀ j : Fin k, ∃ u : Fin k → ℤ, B2.cols j = ∑ i : Fin k, u i • B1.cols i := by
+      -- By definition of submodule span, if $B2.cols j$ is in the submodule spanned by $B1.cols$, then there exist integers $u_i$ such that $B2.cols j = \sum_{i=0}^{k-1} u_i • B1.cols i$.
+      intro j
+      have h_mem : B2.cols j ∈ Submodule.span ℤ (Set.range B1.cols) := by
+        exact h.symm ▸ Submodule.subset_span ( Set.mem_range_self j );
+      rw [ Finsupp.mem_span_range_iff_exists_finsupp ] at h_mem ; aesop;
+      exact ⟨ _, h_1.symm ⟩;
+    choose u hu using h_comb;
+    use Matrix.of (fun i j => u j i);
+    -- By definition of matrix multiplication, each entry in the product matrix is the sum of the products of the corresponding entries from B1.asMatrix and the matrix of u_j i.
+    ext i j; simp [Matrix.mul_apply];
+    convert congr_fun ( hu j ) i using 1 ; simp +decide [ mul_comm ];
+    rw [ Finset.sum_apply ] ; aesop;
+  -- Since U is an integer matrix and the spans are equal, U must be unimodular.
+  have h_unimodular : IsUnit (Matrix.det U) := by
+    -- Since the spans are equal, there exists a matrix V with integer entries such that B1 = B2 * V.
+    obtain ⟨V, hV⟩ : ∃ V : Matrix (Fin k) (Fin k) ℤ, B1.asMatrix = B2.asMatrix * Matrix.map V (Int.castRingHom ℝ) := by
+      have hV : ∀ i : Fin k, ∃ v : Fin k → ℤ, B1.cols i = ∑ j : Fin k, v j • B2.cols j := by
+        intro i;
+        have hV : B1.cols i ∈ Submodule.span ℤ (Set.range B2.cols) := by
+          exact h ▸ Submodule.subset_span ( Set.mem_range_self i );
+        rw [ Finsupp.mem_span_range_iff_exists_finsupp ] at hV;
+        exact ⟨ hV.choose, by simpa [ Finsupp.sum_fintype ] using hV.choose_spec.symm ⟩;
+      -- Construct the matrix V by taking the vectors v_i from hV as its columns.
+      obtain ⟨V, hV⟩ : ∃ V : Matrix (Fin k) (Fin k) ℤ, ∀ i : Fin k, B1.cols i = ∑ j : Fin k, V j i • B2.cols j := by
+        exact ⟨ fun j i => Classical.choose ( hV i ) j, fun i => Classical.choose_spec ( hV i ) ⟩;
+      use V;
+      ext i j; simp +decide [ Matrix.mul_apply ] ;
+      convert congr_fun ( hV j ) i using 1 ; simp +decide [ mul_comm ];
+      rw [ Finset.sum_apply, Finset.sum_congr rfl ] ; intros ; aesop;
+      exact Or.inl ( hU ▸ rfl );
+    -- Since B1 and B2 are bases, their matrices are invertible over the reals. Therefore, U must be invertible over the integers.
+    have h_inv : B1.asMatrix * U.map (Int.castRingHom ℝ) * V.map (Int.castRingHom ℝ) = B1.asMatrix := by
+      rw [ ← hU, ← hV ];
+    -- Since B1 is a basis, its matrix is invertible over the reals. Therefore, we can multiply both sides of the equation by B1.asMatrix⁻¹.
+    have h_inv_mul : U.map (Int.castRingHom ℝ) * V.map (Int.castRingHom ℝ) = 1 := by
+      have h_inv_mul : B1.asMatrix * (U.map (Int.castRingHom ℝ) * V.map (Int.castRingHom ℝ) - 1) = 0 := by
+        rw [ Matrix.mul_sub, Matrix.mul_one, ← Matrix.mul_assoc, h_inv, sub_self ];
+      have h_inv_mul : Function.Injective (Matrix.mulVec B1.asMatrix) := by
+        have h_inv_mul : LinearIndependent ℝ (fun j => B1.asMatrix.col j) := by
+          convert B1.li using 1;
+        rw [ Fintype.linearIndependent_iff ] at h_inv_mul;
+        -- If the sum of g_i times the columns of B1.asMatrix is zero, then each g_i must be zero because the columns are linearly independent.
+        have h_inj : ∀ (g : Fin k → ℝ), B1.asMatrix.mulVec g = 0 → g = 0 := by
+          exact fun g hg => funext fun i => h_inv_mul g ( by simpa [ funext_iff, Matrix.mulVec, dotProduct, mul_comm ] using hg ) i;
+        exact fun x y hxy => sub_eq_zero.mp ( h_inj ( x - y ) ( by simpa [ sub_eq_add_neg, Matrix.mulVec_add, Matrix.mulVec_neg ] using sub_eq_zero.mpr hxy ) );
+      have h_inv_mul : ∀ (M : Matrix (Fin k) (Fin k) ℝ), B1.asMatrix * M = 0 → M = 0 := by
+        intro M hM; ext i j; specialize h_inv_mul; replace h_inv_mul := @h_inv_mul ( M.mulVec ( Pi.single j 1 ) ) 0; simp_all +singlePass [ Matrix.mulVec, funext_iff ] ;
+        exact h_inv_mul ( fun x => by simpa [ Matrix.mul_apply ] using congr_fun ( congr_fun hM x ) j ) i;
+      exact sub_eq_zero.mp ( h_inv_mul _ ‹_› );
+    have h_det : U.det * V.det = 1 := by
+      replace h_inv_mul := congr_arg Matrix.det h_inv_mul ; norm_num at h_inv_mul;
+      exact_mod_cast h_inv_mul;
+    exact isUnit_of_mul_eq_one _ _ h_det;
+  use ⟨ U, U⁻¹, by
+    rw [ Matrix.mul_nonsing_inv _ _ ] ; aesop, by
+    exact Matrix.nonsing_inv_mul _ ( show IsUnit U.det from h_unimodular ) ⟩
+  generalize_proofs at *;
+  ext i j; replace hU := congr_fun ( congr_fun hU j ) i; aesop;
 
-theorem LatticeBasis.span_eq_iff {B1 B2 : LatticeBasis n k} (li1 : B1.LinearIndependentReal) (li2 : B2.LinearIndependentReal) :
-    (Submodule.span ℤ (Set.range B1.realCols) = Submodule.span ℤ (Set.range B2.realCols)) ↔ B1.UnimodularEquiv B2 := by
+theorem LatticeBasis.span_eq_iff {B1 B2 : LatticeBasis n k} :
+    (Submodule.span ℤ (Set.range B1.cols) = Submodule.span ℤ (Set.range B2.cols)) ↔ B1.UnimodularEquiv B2 := by
   -- This is a direct corollary of `
   apply Iff.intro
   . intro h
-    exact UnimodularEquiv_of_span_eq h li1 li2
+    exact UnimodularEquiv_of_span_eq h
   . intro h
     exact span_eq_of_UnimodularEquiv h
-
 
 end Lattice
 
