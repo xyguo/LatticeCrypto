@@ -17,7 +17,8 @@ This project aims to implement fundamental lattice-based cryptography algorithms
 - [X] Basis representation and linear independence
 - [X] Lattice operations (shift, scaling)
 - [X] Related structures (coset, dual lattice)
-- [ ] Fundamental lattice parameters (fundamental domain, determinant, successive minima)
+- [X] Fundamental lattice parameters (fundamental domain, determinant)
+- [ ] Successive minima and the Minkowski's First and Second Theorems
 
 ### 1.2 Lattice Algorithms
 - **Module**: `Lattice.Foundations.Algorithms`

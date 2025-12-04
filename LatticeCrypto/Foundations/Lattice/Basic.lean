@@ -1,5 +1,6 @@
 import LatticeCrypto.Foundations.Lattice.Defs
 import Mathlib.Tactic.Contrapose
+import Mathlib.Topology.Defs.Basic
 open RealInnerProductSpace
 open Classical
 
@@ -23,6 +24,134 @@ open Classical
 namespace LatticeCrypto.Foundations.Lattice
 
 variable {n k : ℕ+}
+
+/-!
+## Membership and Representation
+-/
+
+noncomputable section membership
+
+/-- Membership in a geometric lattice. -/
+instance : Membership (𝔼 n) (GeometricLattice n k) where
+  mem L v := v ∈ L.carrier
+
+/-- A vector is in the lattice iff it is in the carrier. -/
+theorem GeometricLattice.mem_def (L : GeometricLattice n k) (v : 𝔼 n) :
+    v ∈ L ↔ v ∈ L.carrier := Iff.rfl
+
+/-- A vector is in the lattice iff it can be expressed as an integer linear combination of basis vectors. -/
+theorem GeometricLattice.mem_iff_zspan (L : GeometricLattice n k) (v : 𝔼 n) :
+    v ∈ L ↔ v ∈ Submodule.span ℤ (Set.range L.basis.cols) := by
+  rw [mem_def, L.carrier_eq]
+
+/-- A vector is in the lattice iff there exist integer coefficients such that v = ∑ cᵢ bᵢ. -/
+theorem GeometricLattice.mem_iff_exists_coeffs (L : GeometricLattice n k) (v : 𝔼 n) :
+    v ∈ L ↔ ∃ c : Fin k → ℤ, v = ∑ i, c i • L.basis.cols i := by
+  rw [mem_iff_zspan]
+  constructor
+  · intro hv
+    rw [Finsupp.mem_span_range_iff_exists_finsupp] at hv
+    obtain ⟨c, hc⟩ := hv
+    use c
+    bound
+  · intro ⟨c, hc⟩
+    rw [hc]
+    apply Submodule.sum_mem
+    intro i _
+    exact Submodule.smul_mem _ _ (Submodule.subset_span (Set.mem_range_self i))
+
+/-- Zero is always in the lattice. -/
+theorem GeometricLattice.zero_mem (L : GeometricLattice n k) : (0 : 𝔼 n) ∈ L := by
+  rw [mem_def]
+  exact L.carrier.zero_mem
+
+/-- The lattice is closed under addition. -/
+theorem GeometricLattice.add_mem (L : GeometricLattice n k) {v w : 𝔼 n}
+    (hv : v ∈ L) (hw : w ∈ L) : v + w ∈ L := by
+  rw [mem_def] at *
+  exact L.carrier.add_mem hv hw
+
+/-- The lattice is closed under negation. -/
+theorem GeometricLattice.neg_mem (L : GeometricLattice n k) {v : 𝔼 n}
+    (hv : v ∈ L) : -v ∈ L := by
+  rw [mem_def] at *
+  exact L.carrier.neg_mem hv
+
+/-- The lattice is closed under subtraction. -/
+theorem GeometricLattice.sub_mem (L : GeometricLattice n k) {v w : 𝔼 n}
+    (hv : v ∈ L) (hw : w ∈ L) : v - w ∈ L := by
+  rw [mem_def] at *
+  exact L.carrier.sub_mem hv hw
+
+/-- The lattice is closed under integer scalar multiplication. -/
+theorem GeometricLattice.zsmul_mem (L : GeometricLattice n k) {v : 𝔼 n}
+    (hv : v ∈ L) (m : ℤ) : m • v ∈ L := by
+  rw [mem_def] at *
+  bound
+
+/-- Basis vectors are in the lattice. -/
+theorem GeometricLattice.basis_mem (L : GeometricLattice n k) (i : Fin k) :
+    L.basis.cols i ∈ L := by
+  rw [mem_iff_zspan]
+  exact Submodule.subset_span (Set.mem_range_self i)
+
+/-- The representation of a lattice vector as integer coordinates with respect to the basis. -/
+noncomputable def GeometricLattice.repr (L : GeometricLattice n k) (v : 𝔼 n)
+    (hv : v ∈ L) : Fin k → ℤ :=
+  L.basis.asZSpanBasis.repr ⟨v, L.carrier_eq ▸ hv⟩
+
+/-- The representation gives the correct coefficients. -/
+theorem GeometricLattice.repr_spec (L : GeometricLattice n k) (v : 𝔼 n)
+    (hv : v ∈ L) : v = ∑ i, (L.repr v hv i) • L.basis.cols i := by
+  rw [mem_def] at hv
+  have hv' : v ∈ Submodule.span ℤ (Set.range L.basis.cols) := L.carrier_eq ▸ hv
+  have h := L.basis.asZSpanBasis.sum_repr ⟨v, hv'⟩
+  simp only [LatticeBasis.asZSpanBasis] at h
+  conv_lhs => rw [← Subtype.coe_mk v hv']
+  convert congr_arg Subtype.val h.symm using 1;
+  induction ( Finset.univ : Finset ( Fin k ) ) using Finset.induction <;> aesop;
+  congr;
+  exact Eq.symm (Module.Basis.span_apply (LatticeBasis.asZSpanBasis._proof_1 L.basis) a)
+
+/-- Constructing a lattice vector from coefficients. -/
+noncomputable def GeometricLattice.ofCoeffs (L : GeometricLattice n k)
+    (c : Fin k → ℤ) : 𝔼 n :=
+  ∑ i, c i • L.basis.cols i
+
+/-- A vector constructed from coefficients is in the lattice. -/
+theorem GeometricLattice.ofCoeffs_mem (L : GeometricLattice n k)
+    (c : Fin k → ℤ) : L.ofCoeffs c ∈ L := by
+  rw [mem_iff_exists_coeffs]
+  exact ⟨c, rfl⟩
+
+/-- repr is a left inverse of ofCoeffs. -/
+theorem GeometricLattice.repr_ofCoeffs (L : GeometricLattice n k)
+    (c : Fin k → ℤ) : L.repr (L.ofCoeffs c) (L.ofCoeffs_mem c) = c := by
+  have h_li : LinearIndependent ℤ L.basis.cols :=
+    Z_linearIndependent_if_R_linearIndependent L.basis.li
+  ext i
+  have h_eq := L.repr_spec (L.ofCoeffs c) (L.ofCoeffs_mem c)
+  simp only [ofCoeffs] at h_eq
+  -- The representation is unique due to linear independence
+  have h_unique : ∀ (c₁ c₂ : Fin k → ℤ),
+      (∑ i, c₁ i • L.basis.cols i) = (∑ i, c₂ i • L.basis.cols i) → c₁ = c₂ := by
+    intro c₁ c₂ heq
+    have : ∑ i, (c₁ i - c₂ i) • L.basis.cols i = 0 := by
+      simp only [sub_smul, Finset.sum_sub_distrib]
+      rw [heq, sub_self]
+    rw [Fintype.linearIndependent_iff] at h_li
+    ext j
+    have := h_li (fun i => c₁ i - c₂ i) this j
+    omega
+  exact congr_fun (h_unique _ _ h_eq.symm) i
+
+/-- ofCoeffs is a left inverse of repr. -/
+theorem GeometricLattice.ofCoeffs_repr (L : GeometricLattice n k) (v : 𝔼 n)
+    (hv : v ∈ L) : L.ofCoeffs (L.repr v hv) = v := by
+  rw [ofCoeffs, ← repr_spec L v hv]
+
+end membership
+
 
 /-!
 ## Cosets and Quotients for GeometricLattice
@@ -100,7 +229,7 @@ def LatticeBasis.smul (c : ℝ) (B : LatticeBasis n k) (hc : c ≠ 0) : LatticeB
 def GeometricLattice.smul (L : GeometricLattice n k) (c : ℝ) (hc : c ≠ 0) : GeometricLattice n k :=
   (L.basis.smul c hc).toLattice
 
-/-- Scaling preserves carrier equivalence -/
+/-- Scaling preserves carrier equivalence (basically the theorem ZSpan.smul) -/
 theorem GeometricLattice.smul_carrier (L : GeometricLattice n k) (c : ℝ) (hc : c ≠ 0) :
     (L.smul c hc).carrier = L.carrier.map (DistribMulAction.toLinearMap ℤ (𝔼 n) c) := by
   simp only [GeometricLattice.smul, LatticeBasis.toLattice, LatticeBasis.smul]
@@ -142,6 +271,19 @@ theorem GeometricLattice.smul_carrier (L : GeometricLattice n k) (c : ℝ) (hc :
     exact hxy ▸ Submodule.sum_mem _ fun i _ => h_mul _ _ ( hp i )
 
 end smul
+
+/-- Negation of a geometric lattice -/
+def GeometricLattice.neg (L : GeometricLattice n k) : GeometricLattice n k :=
+  L.smul (-1) (by norm_num)
+
+/-- -L = L -/
+theorem GeometricLattice.neg_eq_self {L: GeometricLattice n n} : L.neg ≡ᵤ L := by
+  -- The carrier of the negated lattice is the same as the carrier of the original lattice because negation is an automorphism.
+  have h_neg_carrier : ∀ (v : 𝔼 n), v ∈ (L.smul (-1) (by norm_num)).carrier ↔ -v ∈ L.carrier := by
+    intro v
+    simp [GeometricLattice.smul_carrier];
+    aesop;
+  ext v; specialize h_neg_carrier v; aesop;
 
 /-!
 ## Dual Basis and Dual Lattice
@@ -386,5 +528,253 @@ theorem GeometricLattice.dual_dual (L : GeometricLattice n n) : L.dual.dual ≡�
   exact LatticeBasis.UnimodularEquiv.refl L.basis
 
 end dual
+
+/-!
+## Fundamental Domain and Determinant
+-/
+
+noncomputable section fundamental_domain
+
+/-- The fundamental parallelepiped of a lattice basis. -/
+def LatticeBasis.fundamentalDomain (B : SquareLatticeBasis n) : Set (𝔼 n) :=
+  ZSpan.fundamentalDomain B.asTopBasis
+
+/-- We define the closure of the fundamental parallelepiped as generated with coefficents from [0, 1] -/
+def LatticeBasis.fundamentalDomain_closure (B : SquareLatticeBasis n) : Set (𝔼 n) :=
+  {m | ∀ i, B.asTopBasis.repr m i ∈ Set.Icc (0 : ℝ) 1}
+
+/-- The closure defined as above is indeed a topological closure -/
+theorem LatticeBasis.fundamentalDomain.closure_apply (B : SquareLatticeBasis n) :
+  B.fundamentalDomain_closure = closure B.fundamentalDomain := by
+  -- The closure of the fundamental domain is the set of points where each coordinate is in [0, 1], which is exactly the fundamental domain closure.
+  ext; simp [LatticeBasis.fundamentalDomain_closure, LatticeBasis.fundamentalDomain];
+  rw [ mem_closure_iff_seq_limit ] ; aesop;
+  · refine' ⟨ fun n => ( 1 - 1 / ( n + 1 ) : ℝ ) • x, _, _ ⟩ <;> aesop;
+    · exact mul_nonneg ( sub_nonneg.2 <| inv_le_one_of_one_le₀ <| by linarith ) <| a i |>.1;
+    · nlinarith [ a i, inv_mul_cancel₀ ( by linarith : ( n_1 : ℝ ) + 1 ≠ 0 ) ];
+    · exact le_trans ( Filter.Tendsto.smul ( tendsto_const_nhds.sub <| tendsto_inv_atTop_zero.comp <| Filter.tendsto_atTop_add_const_right _ _ tendsto_natCast_atTop_atTop ) tendsto_const_nhds ) ( by norm_num );
+  · -- Since the coordinate function is continuous, the limit of the coordinates of $w_n$ is the coordinate of $x$.
+    have h_coord_cont : Filter.Tendsto (fun n => (B.asTopBasis.repr (w n)) i) Filter.atTop (nhds ((B.asTopBasis.repr x) i)) := by
+      have h_coord_cont : Continuous (fun x => (B.asTopBasis.repr x) i) := by
+        exact Continuous.comp ( continuous_apply i ) ( by exact? );
+      exact h_coord_cont.continuousAt.tendsto.comp right;
+    exact le_of_tendsto_of_tendsto' tendsto_const_nhds h_coord_cont fun n => left n i |>.1;
+  · have h_closure : Filter.Tendsto (fun n => (B.asTopBasis.repr (w n)) i) Filter.atTop (nhds ((B.asTopBasis.repr x) i)) := by
+      have h_coord_cont : Continuous (fun x => (B.asTopBasis.repr x) i) := by
+        exact Continuous.comp ( continuous_apply i ) ( by exact? );
+      exact h_coord_cont.continuousAt.tendsto.comp right;
+    exact le_of_tendsto_of_tendsto' h_closure tendsto_const_nhds fun n => left n i |>.2.le
+
+/-- The fundamental parallelepiped of a lattice basis is convex. -/
+theorem LatticeBasis.fundamentalDomain_isBounded (B : SquareLatticeBasis n) : Bornology.IsBounded B.fundamentalDomain := by
+  exact ZSpan.fundamentalDomain_isBounded B.asTopBasis
+
+/-- The fundamental parallelepiped of a lattice basis is convex. -/
+theorem LatticeBasis.fundamentalDomain_isConvex (B : SquareLatticeBasis n) : Convex ℝ B.fundamentalDomain := by
+  refine' convex_iff_forall_pos.mpr _;
+  unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.fundamentalDomain; aesop;
+  · nlinarith [ a i, a_1 i ];
+  · nlinarith [ a i, a_1 i ]
+
+/-- The determinant of a square lattice basis. -/
+noncomputable def LatticeBasis.det (B : SquareLatticeBasis n) : ℝ :=
+  B.asMatrix.det
+
+/-- The volume of a square lattice basis. -/
+noncomputable def LatticeBasis.volume (B : SquareLatticeBasis n) : ℝ :=
+  |B.asMatrix.det|
+
+theorem LatticeBasis.volume_pos (B : SquareLatticeBasis n) : 0 < B.volume := by
+  rw [volume, abs_pos]
+  exact B.det_ne_zero
+
+/-- Determinant is invariant under unimodular equivalence. -/
+theorem LatticeBasis.volume_of_unimodularEquiv {B1 B2 : SquareLatticeBasis n}
+    (h : B1 =ᵤ B2) : B1.volume = B2.volume := by
+  obtain ⟨U, rfl⟩ := h
+  rw [ show B1.volume = |Matrix.det ( B1.asMatrix )| by rfl, show ( B1 ◾ U ).volume = |Matrix.det ( ( B1.asMatrix * ( U.val.map ( Int.castRingHom ℝ ) ) ) )| by rfl ] ; simp +decide [ Matrix.det_mul ];
+  -- Since U is a unit in the matrix ring over ℤ, its determinant is ±1.
+  have h_det_U : IsUnit (Matrix.det U.val) := by
+    exact Matrix.isUnits_det_units U;
+  -- Since U is a unit in the matrix ring over ℤ, its determinant is ±1. Therefore, the absolute value of the determinant of U is 1.
+  have h_det_U_abs : |(U.val.det : ℝ)| = 1 := by
+    rcases Int.isUnit_iff.mp h_det_U with ( h | h ) <;> norm_num [ h ];
+  simp_all +decide [ Matrix.det_apply' ]
+
+/-- The determinant (covolume) of a geometric lattice. -/
+noncomputable def GeometricLattice.det (L : GeometricLattice n n) : ℝ :=
+  L.basis.volume
+
+/-- Well-definedness of lattice determinant. -/
+theorem GeometricLattice.det_def (L : GeometricLattice n n) :
+    L.det = L.basis.volume := by rfl
+
+theorem GeometricLattice.det_eq_of_equiv {L1 L2 : GeometricLattice n n}
+    (h : L1 ≡ᵤ L2) : L1.det = L2.det := by
+  rw [eq_iff_basis_equiv] at h
+  exact LatticeBasis.volume_of_unimodularEquiv h
+
+/-- Reduce a vector modulo the fundamental domain. -/
+noncomputable def LatticeBasis.mod (B : SquareLatticeBasis n) (v : 𝔼 n) : 𝔼 n :=
+  ZSpan.fract B.asTopBasis v
+
+/-- The reduction of a vector modulo the fundamental domain lies within the fundamental domain. -/
+theorem LatticeBasis.mod_mem_fundamentalDomain (B : SquareLatticeBasis n) (v : 𝔼 n) :
+    B.mod v ∈ B.fundamentalDomain := by
+  exact ZSpan.fract_mem_fundamentalDomain B.asTopBasis v
+
+/-- Any vector minus its module will lie in the lattice. -/
+theorem LatticeBasis.sub_mod_mem_lattice (B : SquareLatticeBasis n) (v : 𝔼 n) :
+    v - B.mod v ∈ B.toLattice.carrier := by
+  rw [toLattice, mod]
+  -- v - B.mod v = B * c - B * {c} = B * (c - {c}) = B * floor(c)
+  refine' Submodule.mem_span.mpr _;
+  bound;
+  have := a ( Set.mem_range_self ( ⟨ 0, PNat.pos n ⟩ : Fin n ) ) ; simp_all +decide [ ZSpan.fract ] ;
+  -- Since the floor of v is a linear combination of the basis vectors with integer coefficients, and each basis vector is in p, the floor of v is in p.
+  have h_floor : ∀ (c : Fin n → ℤ), (∑ i, c i • B.cols i) ∈ p := by
+    -- Since p is a submodule, it is closed under addition and scalar multiplication. Each basis vector is in p by hypothesis a, so multiplying each by an integer c_i keeps them in p. Then, adding them up should also keep the result in p.
+    intros c
+    apply Submodule.sum_mem
+    intro i _
+    apply Submodule.smul_mem
+    apply a
+    simp [LatticeCrypto.Foundations.Lattice.LatticeBasis.cols];
+  unfold ZSpan.floor; aesop;
+  unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.asTopBasis; aesop;
+
+/-- Any vector v can be decomposed into a lattice point and a point in the fundamental domain. -/
+theorem LatticeBasis.eq_lattice_add_mod (B : SquareLatticeBasis n) (v : 𝔼 n) :
+    ∃ (u : 𝔼 n) (w : 𝔼 n), u ∈ B.toLattice.carrier ∧ w ∈ B.fundamentalDomain ∧ v = u + w := by
+  use v - B.mod v, B.mod v
+  refine ⟨B.sub_mod_mem_lattice v, B.mod_mem_fundamentalDomain v, by abel⟩
+
+/-- The fundamental parallelepiped of a lattice basis whose center is shifted to the origin. -/
+def LatticeBasis.centeredFundamentalDomain (B : SquareLatticeBasis n) : Set (𝔼 n) :=
+  {m | ∀ i, B.asTopBasis.repr m i ∈ Set.Ico (-0.5 : ℝ) 0.5}
+
+/-- We define the closure of the centered fundamental parallelepiped as generated with coefficents
+    from [-0.5, 0.5] -/
+def LatticeBasis.centeredFundamentalDomain_closure (B : SquareLatticeBasis n) : Set (𝔼 n) :=
+  {m | ∀ i, B.asTopBasis.repr m i ∈ Set.Icc (-0.5 : ℝ) 0.5}
+
+/-- The closure defined as above is indeed a topological closure -/
+theorem LatticeBasis.centeredFundamentalDomain.closure_apply (B : SquareLatticeBasis n) :
+  B.centeredFundamentalDomain_closure = closure B.centeredFundamentalDomain := by
+  apply le_antisymm;
+  · -- The closure of the centered fundamental domain is a subset of the closure of the fundamental domain because the coordinates of the centered fundamental domain are within the coordinates of the fundamental domain.
+    intros x hx
+    simp [LatticeCrypto.Foundations.Lattice.LatticeBasis.centeredFundamentalDomain_closure] at hx;
+    refine' mem_closure_iff_seq_limit.mpr _;
+    use fun m => x - (1 / (m + 1) : ℝ) • ∑ i : Fin n, (B.asTopBasis.repr x i) • B.asTopBasis i;
+    aesop;
+    · intro i; specialize hx i; norm_num at *;
+      constructor <;> nlinarith [ inv_mul_cancel₀ ( by linarith : ( n_1 : ℝ ) + 1 ≠ 0 ) ];
+    · exact le_trans ( tendsto_const_nhds.sub ( Filter.Tendsto.smul ( tendsto_inv_atTop_zero.comp ( Filter.tendsto_atTop_add_const_right _ _ tendsto_natCast_atTop_atTop ) ) tendsto_const_nhds ) ) ( by norm_num );
+  · intro m hm; replace hm := mem_closure_iff_seq_limit.mp hm; aesop;
+    -- Since the coordinates of $m$ are the limits of the coordinates of $w$, and each coordinate of $w$ is in $[-0.5, 0.5]$, it follows that each coordinate of $m$ is also in $[-0.5, 0.5]$.
+    have h_coords : ∀ i, Filter.Tendsto (fun n => (B.asTopBasis.repr (w n) i)) Filter.atTop (nhds (B.asTopBasis.repr m i)) := by
+      -- The basis representation is a continuous linear map, so if w converges to m, then the basis representation of w converges to the basis representation of m.
+      have h_cont : Continuous (fun v : 𝔼 n => (B.asTopBasis.repr v : Fin n → ℝ)) := by
+        exact Module.Basis.continuous_coe_repr (asTopBasis B);
+      exact fun i => Filter.Tendsto.comp ( continuous_apply i |> Continuous.tendsto <| _ ) ( h_cont.tendsto m |> Filter.Tendsto.comp <| right );
+    exact fun i => ⟨ le_of_tendsto_of_tendsto' tendsto_const_nhds ( h_coords i ) fun n => left n i |>.1, le_of_tendsto_of_tendsto' ( h_coords i ) tendsto_const_nhds fun n => left n i |>.2.le ⟩
+
+/-- The shift vector: sum of half of each basis vector -/
+noncomputable def LatticeBasis.halfBasisSum (B : SquareLatticeBasis n) : 𝔼 n :=
+  ∑ i, (0.5 : ℝ) • B.cols i
+
+/-- The centered fundamental domain equals the fundamental domain shifted by -½ ∑ bᵢ -/
+theorem LatticeBasis.centeredFundamentalDomain_eq_shifted (B : SquareLatticeBasis n) :
+    B.centeredFundamentalDomain = (fun v => v - B.halfBasisSum) '' B.fundamentalDomain := by
+    unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.centeredFundamentalDomain; unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.fundamentalDomain; ext; aesop;
+    · refine' ⟨ x + LatticeCrypto.Foundations.Lattice.LatticeBasis.halfBasisSum B, _, _ ⟩ <;> aesop;
+      · -- By definition of `halfBasisSum`, we know that its i-th component is 0.5.
+        have h_halfBasisSum_i : ((B.asTopBasis.repr (LatticeCrypto.Foundations.Lattice.LatticeBasis.halfBasisSum B)) i) = 0.5 := by
+          -- The i-th component of the sum is the sum of the i-th components of each term.
+          have h_halfBasisSum_i : ((B.asTopBasis.repr (LatticeCrypto.Foundations.Lattice.LatticeBasis.halfBasisSum B)) i) = ∑ j : Fin n, (0.5 : ℝ) * (B.asTopBasis.repr (B.cols j)) i := by
+            unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.halfBasisSum; aesop;
+          -- Since the basis is a basis, the representation of each basis vector in the basis is the standard basis vector.
+          have h_basis_rep : ∀ x : Fin n, (B.asTopBasis.repr (B.cols x)) = Finsupp.single x 1 := by
+            bound;
+            convert ( B.asTopBasis.repr_self x_1 ) using 1;
+            unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.asTopBasis; aesop;
+          simp_all +decide [ Finsupp.single_apply ];
+        linarith [ a i ];
+      · -- The i-th component of the halfBasisSum is 0.5 times the i-th component of the i-th basis vector, which is 1.
+        have h_halfBasisSum_i : (((LatticeCrypto.Foundations.Lattice.LatticeBasis.asTopBasis B).repr (LatticeCrypto.Foundations.Lattice.LatticeBasis.halfBasisSum B)) i) = 0.5 := by
+          -- The i-th component of the sum is the sum of the i-th components of each term.
+          have h_halfBasisSum_i : ((B.asTopBasis.repr (LatticeCrypto.Foundations.Lattice.LatticeBasis.halfBasisSum B)) i) = ∑ j : Fin n, (0.5 : ℝ) * (B.asTopBasis.repr (B.cols j)) i := by
+            unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.halfBasisSum; aesop;
+          -- Since the basis is a basis, the representation of each basis vector in the basis is the standard basis vector.
+          have h_basis_rep : ∀ x : Fin n, (B.asTopBasis.repr (B.cols x)) = Finsupp.single x 1 := by
+            bound;
+            convert ( B.asTopBasis.repr_self x_1 ) using 1;
+            unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.asTopBasis; aesop;
+          simp_all +decide [ Finsupp.single_apply ];
+        linarith [ a i ];
+    · -- By definition of `halfBasisSum`, we have `halfBasisSum B = ∑ i, (0.5 : ℝ) • B.cols i`.
+      have h_halfBasisSum : LatticeCrypto.Foundations.Lattice.LatticeBasis.halfBasisSum B = ∑ i, (0.5 : ℝ) • B.asTopBasis i := by
+        unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.asTopBasis; aesop;
+      rw [ h_halfBasisSum ] ; norm_num [ left ] ;
+    · unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.halfBasisSum; norm_num;
+      have h_sum : ∑ x : Fin n, (1 / 2 : ℝ) * (((LatticeCrypto.Foundations.Lattice.LatticeBasis.asTopBasis B).repr : LatticeCrypto.Foundations.Lattice.𝔼 n → Fin (↑n : ℕ) →₀ ℝ) (LatticeCrypto.Foundations.Lattice.LatticeBasis.cols B x) : Fin (↑n : ℕ) → ℝ) i = (1 / 2 : ℝ) := by
+        -- Since the basis vectors are linearly independent, their representations in the basis are the standard basis vectors.
+        have h_basis_rep : ∀ i : Fin n, (B.asTopBasis.repr (B.cols i)) = Finsupp.single i 1 := by
+          aesop;
+          convert B.asTopBasis.repr_self i_1 using 1;
+          unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.asTopBasis; aesop;
+        rw [ Finset.sum_eq_single i ] <;> aesop;
+      linarith [ left i ]
+
+/-- The fundamental parallelepiped of a lattice basis whose center is shifted to the origin is symmetric. -/
+theorem LatticeBasis.centeredFundamentalDomain_closureIsSymmetric {x : 𝔼 n} (B: SquareLatticeBasis n) : x ∈ B.centeredFundamentalDomain_closure ↔ -x ∈ B.centeredFundamentalDomain_closure := by
+  unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.centeredFundamentalDomain_closure; aesop;
+  · linarith [ a i ];
+  · linarith [ a i ]
+
+/-- The fundamental parallelepiped of a lattice basis is convex. -/
+theorem LatticeBasis.centeredFundamentalDomain_isBounded (B : SquareLatticeBasis n) : Bornology.IsBounded B.centeredFundamentalDomain := by
+  -- The centered fundamental domain is contained within a ball of radius 0.5 times the sum of the norms of the basis vectors.
+  have h_bounded : ∃ C : ℝ, ∀ m ∈ B.centeredFundamentalDomain, ‖m‖ ≤ C := by
+    -- The norm of a sum is less than or equal to the sum of the norms.
+    have h_norm_sum : ∀ m : 𝔼 n, ‖m‖ ≤ ∑ i, |B.asTopBasis.repr m i| * ‖B.cols i‖ := by
+      intros m
+      have h_norm_sum : ‖m‖ ≤ ‖∑ i, (B.asTopBasis.repr m i) • B.cols i‖ := by
+        rw [ ← B.asTopBasis.sum_repr m ];
+        convert le_rfl;
+        · exact B.asTopBasis.sum_repr m;
+        · ext; simp [LatticeBasis.asTopBasis];
+          rfl;
+      -- Apply the triangle inequality to the sum.
+      have h_triangle : ‖∑ i, (B.asTopBasis.repr m i) • B.cols i‖ ≤ ∑ i, ‖(B.asTopBasis.repr m i) • B.cols i‖ := by
+        exact norm_sum_le _ _;
+      exact h_norm_sum.trans ( h_triangle.trans_eq ( Finset.sum_congr rfl fun _ _ => by rw [ norm_smul, Real.norm_eq_abs ] ) );
+    -- Since each coordinate of m is between -0.5 and 0.5, the absolute value of each coordinate is at most 0.5.
+    have h_abs_coord : ∀ m ∈ B.centeredFundamentalDomain, ∀ i, |B.asTopBasis.repr m i| ≤ 0.5 := by
+      exact fun m hm i => abs_le.mpr ⟨ by linarith [ Set.mem_Ico.mp ( hm i ) ], by linarith [ Set.mem_Ico.mp ( hm i ) ] ⟩;
+    exact ⟨ ∑ i : Fin n, 0.5 * ‖B.cols i‖, fun m hm => le_trans ( h_norm_sum m ) ( Finset.sum_le_sum fun i _ => mul_le_mul_of_nonneg_right ( h_abs_coord m hm i ) ( norm_nonneg _ ) ) ⟩;
+  -- Since the norm of every element in the set is bounded by C, the set is bounded.
+  obtain ⟨C, hC⟩ := h_bounded;
+  exact isBounded_iff_forall_norm_le.mpr ⟨C, fun m hm => hC m hm⟩
+
+/-- The fundamental parallelepiped of a lattice basis is convex. -/
+theorem LatticeBasis.centeredFundamentalDomain_isConvex (B : SquareLatticeBasis n) : Convex ℝ B.centeredFundamentalDomain := by
+  -- To prove convexity, take any two points $x$ and $y$ in the centered fundamental domain and show that any convex combination of $x$ and $y$ is also in the domain.
+  intro x hx y hy t ht
+  simp [LatticeCrypto.Foundations.Lattice.LatticeBasis.centeredFundamentalDomain] at hx hy ⊢;
+  -- By definition of convex combination, we can write the combination as a weighted average of the coordinates of x and y.
+  intros ht_nonneg ht_nonneg' ht_sum
+  intro i
+  have h_coord : -0.5 ≤ t * (B.asTopBasis.repr x) i + (1 - t) * (B.asTopBasis.repr y) i ∧ t * (B.asTopBasis.repr x) i + (1 - t) * (B.asTopBasis.repr y) i < 0.5 := by
+    -- By combining the inequalities for x and y, we can show that the convex combination is within the interval [-0.5, 0.5).
+    apply And.intro;
+    · nlinarith [ hx i, hy i ];
+    · cases lt_or_eq_of_le ht_nonneg <;> cases lt_or_eq_of_le ht_nonneg' <;> nlinarith [ hx i, hy i ];
+  convert h_coord using 1 <;> rw [ ← ht_sum ] ; ring;
+  rw [ add_sub_cancel_left ]
+
+
+end fundamental_domain
 
 end LatticeCrypto.Foundations.Lattice
