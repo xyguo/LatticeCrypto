@@ -14,9 +14,14 @@ import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
 import Mathlib.Algebra.Module.ZLattice.Basic
 import Mathlib.Data.PNat.Basic
 
+import LatticeCrypto.Utils.LinearAlgebra
+import LatticeCrypto.Utils.Geometry
+
 open RealInnerProductSpace
 open Module
 open FiniteDimensional
+open LatticeCrypto.Utils.LinearAlgebra
+open LatticeCrypto.Utils.Geometry
 
 namespace LatticeCrypto.Foundations.Lattice
 
@@ -32,16 +37,12 @@ universe u
 
 noncomputable section Lattice
 
-/-- Notation for n-dimensional Euclidean space over ℝ. -/
-abbrev 𝔼 (n : ℕ+) := EuclideanSpace ℝ (Fin n)
-
-/-- Alternative notation: ℝⁿ for n-dimensional Euclidean space.
-    Use as `ℝⁿ n` in code. -/
-notation "ℝⁿ" => fun (n : ℕ+) => EuclideanSpace ℝ (Fin n)
-
 -- Throughout this file we will use n to denote the dimension of the ambient space,
 -- and k to denote the rank of the lattice
 variable {n k : ℕ+}
+
+/-- Notation for n-dimensional Euclidean space over ℝ. -/
+abbrev 𝔼 (n : ℕ+) := EuclideanSpace ℝ (Fin n)
 
 /-!
 ## Lattice Basis
@@ -49,36 +50,6 @@ variable {n k : ℕ+}
 A computable basis for a lattice, represented as an n×k matrix with linearly independent columns.
 -/
 
-/-- Helper: Linear equivalence between EuclideanSpace ℝ (Fin n) and the function space (Fin n → ℝ). -/
-def eucToPi : EuclideanSpace ℝ (Fin n) ≃ₗ[ℝ] (Fin n → ℝ) :=
-  (EuclideanSpace.equiv (Fin n) ℝ).toLinearEquiv
-
-def piToEuc : (Fin n → ℝ) ≃ₗ[ℝ] EuclideanSpace ℝ (Fin n) :=
-  (EuclideanSpace.equiv (Fin n) ℝ).symm.toLinearEquiv
-
-@[simp] lemma piToEuc_apply (f : Fin n → ℝ) (i : Fin n) :
-  (eucToPi (piToEuc f)) i = f i := by simp [piToEuc, eucToPi]
-
-@[simp] lemma eucToPi_apply (x : EuclideanSpace ℝ (Fin n)) :
-  piToEuc (eucToPi x) = x := by simp [piToEuc, eucToPi]
-
-lemma Z_linearIndependent_if_R_linearIndependent {v : Fin k → 𝔼 n} (li : LinearIndependent ℝ v) : LinearIndependent ℤ v := by
-  have h_int_lin_ind : ∀ (c : Fin k → ℤ), (∑ i, c i • v i = 0) → (∀ i, c i = 0) := by
-    intros c hc
-    have h_real : ∑ i, (c i : ℝ) • v i = 0 := by
-      convert hc using 1
-      congr! 2
-      ext; simp
-    exact fun i => by have := Fintype.linearIndependent_iff.mp li (c ·) h_real i; aesop
-  rw [Fintype.linearIndependent_iff]; aesop
-
-lemma Q_linearIndependent_if_R_linearIndependent {v : Fin k → 𝔼 n} (li : LinearIndependent ℝ v) : LinearIndependent ℚ v := by
-  have h_int_lin_ind : ∀ (c : Fin k → ℚ), (∑ i, c i • v i = 0) → (∀ i, c i = 0) := by
-    intros c hc
-    have h_real : ∑ i, (c i : ℝ) • v i = 0 := by
-      convert hc using 1
-    exact fun i => by have := Fintype.linearIndependent_iff.mp li (c ·) h_real i; aesop
-  rw [Fintype.linearIndependent_iff]; aesop
 
 /--
   A lattice basis: k linearly independent vectors in ℝⁿ (k ≤ n).
@@ -127,6 +98,20 @@ def LatticeBasis.asTopBasis (B : SquareLatticeBasis n) : Module.Basis (Fin n) �
     apply LinearIndependent.span_eq_top_of_card_eq_finrank B.li h_dim
   Module.Basis.mk B.li h_span.ge
 
+@[simp]
+theorem LatticeBasis.coe_topBasis {B : SquareLatticeBasis n} : ⇑(LatticeBasis.asTopBasis B) = B.basis := by
+  let h_span : Submodule.span ℝ (Set.range B.cols) = ⊤ := by
+    have h_dim : Fintype.card (Fin n) = finrank ℝ (EuclideanSpace ℝ (Fin n)) := by
+      simp [finrank_euclideanSpace]
+    apply LinearIndependent.span_eq_top_of_card_eq_finrank B.li h_dim
+  exact Module.Basis.coe_mk B.li h_span.ge
+
+lemma LatticeBasis.from_topBasis_to_matrix  (B : SquareLatticeBasis n) : stdBasis.toMatrix B.asTopBasis = B.asMatrix := by
+  rw [toMatrix_on_stdBasis_eq_self B.asTopBasis, LatticeBasis.coe_topBasis]
+  unfold LatticeBasis.asMatrix
+  rfl
+
+
 /-- Convert a LatticeBasis to a real-span Basis of the k-dimensional subspace -/
 def LatticeBasis.asRealSpanBasis (B : LatticeBasis n k) :
     Module.Basis (Fin k) ℝ (Submodule.span ℝ (Set.range B.basis)) :=
@@ -137,34 +122,6 @@ def LatticeBasis.asZSpanBasis (B : LatticeBasis n k) :
     Module.Basis (Fin k) ℤ (Submodule.span ℤ (Set.range B.basis)) :=
   have li_z : LinearIndependent ℤ B.basis := Z_linearIndependent_if_R_linearIndependent B.li
   Basis.span li_z
-
-/-!
-## Discrete Z-Span Theorem
--/
-
-/-- Proof that any linearly independent set of k (k ≤ n) vectors over ℝⁿ has a discrete Z-span -/
-theorem discrete_zspan {v : Fin k → 𝔼 n} (li : LinearIndependent ℝ v) :
-    DiscreteTopology (Submodule.span ℤ (Set.range v) : Submodule ℤ (𝔼 n)) := by
-  -- 1. Extend v to a basis v' of ℝⁿ
-  have hli : LinearIndepOn ℝ id (Set.range v) := LinearIndependent.linearIndepOn_id li
-  let v' := Basis.extend hli
-
-  -- 2. Use the previous lemma to show that the z-span of v' is discrete
-  have discrete_v' : DiscreteTopology ↥(Submodule.span ℤ (Set.range v')) := inferInstance
-
-  -- 3. Show that the z-span of v is a subset of the z-span of v'
-  have h_subset : (Submodule.span ℤ (Set.range v)) ≤ (Submodule.span ℤ (Set.range v')) := by
-    apply Submodule.span_mono
-    intro x hx
-    obtain ⟨i, hi⟩ := hx
-    use ⟨v i, by
-      apply hli.subset_extend
-      use i⟩
-    generalize_proofs at *
-    simp [v', hi]
-
-  -- 4. Conclude that the z-span of v is discrete
-  exact DiscreteTopology.of_subset discrete_v' h_subset
 
 /-!
 ## Geometric Lattice
@@ -215,6 +172,14 @@ infix:50 " ≡ᵤ " => GeometricLattice.CarrierEquiv
 def LatticeBasis.toLattice (B : LatticeBasis n k) : GeometricLattice n k :=
   { basis := B }
 
+theorem GeometricLattice.eq_basis_toLattice (L : GeometricLattice n k) :
+    L = L.basis.toLattice := by
+      let L' := L.basis.toLattice
+      cases L
+      cases L'
+      congr
+
+
 /-!
 ## Properties of Geometric Lattices
 -/
@@ -230,9 +195,48 @@ theorem GeometricLattice.discrete (L : GeometricLattice n k) : DiscreteTopology 
   rw [L.carrier_eq]
   exact discrete_zspan L.basis.li
 
+/-- The carrier of a geometric lattice is a countable set. -/
+instance GeometricLattice.instCountable (L : GeometricLattice n k) : Countable L.carrier := by
+  rw [L.carrier_eq]
+  exact Finsupp.instCountableSubtypeMemSubmoduleSpanRange L.basis.cols
+
 /-- Instance for discrete topology on the carrier. -/
 instance GeometricLattice.instDiscreteTopology (L : GeometricLattice n k) :
     DiscreteTopology L.carrier := L.discrete
+
+/- The lattice is a closed set because it is discrete -/
+lemma GeometricLattice.isClosed (L : GeometricLattice n k) : IsClosed (L.carrier : Set (𝔼 n)) := by
+  -- Since the lattice is a discrete subgroup of ℝ^n, it is closed.
+  have h_discrete : DiscreteTopology (L.carrier : Set (𝔼 n)) := by
+    simp +zetaDelta at *;
+    exact instDiscreteTopology L;
+  -- Since the lattice is a discrete subgroup of ℝ^n, it is closed in the topology of ℝ^n. This follows from the fact that discrete subgroups of locally compact groups are closed.
+  have h_closed_subgroup : ∀ (G : AddSubgroup (𝔼 n)), DiscreteTopology G → IsClosed (G : Set (𝔼 n)) := by
+    exact fun G a => AddSubgroup.isClosed_of_discrete;
+  convert h_closed_subgroup ( L.carrier.toAddSubgroup ) h_discrete using 1
+
+/- The lattice points in a closed ball form a finite set -/
+lemma GeometricLattice.finite_intersection_closedBall (L : GeometricLattice n n) (r : ℝ) :
+    Set.Finite { v ∈ L.carrier | ‖v‖ ≤ r } := by
+      -- The ball of radius r in the lattice is a closed subset of the ball in R^n, which is compact. Therefore, the lattice points in the ball are finite.
+      have h_closed : IsClosed {v : 𝔼 n | v ∈ L.carrier ∧ ‖v‖ ≤ r} := by
+        exact IsClosed.inter L.isClosed ( isClosed_le continuous_norm continuous_const );
+      have h_finite : IsCompact {v : L.carrier | ‖v‖ ≤ r} := by
+        have h_finite : IsCompact (Set.image (fun v : L.carrier => v.val : L.carrier → 𝔼 n) {v : L.carrier | ‖v‖ ≤ r}) := by
+          convert ProperSpace.isCompact_closedBall ( 0 : 𝔼 n ) r |> fun h => h.inter_right h_closed using 1 ; aesop;
+        exact Subtype.isCompact_iff.mpr h_finite
+      generalize_proofs at *;
+      have := h_finite.finite_of_discrete; aesop;
+      exact Set.Finite.subset ( this.image Subtype.val ) fun x hx => by aesop;
+
+/- Corollary: The lattice points in an open ball form a finite set -/
+lemma GeometricLattice.finite_intersection_ball (L : GeometricLattice n n) (r : ℝ) :
+    Set.Finite { v ∈ L.carrier | ‖v‖ < r } := by
+  -- The open ball is a subset of the closed ball
+  have h_subset : { v ∈ L.carrier | ‖v‖ < r } ⊆ { v ∈ L.carrier | ‖v‖ ≤ r } := by
+    intro v ⟨hv_mem, hv_norm⟩
+    exact ⟨hv_mem, le_of_lt hv_norm⟩
+  exact Set.Finite.subset (L.finite_intersection_closedBall r) h_subset
 
 /-!
 ## Full Rank Predicate
@@ -294,6 +298,14 @@ theorem FullRank.iff_span_top {L : GeometricLattice n k} :
 theorem FullRank.isZLattice (L : GeometricLattice n k) [FullRank L] : IsZLattice ℝ L.carrier := by
   constructor
   exact FullRank.iff_span_top.mp ‹_›
+
+@[simp]
+theorem GeometricLattice.full_rank_eq_module_span (L : GeometricLattice n n) : L.carrier = Submodule.span ℤ (Set.range L.basis.asTopBasis) := by
+  convert L.carrier_eq;
+  -- The basis of the top subspace is the same as the basis of the lattice, which is given by the columns of the matrix.
+  ext i; simp [LatticeBasis.asTopBasis];
+  -- By definition of `L.basis.cols`, we have `L.basis.cols i = L.basis.basis i`.
+  simp [LatticeBasis.cols]
 
 /-!
 ## Unimodular Matrices and Equivalence
@@ -446,7 +458,7 @@ theorem LatticeBasis.span_eq_of_UnimodularEquiv {B1 B2 : LatticeBasis n k}
           rw [← Matrix.map_mul]; aesop
         rw [Matrix.mul_assoc, h_unit, Matrix.mul_one]
       convert congr_fun (congr_fun h_unit j) i using 1
-      · exact?
+      · exact Eq.symm (Real.ext_cauchy (congrArg Real.cauchy (congrFun (congrFun h_unit j) i)))
       · convert congr_fun (congr_fun h_unit j) i using 1
     nth_rw 1 [h_eq]
     apply span_le_of_mul
