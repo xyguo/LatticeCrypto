@@ -16,6 +16,7 @@ import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 import Mathlib.Analysis.Convex.Body
 import Mathlib.Analysis.Convex.Basic
 import Mathlib.Analysis.Normed.Module.Convex
+import Mathlib.CategoryTheory.Category.Basic  -- For aesop_cat
 
 open scoped ENNReal NNReal Pointwise
 open MeasureTheory
@@ -88,11 +89,28 @@ lemma eucToPi_measurePreserving {n : ℕ+}:
 
 theorem volume_euclideanSpace_eq_pi {S : Set (𝔼 n)}:
   volume S = volume (eucToPi '' S) := by
-  sorry
+  have h_volume_eq : (MeasureTheory.Measure.map eucToPi lebesgueMeasure) (eucToPi '' S) = lebesgueMeasure S := by
+    have h_volume_eq : ∀ s : Set (𝔼 n), (MeasureTheory.Measure.map (⇑eucToPi) lebesgueMeasure) (eucToPi '' s) = (MeasureTheory.MeasureSpace.volume : Set (Fin n → ℝ) → ℝ≥0∞) (eucToPi '' s) := by
+      exact fun s => congr_arg ( fun f => f ( eucToPi '' s ) ) ( eucToPi_measurePreserving.map_eq );
+    aesop;
+    convert h_volume_eq S |> Eq.symm;
+    · -- Since `eucToPi` is measure-preserving, the map of the Lebesgue measure under `eucToPi` is equal to the Lebesgue measure on the target space.
+      apply Eq.symm; exact (by
+      apply MeasureTheory.Measure.ext;
+      intro s hs; rw [ MeasureTheory.Measure.map_apply ] ; aesop;
+      · exact fun ⦃t⦄ a => a;
+      · exact hs);
+    · ext; aesop;
+  exact h_volume_eq ▸ by erw [ eucToPi_measurePreserving.map_eq ] ;
 
 theorem volume_pi_eq_euclideanSpace {S : Set (Fin n → ℝ)}:
   volume S = volume (piToEuc '' S) := by
-  sorry
+  -- By definition of $eucIdent$, we know that it is a linear isomorphism.
+  have h_linear_isomorphism : (eucToPi : EuclideanSpace ℝ (Fin n) ≃ₗ[ℝ] (Fin n → ℝ)) '' S = S := by
+    aesop_cat;
+  rw [ ← h_linear_isomorphism, volume_euclideanSpace_eq_pi ];
+  -- Since the image of the image of S under eucToPi is just S itself, we can simplify the right-hand side of the equation.
+  simp [Set.image]
 
 lemma fundamentalDomain_stdBasis {n : ℕ+}:
   ZSpan.fundamentalDomain stdBasis =
@@ -101,7 +119,18 @@ lemma fundamentalDomain_stdBasis {n : ℕ+}:
 
 lemma volume_fundamentalDomain_stdBasis {n : ℕ+}:
   lebesgueMeasure (ZSpan.fundamentalDomain (stdBasis (n := n))) = 1 :=
-  sorry
+  by
+    -- The fundamental domain of the standard basis is the unit cube in ℝⁿ, which has volume 1.
+    have h_unit_cube : ZSpan.fundamentalDomain stdBasis = Set.pi Set.univ (fun _ : Fin n => Set.Ico 0 1) := by
+      exact Set.Subset.antisymm (fun ⦃a⦄ a i a_1 => a i) fun ⦃a⦄ a i => a i trivial;
+    rw [ h_unit_cube ];
+    -- The volume of the product of intervals [0,1) in ℝⁿ is the product of their lengths, which is 1.
+    have h_volume : ∀ (n : ℕ), (MeasureTheory.volume (Set.pi Set.univ fun _ : Fin n => Set.Ico (0 : ℝ) 1)) = 1 := by
+      intro n; erw [ MeasureTheory.Measure.pi_pi ] ; norm_num;
+    convert h_volume n using 1;
+    convert eucToPi_measurePreserving.measure_preimage _;
+    · ext; simp [eucToPi];
+    · exact MeasurableSet.nullMeasurableSet ( by exact MeasurableSet.univ_pi fun _ => measurableSet_Ico )
 
 /-!
 ## Central Symmetry
@@ -337,7 +366,10 @@ theorem unitBallVolume_lb : (2 : ℝ) ^ (n : ℕ) / (Real.sqrt n) ^ (n : ℕ) �
       -- Need to convert
       let Cpi : Set (Fin n → ℝ) := eucToPi '' C
       have : Cpi = Set.pi Set.univ (fun _ : Fin n => Set.Ioo (-cube_side) cube_side) := by
-        sorry
+        ext; aesop;
+        · exact left i ( Set.mem_univ i ) |>.1;
+        · exact left i ( Set.mem_univ i ) |>.2;
+        · exact ⟨ piToEuc x, fun i _ => a i, by ext i; simp +decide [ eucToPi, piToEuc ] ⟩
       rw [← this]
       exact volume_euclideanSpace_eq_pi
 
