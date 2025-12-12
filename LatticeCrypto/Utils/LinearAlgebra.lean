@@ -13,6 +13,7 @@ import Mathlib.LinearAlgebra.Basis.Basic
 import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
 import Mathlib.Algebra.Module.ZLattice.Basic
 import Mathlib.Data.PNat.Basic
+import Mathlib.Data.Set.Card
 
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 import Mathlib.Analysis.Convex.Body
@@ -51,7 +52,7 @@ namespace LatticeCrypto.Utils.LinearAlgebra
 
 noncomputable section
 
-lemma Z_linearIndependent_if_R_linearIndependent {v : Fin k → 𝔼 n} (li : LinearIndependent ℝ v) : LinearIndependent ℤ v := by
+lemma Z_linearIndependent_if_R_linearIndependent {v : Fin k → Fin n → ℝ} (li : LinearIndependent ℝ v) : LinearIndependent ℤ v := by
   have h_int_lin_ind : ∀ (c : Fin k → ℤ), (∑ i, c i • v i = 0) → (∀ i, c i = 0) := by
     intros c hc
     have h_real : ∑ i, (c i : ℝ) • v i = 0 := by
@@ -61,7 +62,7 @@ lemma Z_linearIndependent_if_R_linearIndependent {v : Fin k → 𝔼 n} (li : Li
     exact fun i => by have := Fintype.linearIndependent_iff.mp li (c ·) h_real i; aesop
   rw [Fintype.linearIndependent_iff]; aesop
 
-lemma Q_linearIndependent_if_R_linearIndependent {v : Fin k → 𝔼 n} (li : LinearIndependent ℝ v) : LinearIndependent ℚ v := by
+lemma Q_linearIndependent_if_R_linearIndependent {v : Fin k → Fin n → ℝ} (li : LinearIndependent ℝ v) : LinearIndependent ℚ v := by
   have h_int_lin_ind : ∀ (c : Fin k → ℚ), (∑ i, c i • v i = 0) → (∀ i, c i = 0) := by
     intros c hc
     have h_real : ∑ i, (c i : ℝ) • v i = 0 := by
@@ -75,7 +76,7 @@ lemma Q_linearIndependent_if_R_linearIndependent {v : Fin k → 𝔼 n} (li : Li
 
 /-- Proof that any linearly independent set of k (k ≤ n) vectors over ℝⁿ has a discrete Z-span -/
 theorem discrete_zspan {v : Fin k → 𝔼 n} (li : LinearIndependent ℝ v) :
-    DiscreteTopology (Submodule.span ℤ (Set.range v) : Submodule ℤ (𝔼 n)) := by
+    DiscreteTopology (Submodule.span ℤ (Set.range v) : Submodule ℤ (Fin n → ℝ)) := by
   -- 1. Extend v to a basis v' of ℝⁿ
   have hli : LinearIndepOn ℝ id (Set.range v) := LinearIndependent.linearIndepOn_id li
   let v' := Basis.extend hli
@@ -96,6 +97,67 @@ theorem discrete_zspan {v : Fin k → 𝔼 n} (li : LinearIndependent ℝ v) :
 
   -- 4. Conclude that the z-span of v is discrete
   exact DiscreteTopology.of_subset discrete_v' h_subset
+
+
+theorem exists_finset_eq_card {α} {n : ℕ} (h : n ≤ Cardinal.mk α) :
+    ∃ s : Finset α, n = s.card := by
+  obtain hα|hα := finite_or_infinite α
+  · let hα := Fintype.ofFinite α
+    obtain ⟨t, -, rfl⟩ := @Finset.exists_subset_card_eq α .univ n <| by simpa using h
+    exact ⟨t, rfl⟩
+  · obtain ⟨s, hs⟩ := Infinite.exists_subset_card_eq α n
+    exact ⟨s, hs.symm⟩
+
+/- This is a copy of theorem from Mathlib v2025-11-27 -/
+theorem le_rank_iff_exists_finset {R : Type u} {M : Type v} [Semiring R] [AddCommMonoid M] [Module R M] [Nontrivial R] {n : ℕ} :
+    n ≤ Module.rank R M ↔ ∃ s : Finset M, s.card = n ∧ LinearIndepOn R id (s : Set M) where
+  mp le := by
+    contrapose! le
+    obtain _ | n := n; · simp at le
+    rw [Module.rank, Cardinal.nat_succ, Order.lt_succ_iff, ciSup_le_iff (Cardinal.bddAbove_range _)]
+    intro s
+    contrapose! le
+    rw [← Order.succ_le_iff, ← Cardinal.nat_succ] at le
+    have ⟨t, ht⟩ := exists_finset_eq_card le
+    exact ⟨t.map (.subtype _), by simpa using ht.symm, s.2.mono <| by simp⟩
+  mpr := fun ⟨s, card_s, ind_s⟩ ↦ ind_s.cardinal_le_rank'.trans_eq' <| by simp [card_s]
+
+/- This is a copy of theorem from Mathlib v2025-11-27 -/
+theorem le_rank_iff {R : Type u} {M : Type v} [Semiring R] [AddCommMonoid M] [Module R M] [Nontrivial R] {n : ℕ} : n ≤ Module.rank R M ↔ ∃ v : Fin n → M, LinearIndependent R v := by
+  refine le_rank_iff_exists_finset.trans ⟨fun ⟨s, s_card, s_ind⟩ ↦ ?_, fun ⟨v, v_ind⟩ ↦ ?_⟩
+  · exact ⟨_, s_ind.comp _ (s.equivFinOfCardEq s_card).symm.injective⟩
+  · refine ⟨.map ⟨_, v_ind.injective⟩ .univ, by simp, ?_⟩
+    simpa using (linearIndepOn_id_range_iff v_ind.injective).mpr v_ind
+
+lemma rank_span_ge_iff_subset {V : Type*} [AddCommGroup V] [Module ℝ V] (s : Set V) (k : ℕ) :
+    k ≤ Module.rank ℝ (Submodule.span ℝ s) ↔
+    ∃ t : Finset V, t.card = k ∧ ↑t ⊆ s ∧ LinearIndependent ℝ (fun x : t => (x : V)) := by
+      bound;
+      · -- By definition of rank, there exists a linearly independent subset of s with cardinality equal to the rank.
+        obtain ⟨t, ht⟩ : ∃ t : Set V, t ⊆ s ∧ LinearIndependent ℝ (fun x : t => (x : V)) ∧ Cardinal.mk t = Module.rank ℝ (Submodule.span ℝ s) := by
+          have := exists_linearIndependent ℝ s;
+          obtain ⟨ t, ht₁, ht₂, ht₃ ⟩ := this; use t; aesop;
+          rw [ ← ht₂, rank_span_set ht₃ ];
+        -- Since $k \leq \text{rank}(\text{span}(s))$, there exists a subset $t' \subseteq t$ with $|t'| = k$.
+        obtain ⟨t', ht'⟩ : ∃ t' : Set V, t' ⊆ t ∧ Cardinal.mk t' = k := by
+          have := ht.2.2 ▸ a;
+          exact Cardinal.le_mk_iff_exists_subset.mp this;
+        -- Since $t'$ is a subset of $t$ with cardinality $k$, we can convert it to a finset.
+        obtain ⟨t_fin, ht_fin⟩ : ∃ t_fin : Finset V, t_fin = t' ∧ t_fin.card = k := by
+          have h_finite : Set.Finite t' := by
+            exact Set.finite_coe_iff.mp ( Cardinal.lt_aleph0_iff_finite.mp ( ht'.2.symm ▸ Cardinal.nat_lt_aleph0 k ) );
+          have := h_finite.exists_finset_coe; aesop;
+        refine' ⟨ t_fin, ht_fin.2, _, _ ⟩ <;> aesop;
+        · exact Set.Subset.trans left_1 left;
+        · convert left_3.comp _ _;
+          rotate_left;
+          exacts [ fun x => ⟨ x.1, left_1 x.2 ⟩, fun x y h => by simpa [ Subtype.ext_iff ] using h, rfl ];
+      · -- Since $w$ is a subset of $s$, the span of $w$ is a subspace of the span of $s$.
+        have h_subspace : Submodule.span ℝ w ≤ Submodule.span ℝ s := by
+          exact Submodule.span_mono left_1;
+        refine' le_trans _ ( Submodule.rank_mono h_subspace );
+        rw [ rank_span_set ] ; aesop;
+        exact right
 
 end
 

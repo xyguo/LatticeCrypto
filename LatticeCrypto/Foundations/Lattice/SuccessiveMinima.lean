@@ -1,6 +1,7 @@
 import LatticeCrypto.Foundations.Lattice.Defs
 import LatticeCrypto.Foundations.Lattice.Basic
 import LatticeCrypto.Utils.Geometry
+import LatticeCrypto.Utils.LinearAlgebra
 
 import Mathlib.Topology.Algebra.Group.Basic
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
@@ -8,12 +9,15 @@ import Mathlib.Analysis.Convex.Body
 import Mathlib.Analysis.Convex.Basic
 import Mathlib.CategoryTheory.Category.Basic
 import Mathlib.Order.CompleteLattice.Defs
+import Mathlib.LinearAlgebra.Span.Defs               -- For AddSubgroup.zspan
 
 open scoped ENNReal NNReal Pointwise
+open Module
 open MeasureTheory
 open RealInnerProductSpace
 open Classical
 open LatticeCrypto.Utils.Geometry
+open LatticeCrypto.Utils.LinearAlgebra
 
 namespace LatticeCrypto.Foundations.Lattice
 
@@ -239,7 +243,37 @@ noncomputable def GeometricLattice.successiveMinima (L : GeometricLattice n n) (
       (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r) ∧
       LinearIndependent ℝ (fun v : S => (v : 𝔼 n)) }
 
-notation "λ_[" i "]" => GeometricLattice.successiveMinima · i
+
+noncomputable def GeometricLattice.successiveMinima_alter_def (L : GeometricLattice n n) (i : Fin n) : ℝ :=
+  sInf { r : ℝ | 0 < r ∧
+      (Module.rank ℝ (Submodule.span ℝ {v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r})) ≥ i + 1}
+
+theorem GeometricLattice.successiveMinima_defs_eq (L : GeometricLattice n n) :
+  ∀ (i : Fin n), L.successiveMinima i = L.successiveMinima_alter_def i
+:= by
+  intro i
+  unfold GeometricLattice.successiveMinima GeometricLattice.successiveMinima_alter_def
+  congr 1
+  ext r
+  apply Iff.intro
+  .
+    -- Since S is a subset of B(0, r) and is linearly independent, the span of S is a subspace of the span of B(0, r).
+    intro hr
+    obtain ⟨S, hS_card, hS_subset, hS_lin_ind⟩ := hr.right
+    have h_span_S : Submodule.span ℝ (S : Set (𝔼 n)) ≤ Submodule.span ℝ {v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r} := by
+      exact Submodule.span_mono fun x hx => hS_subset x hx;
+    have h_dim_S : Module.rank ℝ (↥(Submodule.span ℝ (S : Set (𝔼 n)))) = (i : ℕ) + 1 := by
+      rw [ @rank_span_set ];
+      · aesop;
+      · exact hS_lin_ind;
+    exact ⟨ hr.1, h_dim_S ▸ Submodule.rank_mono h_span_S ⟩
+  .
+    norm_num +zetaDelta at *;
+    intro hr h; use hr;
+    have h' : ((i.val + 1 : ℕ) : Cardinal) ≤ Module.rank ℝ (Submodule.span ℝ {v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r}) := by
+      simpa using h
+    have := rank_span_ge_iff_subset { v : LatticeCrypto.Foundations.Lattice.𝔼 n | v ∈ L ∧ ¬v = 0 ∧ ‖v‖ ≤ r } ( i + 1 );
+    exact this.mp ( mod_cast h' )
 
 theorem GeometricLattice.exists_successiveMinima (L : GeometricLattice n n) (i : Fin n) :
   ∃ (r : ℝ), 0 < r ∧ ∃ (S : Finset (𝔼 n)),
@@ -614,6 +648,211 @@ theorem GeometricLattice.successiveMinima_attained (L : GeometricLattice n n) (i
   refine ⟨v, ⟨hv_L, hv_ne⟩, ?_⟩
   -- r = ‖v‖ and λᵢ = m = ‖v‖
   simp [h_lambda_eq_m, hm_eq]
+
+noncomputable section Aristotle_lemmas
+/-
+The i-th successive minimum is attained by a set of i+1 linearly independent lattice vectors.
+-/
+theorem successiveMinima_attained_set (L : GeometricLattice n n) (i : Fin n) :
+    ∃ S : Finset (𝔼 n),
+      S.card = i.val + 1 ∧
+      (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ L.successiveMinima i) ∧
+      LinearIndependent ℝ (fun v : S => (v : 𝔼 n)) := by
+        -- By definition of $L.successiveMinima$, for any $\epsilon > 0$, there exists $r < L.successiveMinima i + \epsilon$ and a set $S$ of $i+1$ linearly independent lattice vectors with norms $\le r$.
+        have h_eps : ∀ ε > 0, ∃ r, 0 < r ∧ r < L.successiveMinima i + ε ∧ ∃ S : Finset (𝔼 n),
+              S.card = i.val + 1 ∧
+                  (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r) ∧
+                  LinearIndependent ℝ (fun v : S => (v : 𝔼 n)) := by
+                    intro ε ε_pos;
+                    have := exists_lt_of_csInf_lt ( show { r : ℝ | 0 < r ∧ ( ∃ ( S : Finset ( EuclideanSpace ℝ ( Fin n ) ) ), S.card = ( i : ℕ ) + 1 ∧ ( ∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r ) ∧ LinearIndependent ℝ ( fun v : S => ( v : EuclideanSpace ℝ ( Fin n ) ) ) ) }.Nonempty from ?_ ) ( lt_add_of_pos_right _ ε_pos );
+                    · exact ⟨ this.choose, this.choose_spec.1.1, this.choose_spec.2, this.choose_spec.1.2 ⟩;
+                    · have := GeometricLattice.exists_successiveMinima L i;
+                      exact ⟨ this.choose, this.choose_spec.1, this.choose_spec.2 ⟩;
+        choose! f hf1 hf2 hf3 using fun n : ℕ => h_eps ( 1 / ( n + 1 ) ) ( by positivity );
+        choose S hS1 hS2 hS3 using hf3;
+        -- Since the lattice is discrete, the set of norms of lattice vectors is discrete. In particular, in the ball of radius $L.successiveMinima i + 1$, there are finitely many lattice vectors.
+        have h_finite : Set.Finite {v : 𝔼 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ L.successiveMinima i + 1} := by
+          exact Set.Finite.subset ( L.finite_intersection_closedBall ( L.successiveMinima i + 1 ) ) fun x hx => ⟨ hx.1, hx.2.2 ⟩;
+        -- Since $S_n$ is a subset of the finite set of lattice vectors in the ball of radius $L.successiveMinima i + 1$, there must be some $S$ that appears infinitely often in the sequence $S_n$.
+        obtain ⟨S_inf, hS_inf⟩ : ∃ S_inf : Finset (𝔼 n), Set.Infinite {n : ℕ | S n = S_inf} := by
+          by_contra h_contra;
+          have h_finite_S : Set.Finite {S_inf : Finset (𝔼 n) | ∃ n, S n = S_inf ∧ S_inf ⊆ h_finite.toFinset} := by
+            exact Set.Finite.subset ( Set.toFinite ( Finset.powerset h_finite.toFinset ) ) fun x hx => by aesop;
+          have h_finite_S : Set.Finite {n : ℕ | S n ⊆ h_finite.toFinset} := by
+            exact Set.Finite.subset ( h_finite_S.biUnion fun x hx => Set.not_infinite.mp fun hi => h_contra ⟨ x, hi ⟩ ) fun n hn => by aesop;
+          exact h_finite_S.not_infinite <| Set.infinite_univ.mono fun n _ => Finset.subset_iff.mpr fun v hv => h_finite.mem_toFinset.mpr <| ⟨ hS2 n v hv |>.1, hS2 n v hv |>.2.1, le_trans ( hS2 n v hv |>.2.2 ) <| le_of_lt <| by linarith [ hf2 n, show ( 1 : ℝ ) / ( n + 1 ) ≤ 1 from div_le_self zero_le_one <| by linarith ] ⟩;
+        -- Since $S_inf$ appears infinitely often in the sequence $S_n$, it must satisfy the conditions for being a set of $i+1$ linearly independent lattice vectors with norms $\le L.successiveMinima i$.
+        have hS_inf_conditions : ∀ v ∈ S_inf, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ L.successiveMinima i := by
+          intro v hv; have := hS_inf.exists_gt; aesop;
+          · exact hS2 _ _ ( this 0 |> Classical.choose_spec |> And.left |> fun h => h.symm ▸ hv ) |>.1;
+          · obtain ⟨ n, hn1, hn2 ⟩ := this 0; specialize hS2 n 0; aesop;
+          · contrapose! this;
+            exact ⟨ ⌊ ( ‖v‖ - L.successiveMinima i ) ⁻¹⌋₊, fun n hn => Nat.le_floor <| by rw [ inv_eq_one_div, le_div_iff₀ ] <;> nlinarith [ hf1 n, hf2 n, hS2 n v <| hn ▸ hv, mul_inv_cancel₀ ( by linarith : ( n : ℝ ) + 1 ≠ 0 ) ] ⟩;
+        exact ⟨ S_inf, by obtain ⟨ n, hn ⟩ := hS_inf.nonempty; specialize hS1 n; aesop, hS_inf_conditions, by obtain ⟨ n, hn ⟩ := hS_inf.nonempty; specialize hS3 n; aesop ⟩
+
+/-
+If a set of k+1 linearly independent lattice vectors exists, at least one must have norm >= lambda_k.
+-/
+theorem norm_ge_successiveMinima (L : GeometricLattice n n) (k : Fin n) (s : Finset (𝔼 n))
+    (h_card : s.card = k.val + 1)
+    (h_li : LinearIndependent ℝ (fun v : s => (v : 𝔼 n)))
+    (h_mem : ∀ v ∈ s, v ∈ L.nonzeroVectors) :
+    ∃ v ∈ s, L.successiveMinima k ≤ ‖v‖ := by
+      by_contra h_contra;
+      -- Let $r = \max_{v \in s} \|v\|$.
+      obtain ⟨r, hr⟩ : ∃ r : ℝ, ∀ v ∈ s, ‖v‖ ≤ r ∧ r < L.successiveMinima k := by
+        by_cases hs : s.Nonempty;
+        · obtain ⟨r, hr⟩ : ∃ r : ℝ, r ∈ Set.image (fun v : 𝔼 n => ‖v‖) s ∧ ∀ v ∈ Set.image (fun v : 𝔼 n => ‖v‖) s, v ≤ r := by
+            exact ⟨ Finset.max' ( s.image fun v => ‖v‖ ) ⟨ _, Finset.mem_image_of_mem _ hs.choose_spec ⟩, by simpa using Finset.max'_mem ( s.image fun v => ‖v‖ ) ⟨ _, Finset.mem_image_of_mem _ hs.choose_spec ⟩, fun v hv => Finset.le_max' _ _ <| by simpa using hv ⟩;
+          aesop;
+        · aesop;
+      refine' hr _ ( Classical.choose_spec ( Finset.card_pos.mp ( by linarith ) ) ) |>.2.not_ge _;
+      refine' csInf_le _ _;
+      · exact ⟨ 0, fun x hx => hx.1.le ⟩;
+      · exact ⟨ lt_of_lt_of_le ( norm_pos_iff.mpr ( h_mem _ ( Classical.choose_spec ( Finset.card_pos.mp ( by linarith ) ) ) |>.2 ) ) ( hr _ ( Classical.choose_spec ( Finset.card_pos.mp ( by linarith ) ) ) |>.1 ), s, h_card, fun v hv => ⟨ h_mem v hv |>.1, h_mem v hv |>.2, hr v hv |>.1 ⟩, h_li ⟩
+
+/-
+Helper lemma: A specific configuration of vectors with small norms leads to a contradiction.
+-/
+lemma contradiction_of_small_norm (L : GeometricLattice n n) (j : Fin n) (hj : j.val + 1 < n)
+    (x : Fin (j.val + 1) → 𝔼 n) (v : 𝔼 n)
+    (h_li : LinearIndependent ℝ (Fin.snoc x v))
+    (h_mem_x : ∀ i, x i ∈ L.nonzeroVectors)
+    (h_mem_v : v ∈ L.nonzeroVectors)
+    (h_norm_x : ∀ i, ‖x i‖ ≤ ‖v‖)
+    (h_norm_v : ‖v‖ < L.successiveMinima ⟨j.val + 1, hj⟩) : False := by
+      contrapose! h_norm_v;
+      refine' csInf_le _ _;
+      · exact ⟨ 0, fun r hr => hr.1.le ⟩;
+      · refine' ⟨ norm_pos_iff.mpr h_mem_v.2, Finset.image ( Fin.snoc x v ) Finset.univ, _, _, _ ⟩ <;> simp_all ( config := { decide := Bool.true } ) ;
+        · rw [ Finset.card_image_of_injective _ ( fun i j hij => by simpa [ Fin.ext_iff ] using h_li.injective hij ), Finset.card_fin ];
+        · intro a; refine' Fin.lastCases _ _ a <;> aesop;
+          · exact h_mem_x i |>.1;
+          · exact h_mem_x i |>.2 a_1;
+        · convert h_li.comp _ _;
+          rotate_left;
+          use fun y => Classical.choose ( Finset.mem_image.mp y.2 );
+          · intro y z h; have := Classical.choose_spec ( Finset.mem_image.mp y.2 ) ; have := Classical.choose_spec ( Finset.mem_image.mp z.2 ) ; aesop;
+          · bound;
+            ext ⟨ y, hy ⟩ ; have := Classical.choose_spec ( Finset.mem_image.mp hy ) ; aesop;
+
+/-
+Given a vector with norm strictly between lambda_0 and lambda_k, there exists an index j < k such that lambda_j <= norm < lambda_{j+1}.
+-/
+lemma exists_index_between_norms (L : GeometricLattice n n) (k : ℕ) (hk : k < n)
+    (v : 𝔼 n) (hv_mem : v ∈ L.nonzeroVectors) (hv_lt : ‖v‖ < L.successiveMinima ⟨k, hk⟩) :
+    ∃ j : Fin k,
+      L.successiveMinima (Fin.castLE (le_of_lt hk) j) ≤ ‖v‖ ∧
+      ‖v‖ < L.successiveMinima ⟨j.val + 1, lt_of_le_of_lt (Nat.succ_le_of_lt j.is_lt) hk⟩ := by
+        -- Since $v \in L \setminus \{0\}$, $\|v\| \ge \lambda_0(L)$ (by `shortestVectorLength` properties).
+        have hv_ge_lambda0 : L.successiveMinima ⟨0, n.pos⟩ ≤ ‖v‖ := by
+          refine' csInf_le _ _;
+          · exact ⟨ 0, fun r hr => hr.1.le ⟩;
+          · exact ⟨ norm_pos_iff.mpr hv_mem.2, { v }, by aesop ⟩;
+        contrapose! hv_lt;
+        have h_seq : ∀ i : Fin (k + 1), L.successiveMinima (Fin.castLE (by linarith) i) ≤ ‖v‖ := by
+          intro i; induction i using Fin.inductionOn <;> aesop;
+        exact h_seq ⟨ k, Nat.lt_succ_self _ ⟩
+
+/-
+Helper lemma: If we find a vector with norm strictly less than lambda_k that is linearly independent of the first k vectors, we get a contradiction.
+-/
+lemma inductive_step_contradiction (L : GeometricLattice n n) (k : ℕ) (hk : k < n)
+  (x : Fin k → 𝔼 n)
+  (h_li : LinearIndependent ℝ x)
+  (h_x_mem : ∀ i, x i ∈ L.nonzeroVectors)
+  (h_norm : ∀ i : Fin k, ‖x i‖ = L.successiveMinima (Fin.castLE (le_of_lt hk) i))
+  (v : 𝔼 n)
+  (hv_mem : v ∈ L.nonzeroVectors)
+  (hv_li : LinearIndependent ℝ (Fin.snoc x v))
+  (hv_lt : ‖v‖ < L.successiveMinima ⟨k, hk⟩) : False := by
+    -- Applying `exists_index_between_norms` to find such a `j`.
+    obtain ⟨j, hj⟩ : ∃ j : Fin k, L.successiveMinima (Fin.castLE (by linarith) j) ≤ ‖v‖ ∧ ‖v‖ < L.successiveMinima (Fin.mk (j + 1) (by
+    exact lt_of_le_of_lt ( Nat.succ_le_of_lt j.2 ) hk)) := by
+      exact exists_index_between_norms L k hk v hv_mem hv_lt
+    generalize_proofs at *;
+    -- Applying `contradiction_of_small_norm` with the family $x'$ and vector $v$.
+    apply contradiction_of_small_norm L ⟨j.val, by
+      linarith [ Fin.is_lt j ]⟩ (by
+    (expose_names; exact pf_1)) (fun i => x ⟨i.val, by
+      exact lt_of_lt_of_le i.2 ( Nat.succ_le_of_lt j.2 )⟩) v
+    generalize_proofs at *
+    all_goals generalize_proofs at *;
+    · convert hv_li.comp _ _;
+      rotate_left;
+      use fun i => if i.val < j.val + 1 then ⟨ i.val, by
+        exact Nat.lt_succ_of_le ( Fin.is_le i |> Nat.le_trans <| Nat.succ_le_of_lt <| by linarith [ Fin.is_lt j ] ) ⟩ else ⟨ k, by
+        exact Nat.lt_succ_self _ ⟩
+      all_goals generalize_proofs at *;
+      · intro i j; aesop;
+        · exact Fin.ext a;
+        · linarith [ Fin.is_lt j, Fin.is_lt j_1 ];
+        · exact False.elim <| h_1.not_ge <| by linarith [ Fin.is_lt i, Fin.is_lt j, Fin.is_lt j_1 ] ;
+        · exact Fin.ext ( by linarith [ Fin.is_lt i, Fin.is_lt j ] );
+      · ext i; aesop;
+        · simp +decide [ Fin.snoc, h ];
+          grind;
+        · simp +decide [ Fin.snoc ];
+          split_ifs <;> linarith;
+    · exact fun i => h_x_mem _;
+    · assumption;
+    · aesop;
+      exact le_trans ( GeometricLattice.successiveMinima_mono L <| Fin.le_iff_val_le_val.mpr <| Nat.le_of_lt_succ <| by aesop ) left;
+    · exact hj.2
+
+/-
+Inductive step: given k linearly independent vectors with correct norms, we can find a (k+1)-th vector.
+-/
+lemma inductive_step_successiveMinima (L : GeometricLattice n n) (k : ℕ) (hk : k < n)
+  (x : Fin k → 𝔼 n)
+  (h_li : LinearIndependent ℝ x)
+  (h_x_mem : ∀ i, x i ∈ L.nonzeroVectors)
+  (h_norm : ∀ i : Fin k, ‖x i‖ = L.successiveMinima (Fin.castLE (le_of_lt hk) i)) :
+  ∃ v, v ∈ L.nonzeroVectors ∧ ‖v‖ = L.successiveMinima ⟨k, hk⟩ ∧
+    LinearIndependent ℝ (Fin.snoc x v) := by
+      obtain ⟨ S, hS₁, hS₂, hS₃ ⟩ := successiveMinima_attained_set L ⟨ k, hk ⟩;
+      -- Since $\dim(\text{span}(x)) = k$, there is $v \in S$ not in $\text{span}(x)$.
+      obtain ⟨ v, hvS, hv_not_span ⟩ : ∃ v ∈ S, v ∉ Submodule.span ℝ (Set.range x) := by
+        by_contra! h_contra;
+        have h_span : Submodule.span ℝ (Set.range (fun v : S => (v : 𝔼 n))) ≤ Submodule.span ℝ (Set.range x) := by
+          exact Submodule.span_le.mpr ( Set.range_subset_iff.mpr fun v => h_contra _ v.2 );
+        have := Submodule.finrank_mono h_span; simp_all +decide [ finrank_span_eq_card ] ;
+      -- Then $\{x_0, \dots, x_{k-1}, v\}$ is linearly independent.
+      have h_lin_ind : LinearIndependent ℝ (Fin.snoc x v) := by
+        rw [ linearIndependent_fin_snoc ];
+        exact ⟨ h_li, hv_not_span ⟩;
+      -- We claim $\|v\| \ge R$. Suppose $\|v\| < R$.
+      by_cases hv_lt : ‖v‖ < L.successiveMinima ⟨k, hk⟩;
+      · exact False.elim <| inductive_step_contradiction L k hk x h_li h_x_mem h_norm v ( ⟨ hS₂ v hvS |>.1, hS₂ v hvS |>.2.1 ⟩ ) h_lin_ind hv_lt;
+      · exact ⟨ v, ⟨ hS₂ v hvS |>.1, hS₂ v hvS |>.2.1 ⟩, le_antisymm ( hS₂ v hvS |>.2.2 ) ( not_lt.mp hv_lt ), h_lin_ind ⟩
+
+/-
+There exists a partial basis of size k satisfying the successive minima conditions.
+-/
+lemma exists_partial_basis (L : GeometricLattice n n) (k : ℕ) (hk : k ≤ n) :
+  ∃ x : Fin k → 𝔼 n,
+    LinearIndependent ℝ x ∧
+    ∀ i : Fin k, x i ∈ L.nonzeroVectors ∧ ‖x i‖ = L.successiveMinima (Fin.castLE hk i) := by
+      induction k <;> aesop;
+      -- By the inductive hypothesis, we can find such an x for n_1.
+      obtain ⟨x, hx⟩ := a (Nat.le_of_succ_le hk);
+      -- Apply the lemma `inductive_step_successiveMinima` to find the (n_1+1)-th vector.
+      obtain ⟨v, hv_mem, hv_norm, hv_li⟩ := inductive_step_successiveMinima L n_1 (by linarith) x hx.left (fun i => hx.right i |>.1) (fun i => hx.right i |>.2);
+      refine' ⟨ Fin.snoc x v, hv_li, fun i => _ ⟩ ; induction i using Fin.lastCases <;> aesop
+
+
+end Aristotle_lemmas
+
+/-! There are n linearly independent vectors in the lattice attaining the successive minima. -/
+theorem GeometricLattice.linearIndependent_successiveMinima_attained
+    (L : GeometricLattice n n) :
+  ∃ (x : Fin n → 𝔼 n),
+    (∀ i : Fin n, x i ∈ L.nonzeroVectors ∧ ‖x i‖ = L.successiveMinima i) ∧
+    LinearIndependent ℝ x := by
+  classical
+  have h : ∃ x : Fin n → 𝔼 n, LinearIndependent ℝ x ∧ ∀ i : Fin n, x i ∈ L.nonzeroVectors ∧ ‖x i‖ = L.successiveMinima i := by
+    convert exists_partial_basis L n le_rfl;
+  tauto
 
 end
 
