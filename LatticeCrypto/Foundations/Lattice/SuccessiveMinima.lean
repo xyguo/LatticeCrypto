@@ -10,6 +10,7 @@ import Mathlib.Analysis.Convex.Basic
 import Mathlib.CategoryTheory.Category.Basic
 import Mathlib.Order.CompleteLattice.Defs
 import Mathlib.LinearAlgebra.Span.Defs               -- For AddSubgroup.zspan
+import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
 
 open scoped ENNReal NNReal Pointwise
 open Module
@@ -40,7 +41,7 @@ This file defines the successive minima of a geometric lattice and some basic pr
 * [Olds-Lax-Davidoff, *The Geometry of Numbers*, 2001]
 -/
 
-noncomputable section
+noncomputable section successive_minima_basics
 
 /-!
 ## Successive Minima
@@ -478,6 +479,13 @@ theorem GeometricLattice.successiveMinima_boundedAbove (L : GeometricLattice n n
           funext x; exact (by
           have := Classical.choose_spec ( Finset.mem_image.mp x.2 ) ; aesop;)
 
+end successive_minima_basics
+
+
+noncomputable section successive_minima_achievable
+/-!
+## In this section we prove that successive minima are achivable by n linearly independent vectors
+-/
 /-- Helper -/
 lemma LatticeCrypto.Foundations.Lattice.exists_min_norm_subset_proven {n : ℕ+} (L : GeometricLattice n n) (S : Set ℝ)
     (h_subset : S ⊆ { ‖v‖ | v ∈ L.nonzeroVectors })
@@ -854,6 +862,103 @@ theorem GeometricLattice.linearIndependent_successiveMinima_attained
     convert exists_partial_basis L n le_rfl;
   tauto
 
-end
+end successive_minima_achievable
+
+/-!
+## The shortest vector length is lower bounded by the Gram-Schmidt of any basis.
+ -/
+noncomputable section gram_schmidt
+
+open InnerProductSpace
+
+variable {n : ℕ+}
+
+/-
+If a vector `v` is a linear combination of basis vectors `b_i` with coefficients `c_i`, and `c_i = 0` for all `i > k`, then the inner product of `v` with the `k`-th Gram-Schmidt vector `b*_k` is `c_k * ‖b*_k‖^2`.
+-/
+lemma projection_on_gramSchmidt_of_max_index
+    (B : SquareLatticeBasis n)
+    (c : Fin n → ℝ)
+    (k : Fin n)
+    (h_max : ∀ i, k < i → c i = 0)
+    (v : EuclideanSpace ℝ (Fin n))
+    (hv : v = ∑ i, c i • B.basis i) :
+    inner ℝ v (gramSchmidt ℝ B.basis k) = c k * ‖gramSchmidt ℝ B.basis k‖ ^ 2 := by
+      -- By definition of `gramSchmidt`, we know that `⟪gramSchmidt ℝ B.basis k,gramSchmidt ℝ B.basis i⟫ = 0` for all `i < k`.
+      have h_ortho : ∀ i : Fin n, i < k → ⟪gramSchmidt ℝ B.basis k, gramSchmidt ℝ B.basis i⟫ = 0 := by
+        intro i hi; rw [ inner_eq_zero_symm ] ; aesop;
+        exact gramSchmidt_orthogonal ℝ _ ( ne_of_lt hi );
+      have h_inner : ⟪gramSchmidt ℝ B.basis k, B.basis k⟫_ℝ = (‖gramSchmidt ℝ B.basis k‖^2) := by
+        have := gramSchmidt_def ℝ B.basis k;
+        -- The projection of $B.basis k$ onto the span of the previous vectors is orthogonal to $gramSchmidt ℝ B.basis k$, so their inner product is zero.
+        have h_proj_ortho : ∀ i ∈ Finset.Iio k, ⟪gramSchmidt ℝ B.basis k, (Submodule.span ℝ {gramSchmidt ℝ B.basis i}).starProjection (B.basis k)⟫_ℝ = 0 := by
+          intro i hi; rw [ Submodule.starProjection ] ; simp +decide ;
+          simp +decide [ Submodule.starProjection_singleton ];
+          simp +decide [ inner_smul_right, h_ortho i ( Finset.mem_Iio.mp hi ) ];
+        have h_inner : ⟪gramSchmidt ℝ B.basis k, B.basis k⟫_ℝ = ⟪gramSchmidt ℝ B.basis k, gramSchmidt ℝ B.basis k⟫_ℝ + ⟪gramSchmidt ℝ B.basis k, ∑ i ∈ Finset.Iio k, (Submodule.span ℝ {gramSchmidt ℝ B.basis i}).starProjection (B.basis k)⟫_ℝ := by
+          rw [ ← inner_add_right ];
+          rw [ this, sub_add_cancel ];
+        rw [ h_inner, inner_self_eq_norm_sq_to_K ];
+        simp +decide [ inner_sum ];
+        exact Finset.sum_eq_zero h_proj_ortho;
+      have h_inner_sum : ⟪gramSchmidt ℝ B.basis k, ∑ i ∈ Finset.univ.erase k, c i • B.basis i⟫_ℝ = 0 := by
+        rw [ inner_sum ];
+        refine Finset.sum_eq_zero fun i hi => ?_ ; by_cases hi' : i < k <;> aesop;
+        · have h_inner_sum : ⟪gramSchmidt ℝ B.basis k, B.basis i⟫_ℝ = 0 := by
+            exact gramSchmidt_inv_triangular ℝ B.basis hi';
+          simp_all +decide [ inner_smul_right ];
+        · rw [ h_max i ( lt_of_le_of_ne hi' ( Ne.symm hi ) ), zero_smul, inner_zero_right ];
+      simp_all +decide [ sum_inner ];
+      simp_all +decide [ inner_smul_left, inner_sub_right ];
+      simp_all +decide [ sub_eq_zero, inner_smul_right, inner_sum ];
+      simpa only [ real_inner_comm ] using h_inner_sum
+
+/-
+For any non-zero function `f` from `Fin n` to integers, there exists an index `k` such that `f k` is non-zero and `f i` is zero for all `i > k`.
+-/
+lemma exists_max_nonzero_index {n : ℕ} (f : Fin n → ℤ) (hf : f ≠ 0) :
+    ∃ k : Fin n, f k ≠ 0 ∧ ∀ i, k < i → f i = 0 := by
+      exact ⟨ Finset.max' ( Finset.univ.filter fun i => f i ≠ 0 ) ⟨ Classical.choose ( Function.ne_iff.mp hf ), Finset.mem_filter.mpr ⟨ Finset.mem_univ _, Classical.choose_spec ( Function.ne_iff.mp hf ) ⟩ ⟩, Finset.mem_filter.mp ( Finset.max'_mem ( Finset.univ.filter fun i => f i ≠ 0 ) ⟨ Classical.choose ( Function.ne_iff.mp hf ), Finset.mem_filter.mpr ⟨ Finset.mem_univ _, Classical.choose_spec ( Function.ne_iff.mp hf ) ⟩ ⟩ ) |>.2, fun i hi => Classical.not_not.mp fun hi' => not_lt_of_ge ( Finset.le_max' _ _ <| by aesop ) hi ⟩
+
+/-
+The shortest non-zero vector in the lattice cannot be shorter than the shortest Gram–Schmidt vector of any basis.
+-/
+theorem shortestVectorLength_ge_gramSchmidt_minNorm
+  {n : ℕ+}
+  (L : GeometricLattice n n)
+  (B : SquareLatticeBasis n)
+  (h : isBasisFor B L) :
+  minNorm (InnerProductSpace.gramSchmidt ℝ B.basis) ≤ GeometricLattice.shortestVectorLength L := by
+    refine' le_csInf _ _;
+    · exact ⟨ _, ⟨ ⟨ _, L.exists_shortest_vector.choose_spec.1 ⟩, rfl ⟩ ⟩;
+    · aesop;
+      -- By definition of `mem_iff_exists_coeffs`, we know that there exist integers `c` such that `w = ∑ i, c i • B.basis i`.
+      obtain ⟨c, hc⟩ : ∃ c : Fin n → ℤ, w = ∑ i, c i • B.basis i := by
+        have h_span : w ∈ Submodule.span ℤ (Set.range B.basis) := by
+          convert left.1 using 1;
+          exact congrArg Membership.mem h;
+        rw [ Finsupp.mem_span_range_iff_exists_finsupp ] at h_span;
+        aesop;
+      -- Since $w$ is non-zero, the coefficients $c$ are not all zero. Use `exists_max_nonzero_index` to find the largest index $k$ such that $c_k ≠ 0$.
+      obtain ⟨k, hk_ne_zero, hk_max⟩ : ∃ k : Fin n, c k ≠ 0 ∧ ∀ i, k < i → c i = 0 := by
+        -- Since $c$ is not all zero, there must be some $i$ such that $c_i \neq 0$.
+        obtain ⟨i, hi⟩ : ∃ i : Fin n, c i ≠ 0 := by
+          contrapose! left; aesop;
+          exact a.2 rfl;
+        exact ⟨ Finset.max' ( Finset.univ.filter fun i => c i ≠ 0 ) ⟨ i, Finset.mem_filter.mpr ⟨ Finset.mem_univ _, hi ⟩ ⟩, Finset.mem_filter.mp ( Finset.max'_mem ( Finset.univ.filter fun i => c i ≠ 0 ) ⟨ i, Finset.mem_filter.mpr ⟨ Finset.mem_univ _, hi ⟩ ⟩ ) |>.2, fun j hj => Classical.not_not.1 fun hj' => not_lt_of_ge ( Finset.le_max' _ _ <| by aesop ) hj ⟩;
+      -- Project $w$ onto the $k$-th Gram-Schmidt vector $b*_k$. By `projection_on_gramSchmidt_of_max_index`, $\langle w, b*_k \rangle = c_k \cdot \|b*_k\|^2$.
+      have h_proj : inner ℝ w (gramSchmidt ℝ B.basis k) = (c k : ℝ) * ‖gramSchmidt ℝ B.basis k‖ ^ 2 := by
+        rw [ hc, projection_on_gramSchmidt_of_max_index ] ; aesop;
+        norm_cast;
+      -- By Cauchy-Schwarz, $|\langle w, b*_k \rangle| \leq \|w\| \cdot \|b*_k\|$.
+      have h_cauchy_schwarz : |inner ℝ w (gramSchmidt ℝ B.basis k)| ≤ ‖w‖ * ‖gramSchmidt ℝ B.basis k‖ := by
+        exact abs_real_inner_le_norm _ _;
+      -- Since $c_k$ is a non-zero integer, $|c_k| \geq 1$. Thus $\|b*_k\| \leq \|w\|$.
+      have h_norm_gramSchmidt : ‖gramSchmidt ℝ B.basis k‖ ≤ ‖w‖ := by
+        rw [ h_proj, abs_mul, abs_sq ] at h_cauchy_schwarz;
+        nlinarith [ show ( |↑ ( c k )| : ℝ ) ≥ 1 by exact mod_cast abs_pos.mpr hk_ne_zero, norm_nonneg w, norm_nonneg ( gramSchmidt ℝ B.basis k ) ];
+      exact le_trans ( minNorm_le _ k ) h_norm_gramSchmidt
+
+end gram_schmidt
 
 end LatticeCrypto.Foundations.Lattice

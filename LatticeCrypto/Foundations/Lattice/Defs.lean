@@ -179,6 +179,8 @@ theorem GeometricLattice.eq_basis_toLattice (L : GeometricLattice n k) :
       cases L'
       congr
 
+def isBasisFor (B: SquareLatticeBasis n) (L: GeometricLattice n n) : Prop :=
+  B.toLattice ≡ᵤ L
 
 /-!
 ## Properties of Geometric Lattices

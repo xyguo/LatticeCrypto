@@ -24,8 +24,6 @@ open Classical
   - `LatticeBasis.smul`
   - `LatticeBasis.dual`
   - `LatticeBasis.dual_inner` (biorthogonality: ⟨B_i, B*_j⟩ = δ_ij)
-  - `LatticeBasis.fundamentalDomain`
-  - `LatticeBasis.centeredFundamentalDomain`
 
   ## Bridges
   - `GeometricLattice.dual_carrier_eq` (dual lattice = vectors with integral inner products)
@@ -40,6 +38,10 @@ variable {n k : ℕ+}
 -/
 
 noncomputable section membership
+
+/-!
+### Membership to a Lattice
+-/
 
 /-- Membership in a geometric lattice. -/
 instance : Membership (𝔼 n) (GeometricLattice n k) where
@@ -105,48 +107,52 @@ theorem GeometricLattice.basis_mem (L : GeometricLattice n k) (i : Fin k) :
   rw [mem_iff_zspan]
   exact Submodule.subset_span (Set.mem_range_self i)
 
+/-!
+### Representation by a LatticeBasis
+-/
+
 /-- The representation of a lattice vector as integer coordinates with respect to the basis. -/
-noncomputable def GeometricLattice.repr (L : GeometricLattice n k) (v : 𝔼 n)
-    (hv : v ∈ L) : Fin k → ℤ :=
-  L.basis.asZSpanBasis.repr ⟨v, L.carrier_eq ▸ hv⟩
+noncomputable def LatticeBasis.repr (B : LatticeBasis n k) (v : 𝔼 n)
+    (hv : v ∈ B.toLattice) : Fin k → ℤ :=
+  B.asZSpanBasis.repr ⟨v, B.toLattice.carrier_eq ▸ hv⟩
 
 /-- The representation gives the correct coefficients. -/
-theorem GeometricLattice.repr_spec (L : GeometricLattice n k) (v : 𝔼 n)
-    (hv : v ∈ L) : v = ∑ i, (L.repr v hv i) • L.basis.cols i := by
-  rw [mem_def] at hv
-  have hv' : v ∈ Submodule.span ℤ (Set.range L.basis.cols) := L.carrier_eq ▸ hv
-  have h := L.basis.asZSpanBasis.sum_repr ⟨v, hv'⟩
+theorem LatticeBasis.repr_spec (B : LatticeBasis n k) (v : 𝔼 n)
+    (hv : v ∈ B.toLattice) : v = ∑ i, (B.repr v hv i) • B.basis i := by
+  rw [GeometricLattice.mem_def] at hv
+  have hv' : v ∈ Submodule.span ℤ (Set.range B.basis) := B.toLattice.carrier_eq ▸ hv
+  have h := B.asZSpanBasis.sum_repr ⟨v, hv'⟩
   simp only [LatticeBasis.asZSpanBasis] at h
   conv_lhs => rw [← Subtype.coe_mk v hv']
   convert congr_arg Subtype.val h.symm using 1;
   induction ( Finset.univ : Finset ( Fin k ) ) using Finset.induction <;> aesop;
   congr;
-  exact Eq.symm (Module.Basis.span_apply (LatticeBasis.asZSpanBasis._proof_1 L.basis) a)
+  exact Eq.symm (Module.Basis.span_apply (LatticeBasis.asZSpanBasis._proof_1 B) a)
 
 /-- Constructing a lattice vector from coefficients. -/
-noncomputable def GeometricLattice.ofCoeffs (L : GeometricLattice n k)
+noncomputable def LatticeBasis.ofCoeffs (B : LatticeBasis n k)
     (c : Fin k → ℤ) : 𝔼 n :=
-  ∑ i, c i • L.basis.cols i
+  ∑ i, c i • B.basis i
 
 /-- A vector constructed from coefficients is in the lattice. -/
-theorem GeometricLattice.ofCoeffs_mem (L : GeometricLattice n k)
-    (c : Fin k → ℤ) : L.ofCoeffs c ∈ L := by
-  rw [mem_iff_exists_coeffs]
+theorem LatticeBasis.ofCoeffs_mem (B : LatticeBasis n k)
+    (c : Fin k → ℤ) : B.ofCoeffs c ∈ B.toLattice := by
+  rw [GeometricLattice.mem_iff_exists_coeffs]
   exact ⟨c, rfl⟩
 
 /-- repr is a left inverse of ofCoeffs. -/
-theorem GeometricLattice.repr_ofCoeffs (L : GeometricLattice n k)
-    (c : Fin k → ℤ) : L.repr (L.ofCoeffs c) (L.ofCoeffs_mem c) = c := by
-  have h_li : LinearIndependent ℤ L.basis.cols :=
-    Z_linearIndependent_if_R_linearIndependent L.basis.li
+theorem LatticeBasis.repr_ofCoeffs (B : LatticeBasis n k)
+    (c : Fin k → ℤ) : B.repr (B.ofCoeffs c) (B.ofCoeffs_mem c) = c := by
+  have h_li : LinearIndependent ℤ B.basis :=
+    Z_linearIndependent_if_R_linearIndependent B.li
   ext i
-  have h_eq := L.repr_spec (L.ofCoeffs c) (L.ofCoeffs_mem c)
+  have h_eq := B.repr_spec (B.ofCoeffs c) (B.ofCoeffs_mem c)
   simp only [ofCoeffs] at h_eq
   -- The representation is unique due to linear independence
   have h_unique : ∀ (c₁ c₂ : Fin k → ℤ),
-      (∑ i, c₁ i • L.basis.cols i) = (∑ i, c₂ i • L.basis.cols i) → c₁ = c₂ := by
+      (∑ i, c₁ i • B.basis i) = (∑ i, c₂ i • B.basis i) → c₁ = c₂ := by
     intro c₁ c₂ heq
-    have : ∑ i, (c₁ i - c₂ i) • L.basis.cols i = 0 := by
+    have : ∑ i, (c₁ i - c₂ i) • B.basis i = 0 := by
       simp only [sub_smul, Finset.sum_sub_distrib]
       rw [heq, sub_self]
     rw [Fintype.linearIndependent_iff] at h_li
@@ -156,9 +162,9 @@ theorem GeometricLattice.repr_ofCoeffs (L : GeometricLattice n k)
   exact congr_fun (h_unique _ _ h_eq.symm) i
 
 /-- ofCoeffs is a left inverse of repr. -/
-theorem GeometricLattice.ofCoeffs_repr (L : GeometricLattice n k) (v : 𝔼 n)
-    (hv : v ∈ L) : L.ofCoeffs (L.repr v hv) = v := by
-  rw [ofCoeffs, ← repr_spec L v hv]
+theorem LatticeBasis.ofCoeffs_repr (B : LatticeBasis n k) (v : 𝔼 n)
+    (hv : v ∈ B.toLattice) : B.ofCoeffs (B.repr v hv) = v := by
+  rw [ofCoeffs, ← repr_spec B v hv]
 
 end membership
 

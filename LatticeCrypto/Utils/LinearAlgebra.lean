@@ -50,7 +50,75 @@ Many are light wrappers around Mathlib functions.
 
 namespace LatticeCrypto.Utils.LinearAlgebra
 
-noncomputable section
+noncomputable section min_norm
+
+/-- Minimum norm among a finite family of vectors, to be the minimum norm of
+assuming the index set is nonempty. -/
+def minNorm
+    {V : Type*} [Norm V]
+    (f : Fin k → V) : ℝ :=
+  Finset.min' (Finset.image (fun i => ‖f i‖) Finset.univ) (by
+    rw [Finset.image_nonempty]
+    exact Finset.univ_nonempty_iff.mpr (Fin.pos_iff_nonempty.mp k.pos)
+  )
+
+/-- One can find an index achieving the minNorm-/
+noncomputable def argminNorm
+    {V : Type*} [Norm V]
+    (f : Fin k → V) : Fin k :=
+  let h_nonempty : (Finset.univ : Finset (Fin k)).Nonempty :=
+    Finset.univ_nonempty_iff.mpr (Fin.pos_iff_nonempty.mp k.pos)
+  -- Finset.exists_min_image proves there exists an index i minimizing the function
+  Classical.choose (Finset.exists_min_image Finset.univ (fun i ↦ ‖f i‖) h_nonempty)
+
+/-- The minNorm among a finite family of vectors is no more than the norm of any vector from the family. -/
+lemma minNorm_le
+    {V : Type*} [Norm V]
+    (f : Fin k → V) (i : Fin k) :
+    minNorm f ≤ ‖f i‖ := by
+  unfold minNorm
+  apply Finset.min'_le
+  rw [Finset.mem_image]
+  use i
+  simp only [Finset.mem_univ, true_and]
+
+/-- The minimum norm among a finite family of vectors is equal to the norm at the argmin of the minNorm. -/
+lemma minNorm_eq_norm_argmin
+    {V : Type*} [Norm V]
+    (f : Fin k → V) :
+    minNorm f = ‖f (argminNorm f)‖ := by
+  unfold minNorm argminNorm;
+  refine' le_antisymm _ _;
+  · exact Finset.min'_le _ _ ( Finset.mem_image_of_mem _ ( Finset.mem_univ _ ) );
+  · have := Classical.choose_spec ( Finset.exists_min_image Finset.univ ( fun i => ‖f i‖ ) ( Finset.univ_nonempty ) );
+    aesop
+
+/-- The norm at the argmin is less than or equal to the norm of any other vector. -/
+lemma norm_argmin_le
+    {V : Type*} [Norm V]
+    (f : Fin k → V) (i : Fin k) :
+    ‖f (argminNorm f)‖ ≤ ‖f i‖ := by
+  unfold argminNorm
+  have h_nonempty : (Finset.univ : Finset (Fin k)).Nonempty :=
+    Finset.univ_nonempty_iff.mpr (Fin.pos_iff_nonempty.mp k.pos)
+  have h_min := Classical.choose_spec (Finset.exists_min_image Finset.univ (fun i ↦ ‖f i‖) h_nonempty)
+  exact h_min.2 i (Finset.mem_univ i)
+
+/-- The minimum column norm of a matrix. -/
+def Matrix.minColumnNorm
+    (A : Matrix (Fin n) (Fin k) ℝ) : ℝ :=
+  minNorm (fun j => fun i => A i j)
+
+def Matrix.argminColumn
+    (A : Matrix (Fin n) (Fin k) ℝ) : Fin k :=
+  argminNorm (fun j => fun i => A i j)
+
+end min_norm
+
+/-!
+# Some handy results regarding linear independence
+-/
+noncomputable section independence
 
 lemma Z_linearIndependent_if_R_linearIndependent {v : Fin k → Fin n → ℝ} (li : LinearIndependent ℝ v) : LinearIndependent ℤ v := by
   have h_int_lin_ind : ∀ (c : Fin k → ℤ), (∑ i, c i • v i = 0) → (∀ i, c i = 0) := by
@@ -97,7 +165,6 @@ theorem discrete_zspan {v : Fin k → 𝔼 n} (li : LinearIndependent ℝ v) :
 
   -- 4. Conclude that the z-span of v is discrete
   exact DiscreteTopology.of_subset discrete_v' h_subset
-
 
 theorem exists_finset_eq_card {α} {n : ℕ} (h : n ≤ Cardinal.mk α) :
     ∃ s : Finset α, n = s.card := by
@@ -159,6 +226,6 @@ lemma rank_span_ge_iff_subset {V : Type*} [AddCommGroup V] [Module ℝ V] (s : S
         rw [ rank_span_set ] ; aesop;
         exact right
 
-end
+end independence
 
 end LatticeCrypto.Utils.LinearAlgebra
