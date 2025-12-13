@@ -18,6 +18,9 @@ import Mathlib.Analysis.Convex.Basic
 import Mathlib.Analysis.Normed.Module.Convex
 import Mathlib.CategoryTheory.Category.Basic  -- For aesop_cat
 
+import LatticeCrypto.Utils.Vec
+open LatticeCrypto.Utils.Vec
+
 open scoped ENNReal NNReal Pointwise
 open MeasureTheory
 open RealInnerProductSpace
@@ -27,9 +30,6 @@ open FiniteDimensional
 
 variable {n : ℕ+}
 
-/-- Notation for n-dimensional Euclidean space over ℝ. -/
-private abbrev 𝔼 (n : ℕ+) := EuclideanSpace ℝ (Fin n)
-
 /-!
 # Utility Functions
 
@@ -37,8 +37,9 @@ This module provides utility functions for mathematical analysis on lattice.
 Many are light wrappers around Mathlib functions.
 
 ## Main components
+* `Vec` - Defines the space the lattice resides.
 * `Geometry` (**This file**) - handy lemmas in Euclidean geometry
-* `LinearAlgebra` - handy lemmas in Euclidean geometry
+* `LinearAlgebra` - handy lemmas in linear algebra
 * `Algebra.Ring` - Lemmas in ring theory
 * `Algebra.Module` - Lemmas in module theory
 * `Algebra.Polynomial` - Lemmas in polynomial rings
@@ -47,26 +48,6 @@ Many are light wrappers around Mathlib functions.
 namespace LatticeCrypto.Utils.Geometry
 
 noncomputable section
-
-def stdBasis : Module.Basis (Fin n) ℝ (𝔼 n) :=
-  (EuclideanSpace.basisFun (Fin n) ℝ).toBasis
-
-lemma toMatrix_on_stdBasis_eq_self (mb: Module.Basis (Fin n) ℝ (𝔼 n)) :
-  stdBasis.toMatrix mb = Matrix.of (fun i j => mb j i) := by
- rfl
-
-/-- Helper: Linear equivalence between EuclideanSpace ℝ (Fin n) and the function space (Fin n → ℝ). -/
-def eucToPi : EuclideanSpace ℝ (Fin n) ≃ₗ[ℝ] (Fin n → ℝ) :=
-  (EuclideanSpace.equiv (Fin n) ℝ).toLinearEquiv
-
-def piToEuc : (Fin n → ℝ) ≃ₗ[ℝ] EuclideanSpace ℝ (Fin n) :=
-  (EuclideanSpace.equiv (Fin n) ℝ).symm.toLinearEquiv
-
-@[simp] lemma piToEuc_apply (f : Fin n → ℝ) (i : Fin n) :
-  (eucToPi (piToEuc f)) i = f i := by simp [piToEuc, eucToPi]
-
-@[simp] lemma eucToPi_apply (x : EuclideanSpace ℝ (Fin n)) :
-  piToEuc (eucToPi x) = x := by simp [piToEuc, eucToPi]
 
 /-- The Lebesgue measure on ℝⁿ. -/
 def lebesgueMeasure : Measure (𝔼 n) := volume

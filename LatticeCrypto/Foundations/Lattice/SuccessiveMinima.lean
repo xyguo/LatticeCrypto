@@ -2,6 +2,7 @@ import LatticeCrypto.Foundations.Lattice.Defs
 import LatticeCrypto.Foundations.Lattice.Basic
 import LatticeCrypto.Utils.Geometry
 import LatticeCrypto.Utils.LinearAlgebra
+import LatticeCrypto.Utils.Vec
 
 import Mathlib.Topology.Algebra.Group.Basic
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
@@ -17,6 +18,7 @@ open Module
 open MeasureTheory
 open RealInnerProductSpace
 open Classical
+open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Utils.LinearAlgebra
 
@@ -245,15 +247,16 @@ noncomputable def GeometricLattice.successiveMinima (L : GeometricLattice n n) (
       LinearIndependent ℝ (fun v : S => (v : 𝔼 n)) }
 
 
-noncomputable def GeometricLattice.successiveMinima_alter_def (L : GeometricLattice n n) (i : Fin n) : ℝ :=
+noncomputable def GeometricLattice.successiveMinima' (L : GeometricLattice n n) (i : Fin n) : ℝ :=
   sInf { r : ℝ | 0 < r ∧
       (Module.rank ℝ (Submodule.span ℝ {v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r})) ≥ i + 1}
 
+
 theorem GeometricLattice.successiveMinima_defs_eq (L : GeometricLattice n n) :
-  ∀ (i : Fin n), L.successiveMinima i = L.successiveMinima_alter_def i
+  ∀ (i : Fin n), L.successiveMinima i = L.successiveMinima' i
 := by
   intro i
-  unfold GeometricLattice.successiveMinima GeometricLattice.successiveMinima_alter_def
+  unfold GeometricLattice.successiveMinima GeometricLattice.successiveMinima'
   congr 1
   ext r
   apply Iff.intro
@@ -273,8 +276,27 @@ theorem GeometricLattice.successiveMinima_defs_eq (L : GeometricLattice n n) :
     intro hr h; use hr;
     have h' : ((i.val + 1 : ℕ) : Cardinal) ≤ Module.rank ℝ (Submodule.span ℝ {v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r}) := by
       simpa using h
-    have := rank_span_ge_iff_subset { v : LatticeCrypto.Foundations.Lattice.𝔼 n | v ∈ L ∧ ¬v = 0 ∧ ‖v‖ ≤ r } ( i + 1 );
+    have := rank_span_ge_iff_subset { v : 𝔼 n | v ∈ L ∧ ¬v = 0 ∧ ‖v‖ ≤ r } ( i + 1 );
     exact this.mp ( mod_cast h' )
+
+/-
+  Immediate corollary from successive minima definition: If there exists a set of `i+1`
+  linearly independent lattice vectors with norms at most `r`, then the `i`-th successive
+  minimum is at most `r`.
+-/
+lemma GeometricLattice.le_successiveMinima_of_exists_linearIndependent
+    (L : GeometricLattice n n)
+    {i : Fin n} {r : ℝ} (hr : 0 < r)
+    (S : Finset (𝔼 n))
+    (h_card : S.card = i.val + 1)
+    (h_mem : ∀ v ∈ S, v ∈ L.nonzeroVectors)
+    (h_norm : ∀ v ∈ S, ‖v‖ ≤ r)
+    (h_li : LinearIndependent ℝ (fun v : S => (v : 𝔼 n))) :
+    L.successiveMinima i ≤ r := by
+      refine' csInf_le _ _;
+      · exact ⟨ 0, fun x hx => hx.1.le ⟩;
+      · exact ⟨ hr, S, h_card, fun v hv => ⟨ h_mem v hv |>.1, h_mem v hv |>.2, h_norm v hv ⟩, h_li ⟩
+
 
 theorem GeometricLattice.exists_successiveMinima (L : GeometricLattice n n) (i : Fin n) :
   ∃ (r : ℝ), 0 < r ∧ ∃ (S : Finset (𝔼 n)),
@@ -380,6 +402,18 @@ theorem GeometricLattice.successiveMinima_one (L : GeometricLattice n n) :
         exact fun v => norm_nonneg _;
       exact ⟨ 0, Set.forall_mem_range.mpr h_nonneg ⟩;
       exacts [ ⟨ v, hv_L, hv_ne ⟩, hv_norm ]
+
+/-
+ Immediate corollary from the definition: The norm of any non-zero lattice vector is at least the first successive minimum.
+-/
+lemma GeometricLattice.norm_ge_successiveMinima_one (L : GeometricLattice n n) (v : 𝔼 n)
+    (hv : v ∈ L.nonzeroVectors) :
+    L.successiveMinima ⟨0, n.pos⟩ ≤ ‖v‖ := by
+      have := hv;
+      rw [ @GeometricLattice.successiveMinima_one ];
+      rw [ @GeometricLattice.shortestVectorLength_eq ];
+      exact csInf_le ⟨ 0, by rintro x ⟨ w, hw, rfl ⟩ ; exact norm_nonneg _ ⟩ ⟨ v, this, rfl ⟩
+
 
 /-- Successive minima are non-decreasing: λᵢ ≤ λⱼ for i ≤ j. -/
 theorem GeometricLattice.successiveMinima_mono (L : GeometricLattice n n)

@@ -4,6 +4,8 @@ import Mathlib.Topology.Defs.Basic
 
 import LatticeCrypto.Utils.LinearAlgebra
 import LatticeCrypto.Utils.Geometry
+import LatticeCrypto.Utils.Vec
+open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.LinearAlgebra
 open LatticeCrypto.Utils.Geometry
 

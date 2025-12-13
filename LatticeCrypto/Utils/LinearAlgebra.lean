@@ -3,11 +3,11 @@ import Mathlib.Analysis.Normed.Group.Basic      -- For NormedAddCommGroup
 import Mathlib.Topology.Algebra.Group.Basic      -- For the subspace topology on AddSubgroup
 import Mathlib.Topology.Algebra.OpenSubgroup
 import Mathlib.Analysis.InnerProductSpace.PiL2  -- For EuclideanSpace
+import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
 import Mathlib.Data.Matrix.Basic                -- for type synonym support
 import Mathlib.Analysis.Normed.Group.Subgroup   -- For LinearIndependent.discrete_zspan
 import Mathlib.LinearAlgebra.LinearIndependent.Defs  -- For LinearIndependent
 import Mathlib.LinearAlgebra.Span.Defs               -- For AddSubgroup.zspan
-import Mathlib.Data.Rat.Defs                   -- For ℚ (Rat)
 import Mathlib.Data.Real.Basic                  -- For ℝ (Real)
 import Mathlib.LinearAlgebra.Basis.Basic
 import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
@@ -20,6 +20,9 @@ import Mathlib.Analysis.Convex.Body
 import Mathlib.Analysis.Convex.Basic
 import Mathlib.Analysis.Normed.Module.Convex
 
+import LatticeCrypto.Utils.Vec
+open LatticeCrypto.Utils.Vec
+
 open scoped ENNReal NNReal Pointwise
 open MeasureTheory
 open RealInnerProductSpace
@@ -29,10 +32,6 @@ open FiniteDimensional
 
 
 variable {n k : ℕ+}
-
-/-- Notation for n-dimensional Euclidean space over ℝ. -/
-private abbrev 𝔼 (n : ℕ+) := EuclideanSpace ℝ (Fin n)
-
 
 /-!
 # Utility Functions
@@ -119,6 +118,9 @@ end min_norm
 # Some handy results regarding linear independence
 -/
 noncomputable section independence
+
+/-- Notation for n-dimensional Euclidean space over ℝ. -/
+private abbrev 𝔼 (n : ℕ+) := EuclideanSpace ℝ (Fin n)
 
 lemma Z_linearIndependent_if_R_linearIndependent {v : Fin k → Fin n → ℝ} (li : LinearIndependent ℝ v) : LinearIndependent ℤ v := by
   have h_int_lin_ind : ∀ (c : Fin k → ℤ), (∑ i, c i • v i = 0) → (∀ i, c i = 0) := by
@@ -227,5 +229,161 @@ lemma rank_span_ge_iff_subset {V : Type*} [AddCommGroup V] [Module ℝ V] (s : S
         exact right
 
 end independence
+
+noncomputable section gram_schmidt
+
+open InnerProductSpace
+open scoped Matrix
+
+variable {n : Type*} [Fintype n] [DecidableEq n] [LinearOrder n] [LocallyFiniteOrder n] [OrderBot n] [WellFoundedLT n]
+variable {𝕜 : Type*} [RCLike 𝕜]
+
+noncomputable def toE (v : n → 𝕜) : EuclideanSpace 𝕜 n := WithLp.equiv 2 (n → 𝕜) v
+noncomputable def fromE (v : EuclideanSpace 𝕜 n) : n → 𝕜 := WithLp.equiv 2 (n → 𝕜) v
+
+set_option linter.unusedSectionVars false in
+@[simp] lemma toE_apply (v : n → 𝕜) (i : n) :
+  (fromE (toE v)) i = v i := by simp [toE, fromE]
+
+set_option linter.unusedSectionVars false in
+@[simp] lemma fromE_apply (x : EuclideanSpace 𝕜 n) :
+  toE (fromE x) = x := by bound
+
+
+noncomputable def gramSchmidtMatrix (M : Matrix n n 𝕜) : Matrix n n 𝕜 :=
+  fun i => fun j =>
+    (fromE
+      (InnerProductSpace.gramSchmidt 𝕜 (fun v => toE (M.col v)) j) -- jth gs vector
+      i)
+
+set_option linter.unusedSectionVars false in
+theorem gramSchmidtMatrix_col (M : Matrix n n 𝕜) (j : n) :
+    (gramSchmidtMatrix M).col j =
+      fromE (InnerProductSpace.gramSchmidt 𝕜 (fun v => toE (M.col v)) j) := by
+  ext i
+  simp [gramSchmidtMatrix, Matrix.col]
+
+noncomputable section AristotleLemmas
+
+/-
+If matrix B is obtained from matrix A such that the difference of their j-th columns lies in the span of the previous columns of A, then their determinants are equal.
+-/
+lemma det_eq_of_forall_col_diff_span
+    {n : Type*} [Fintype n] [DecidableEq n] [LinearOrder n] [LocallyFiniteOrder n] [OrderBot n] [WellFoundedLT n]
+    {𝕜 : Type*} [Field 𝕜]
+    (A B : Matrix n n 𝕜)
+    (h : ∀ j, A.col j - B.col j ∈ Submodule.span 𝕜 (Set.image A.col (Set.Iio j))) :
+    A.det = B.det := by
+      -- By definition of $B$, we know that $B = A \cdot T$ for some upper triangular matrix $T$ with $1$ on the diagonal.
+      obtain ⟨T, hT⟩ : ∃ T : Matrix n n 𝕜, B = A * T ∧ ∀ i, T i i = 1 ∧ ∀ j, j < i → T i j = 0 := by
+        -- Let $w_j = A.col j - B.col j$. By hypothesis, $w_j \in \text{span}(\{A_i\}_{i < j})$.
+        have hw : ∀ j : n, ∃ w : n → 𝕜, B.col j = A.col j - ∑ i ∈ Finset.filter (fun i => i < j) (Finset.univ : Finset n), w i • A.col i := by
+          intro j
+          obtain ⟨w, hw⟩ : ∃ w : n → 𝕜, A.col j - B.col j = ∑ i ∈ Finset.filter (fun i => i < j) (Finset.univ : Finset n), w i • A.col i := by
+            have := h j;
+            rw [ Finsupp.mem_span_image_iff_linearCombination ] at this;
+            obtain ⟨ l, hl₁, hl₂ ⟩ := this; use fun i => l i; simp_all +decide [ Finsupp.linearCombination_apply, Finsupp.sum_fintype ] ;
+            rw [ ← hl₂, Finset.sum_filter_of_ne ] ; aesop;
+          exact ⟨ w, by rw [ ← hw, sub_sub_cancel ] ⟩;
+        choose w hw using hw;
+        refine' ⟨ fun i j => if i = j then 1 else if i < j then -w j i else 0, _, _ ⟩ <;> simp_all +decide [ ← Matrix.ext_iff ];
+        · intro i j; specialize hw j; replace hw := congr_fun hw i; simp_all +decide [ Matrix.mul_apply, Finset.sum_ite ] ;
+          simp +decide [ Finset.filter_eq', Finset.filter_ne', mul_comm ];
+          rw [ Finset.filter_erase ] ; aesop;
+          ring;
+        · exact fun i j hij => by rw [ if_neg hij.ne', if_neg hij.not_gt ] ;
+      -- Since $T$ is upper triangular with $1$ on the diagonal, its determinant is $1$.
+      have hT_det : Matrix.det T = 1 := by
+        rw [ Matrix.det_of_upperTriangular ] <;> aesop;
+        intro i j hij; aesop;
+      aesop
+
+/-
+If a matrix has orthogonal columns, the absolute value of its determinant is the product of the norms of its columns.
+-/
+set_option linter.unusedSectionVars false in
+lemma det_norm_eq_prod_norm_of_orthogonal_cols (A : Matrix n n 𝕜)
+    (h : Pairwise (fun i j => ⟪toE (A.col i), toE (A.col j)⟫_𝕜 = 0)) :
+    ‖A.det‖ = ∏ i, ‖toE (A.col i)‖ := by
+      have h_sq : ‖Matrix.det A‖^2 = ∏ i, ‖toE (A.col i)‖^2 := by
+        have h_det_sq : ‖Matrix.det A‖^2 = Matrix.det (Matrix.conjTranspose A * A) := by
+          simp ( config := { decide := Bool.true } ) [ Matrix.det_mul, Matrix.det_conjTranspose ];
+          exact Eq.symm (RCLike.conj_mul A.det)
+        have h_diag : Matrix.conjTranspose A * A = Matrix.diagonal (fun i => ⟪toE (A.col i), toE (A.col i)⟫_𝕜) := by
+          ext i j; by_cases hij : i = j <;> simp_all +decide [ Matrix.mul_apply, Pairwise ] ;
+          · unfold LatticeCrypto.Utils.LinearAlgebra.toE; simp +decide ;
+            simp +decide [ mul_comm, inner, WithLp.ofLp ];
+          · convert h hij using 1 ; simp +decide [ toE ];
+            simp +decide [ WithLp.ofLp ];
+            exact Finset.sum_congr rfl fun _ _ => by simp ( config := { decide := Bool.true } ) [ mul_comm ] ;
+        simp_all +decide [ inner_self_eq_norm_sq_to_K ];
+        norm_cast at *;
+      rw [ ← sq_eq_sq₀ ( norm_nonneg _ ) ( Finset.prod_nonneg fun _ _ => norm_nonneg _ ), h_sq, Finset.prod_pow ]
+
+
+end AristotleLemmas
+
+
+/--
+The determinant of a matrix is equal to the determinant of its Gram-Schmidt matrix.
+-/
+theorem gramSchmidt_matrix_det (M : Matrix n n 𝕜) :
+    M.det = (gramSchmidtMatrix M).det := by
+  -- Let's denote the matrix `M` as `M`.
+  set M' : Matrix n n 𝕜 := gramSchmidtMatrix M;
+  set M' : Matrix n n 𝕜 := gramSchmidtMatrix M;
+  symm;
+  apply det_eq_of_forall_col_diff_span;
+  intro j
+  have h_proj : (InnerProductSpace.gramSchmidt 𝕜 (fun k => toE (M.col k)) j) - (toE (M.col j)) ∈ Submodule.span 𝕜 (Set.image (fun k => InnerProductSpace.gramSchmidt 𝕜 (fun k => toE (M.col k)) k) (Set.Iio j)) := by
+    rw [ InnerProductSpace.gramSchmidt_def ];
+    rw [ sub_sub_cancel_left ];
+    refine' Submodule.neg_mem _ ( Submodule.sum_mem _ fun i hi => _ );
+    refine' Submodule.span_mono _ _;
+    exact { InnerProductSpace.gramSchmidt 𝕜 ( fun k => LatticeCrypto.Utils.LinearAlgebra.toE ( M.col k ) ) i };
+    · aesop;
+    · exact Submodule.coe_mem _;
+  convert h_proj using 1
+
+/-
+The absolute value of the determinant of `M` is the product of the norms of its Gram-Schmidt vectors.
+-/
+theorem gramSchmidt_matrix_det_abs (M : Matrix n n 𝕜) :
+    ‖M.det‖ = ∏ i, ‖InnerProductSpace.gramSchmidt 𝕜 (fun j => toE (M.col j)) i‖ := by
+  have := gramSchmidt_matrix_det M;
+  rw [ this, det_norm_eq_prod_norm_of_orthogonal_cols ];
+  · exact Finset.prod_congr rfl fun _ _ => rfl;
+  · intro i j hij; have := InnerProductSpace.gramSchmidt_orthogonal 𝕜 ( fun v => toE ( M.col v ) ) hij; aesop;
+
+/-- Instantiate the above theorems in EuclideanSpace -/
+theorem euc_gramSchmidt_matrix_det {n : ℕ+} (M : Matrix (Fin n) (Fin n) ℝ) :
+    M.det = (Matrix.of
+              (fun i => fun j =>
+                  (eucToPi
+                    (InnerProductSpace.gramSchmidt ℝ (fun v => piToEuc (M.col v)) j)
+                    i))
+            ).det := by
+  convert gramSchmidt_matrix_det _ using 2;
+  rotate_left;
+  exact Fin.instLinearOrder;
+  all_goals try infer_instance;
+  ext i j; simp +decide [ LatticeCrypto.Utils.LinearAlgebra.gramSchmidtMatrix ];
+  congr!;
+  exact Subsingleton.elim _ _
+
+/-- Instantiate the above theorems in EuclideanSpace -/
+theorem euc_gramSchmidt_matrix_det_abs {n : ℕ+} (M : Matrix (Fin n) (Fin n) ℝ) :
+    |M.det| = ∏ i, ‖InnerProductSpace.gramSchmidt ℝ
+                      (fun j => piToEuc (M.col j)) i‖ := by
+  convert ( gramSchmidt_matrix_det_abs ?_ );
+  all_goals first | infer_instance | norm_cast;
+  cases n using PNat.recOn <;> trivial
+
+noncomputable def Basis_of_gramSchmidtOrthonormalBasis {n : ℕ+} (b : Basis (Fin n) ℝ (𝔼 n)) : Basis (Fin n) ℝ (𝔼 n) := by
+  have h_eq : Module.finrank ℝ (𝔼 n) = Fintype.card (Fin n) := by bound
+  exact (InnerProductSpace.gramSchmidtOrthonormalBasis h_eq b).toBasis
+
+
+end gram_schmidt
 
 end LatticeCrypto.Utils.LinearAlgebra

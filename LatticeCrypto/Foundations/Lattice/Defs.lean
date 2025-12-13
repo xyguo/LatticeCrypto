@@ -7,7 +7,6 @@ import Mathlib.Data.Matrix.Basic                -- for type synonym support
 import Mathlib.Analysis.Normed.Group.Subgroup   -- For LinearIndependent.discrete_zspan
 import Mathlib.LinearAlgebra.LinearIndependent.Defs  -- For LinearIndependent
 import Mathlib.LinearAlgebra.Span.Defs               -- For AddSubgroup.zspan
-import Mathlib.Data.Rat.Defs                   -- For ℚ (Rat)
 import Mathlib.Data.Real.Basic                  -- For ℝ (Real)
 import Mathlib.LinearAlgebra.Basis.Basic
 import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
@@ -16,6 +15,8 @@ import Mathlib.Data.PNat.Basic
 
 import LatticeCrypto.Utils.LinearAlgebra
 import LatticeCrypto.Utils.Geometry
+import LatticeCrypto.Utils.Vec
+open LatticeCrypto.Utils.Vec
 
 open RealInnerProductSpace
 open Module
@@ -40,9 +41,6 @@ noncomputable section Lattice
 -- Throughout this file we will use n to denote the dimension of the ambient space,
 -- and k to denote the rank of the lattice
 variable {n k : ℕ+}
-
-/-- Notation for n-dimensional Euclidean space over ℝ. -/
-abbrev 𝔼 (n : ℕ+) := EuclideanSpace ℝ (Fin n)
 
 /-!
 ## Lattice Basis

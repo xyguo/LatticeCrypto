@@ -18,7 +18,7 @@ This project aims to implement fundamental lattice-based cryptography algorithms
 - [X] Lattice operations (shift, scaling)
 - [X] Related structures (coset, dual lattice)
 - [X] Fundamental lattice parameters (fundamental domain, determinant)
-- [ ] Successive minima and the Minkowski's First and Second Theorems
+- [X] Successive minima and the Minkowski's First and Second Theorems
 
 ### 1.2 Major analytic tools
 - **Module**: `LatticeCrypto.Foundations.Lattice`
@@ -30,7 +30,7 @@ This project aims to implement fundamental lattice-based cryptography algorithms
 
 ### 1.3 Lattice Algorithms
 - **Module**: `LatticeCrypto.Foundations.Algorithms`
-- [ ] Gram-Schmidt orthogonalization
+- [-] ~~Gram-Schmidt orthogonalization~~ (using Mathlib version)
 - [ ] LLL (Lenstra-Lenstra-Lovász) lattice reduction algorithm
 - [ ] BKZ (Block Korkine-Zolotarev) algorithm basics
 - [ ] Babai's Nearest Plane

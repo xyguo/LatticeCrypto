@@ -3,6 +3,7 @@ import LatticeCrypto.Foundations.Lattice.Basic
 import LatticeCrypto.Foundations.Lattice.FundamentalDomain
 import LatticeCrypto.Foundations.Lattice.SuccessiveMinima
 import LatticeCrypto.Utils.Geometry
+import LatticeCrypto.Utils.Vec
 
 import Mathlib.Topology.Algebra.Group.Basic
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
@@ -12,12 +13,15 @@ import Mathlib.Analysis.Convex.Body
 import Mathlib.Analysis.Convex.Basic
 import Mathlib.Analysis.Normed.Module.Convex
 import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
+import Mathlib.Algebra.Order.Field.Basic
 
 open scoped ENNReal NNReal Pointwise
 open MeasureTheory
 open RealInnerProductSpace
 open Classical
+open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
+open LatticeCrypto.Utils.LinearAlgebra
 
 namespace LatticeCrypto.Foundations.Lattice
 
@@ -42,8 +46,8 @@ This file states some fundamental theorems relating successive minima to volume 
 * [Olds-Lax-Davidoff, *The Geometry of Numbers*, 2001]
 -/
 
-noncomputable section
 
+noncomputable section blichfeldt
 
 /-!
 ## Blichfeldt's Theorem
@@ -302,7 +306,6 @@ theorem GeometricLattice.blichfeldt_diff (L : GeometricLattice n n) (S : Set (�
   · -- x - y ∈ S - S
     exact Set.sub_mem_sub hx hy
 
-
 /-!
 ## Minkowski's Convex Body Theorem
 -/
@@ -362,7 +365,10 @@ theorem GeometricLattice.minkowski_convex_body (L : GeometricLattice n n)
   use x - y
   refine ⟨⟨hdiff, sub_ne_zero.mpr hne⟩, hdiff_in_S⟩
 
+end blichfeldt
 
+
+noncomputable section minkowski_1
 /-!
 ## Minkowski's First Theorem
 -/
@@ -473,26 +479,52 @@ theorem GeometricLattice.minkowski_first (L : GeometricLattice n n) :
 theorem GeometricLattice.minkowski_first_sqrt (L : GeometricLattice n n) :
     L.shortestVectorLength ≤ Real.sqrt n * L.det ^ (1 / (n : ℝ)) := by
  -- This follows from minkowski_first and vol(Bⁿ) ≥ (2/√n)ⁿ
-  calc L.shortestVectorLength
-      ≤ 2 * (L.det / unitBallVolume n) ^ (1 / (n : ℝ)) := L.minkowski_first
-    _ = 2 * ((L.det ^ (1 / (n : ℝ))) / (unitBallVolume n) ^ (1 / (n : ℝ))) := by
-        rw [Real.div_rpow]
-        . exact le_of_lt L.det_pos
-        . exact le_of_lt unitBallVolume_pos
-    _ ≤ 2 * ((L.det ^ (1 / (n : ℝ))) / ( (2 : ℝ) ^ (n : ℕ) / (Real.sqrt n) ^ (n : ℕ))) ^ (1 / (n : ℝ)) := by
-      have : unitBallVolume n ≥ (2 : ℝ) ^ (n : ℕ) / (Real.sqrt n) ^ (n : ℕ) := by
-        exact unitBallVolume_lb
-      sorry
-    _ = 2 * ((L.det ^ (1 / (n : ℝ))) / ( (2 : ℝ) / (Real.sqrt n) )) := by sorry
-    _ = Real.sqrt n * L.det ^ (1 / (n : ℝ)) := by sorry
+  have : unitBallVolume n ≥ (2 : ℝ) ^ (n : ℕ) / (Real.sqrt n) ^ (n : ℕ) := by
+    exact unitBallVolume_lb (n := n)
+  -- Taking the nth root of both sides of the inequality, we get the desired result.
+  have h_root : (unitBallVolume n) ^ (1 / (n : ℝ)) ≥ 2 / (Real.sqrt n) := by
+    exact le_trans ( by rw [ Real.div_rpow ( by positivity ) ( by positivity ), ← Real.rpow_natCast, ← Real.rpow_mul ( by positivity ), ← Real.rpow_natCast, ← Real.rpow_mul ( by positivity ) ] ; norm_num ) ( Real.rpow_le_rpow ( by positivity ) this ( by positivity ) );
+  -- Using the inequality from h_root, we can bound the expression from Minkowski's first theorem.
+  have h_bound : 2 * (L.det / unitBallVolume n) ^ (1 / (n : ℝ)) ≤ 2 * (L.det) ^ (1 / (n : ℝ)) * (Real.sqrt n / 2) := by
+    rw [ Real.div_rpow ];
+    · rw [ mul_assoc, div_eq_mul_inv ];
+      gcongr;
+      · exact Real.rpow_nonneg ( le_of_lt ( L.det_pos ) ) _;
+      · simpa using inv_anti₀ ( by positivity ) h_root;
+    · exact le_of_lt ( L.det_pos );
+    · exact le_trans ( by positivity ) this;
+  exact le_trans ( GeometricLattice.minkowski_first L ) ( by linarith )
 
+/-- A simple upper bound on the shortest vector length using the geometric mean of the Gram-Schmidt vectors.
+  This is a corollary of Minkowski's First Theorem.
+-/
+theorem shortestVectorLength_le_gramSchmidt_geometric_mean (L : GeometricLattice n n) (B: SquareLatticeBasis n)
+  (h: isBasisFor B L) : L.shortestVectorLength ≤ Real.sqrt n * (∏ i : Fin n, ‖InnerProductSpace.gramSchmidt ℝ B.basis i‖) ^ (1 / (n : ℝ)) := by
+  have h_L_det := euc_gramSchmidt_matrix_det_abs L.basis.asMatrix
+  have h_B_det := euc_gramSchmidt_matrix_det_abs B.asMatrix
 
+  have h_L_B_det_eq : L.det = B.volume := by
+    -- By definition of determinant, we know that `L.det = |det(L.basis.asMatrix)|`.
+    have h_L_det : L.det = abs (L.basis.asMatrix.det) := by
+      exact rfl;
+    -- Since L and B are unimodularly equivalent, their determinants are equal.
+    have h_det_eq : L.det = B.toLattice.det := by
+      have h_unimod : L ≡ᵤ B.toLattice := by
+        exact GeometricLattice.CarrierEquiv.symm h
+      exact GeometricLattice.det_eq_of_equiv h_unimod;
+    exact h_det_eq
+
+  have mink_1 := GeometricLattice.minkowski_first_sqrt L
+  rw [h_L_B_det_eq, LatticeBasis.volume, h_B_det] at mink_1
+  convert mink_1
+
+end minkowski_1
+
+noncomputable section minkowski_2
 /-!
 ## Minkowski's Second Theorem
--/
 
-/--
-  **Minkowski's Second Theorem**: The successive minima of a lattice L satisfy:
+**Minkowski's Second Theorem**: The successive minima of a lattice L satisfy:
 
     (∏ᵢ λᵢ(L))^(1/n) ≤ √n · det(L)^(1/n)
 
@@ -501,124 +533,357 @@ theorem GeometricLattice.minkowski_first_sqrt (L : GeometricLattice n n) :
 
   where Bⁿ is the unit ball.
 -/
+
+/-
+Definition of the ellipsoid T used in Minkowski's Second Theorem.
+-/
+open LatticeCrypto.Foundations.Lattice
+open LatticeCrypto.Utils.LinearAlgebra
+open LatticeCrypto.Utils.Geometry
+open InnerProductSpace
+open Module
+
+/-
+There exists a smallest index `j ≤ k` such that `λ_j = λ_k`. For all `i < j`, `λ_i < λ_k`.
+-/
+lemma exists_min_index_eq_successiveMinima (L : GeometricLattice n n) (k : Fin n) :
+    ∃ j : Fin n, j ≤ k ∧ L.successiveMinima j = L.successiveMinima k ∧
+    ∀ i : Fin n, i < j → L.successiveMinima i < L.successiveMinima k := by
+      -- Since `L.successiveMinima` is monotonic, the set `S = {i | L.successiveMinima i = L.successiveMinima k}` is nonempty and has a least element.
+      obtain ⟨j, hj_mem⟩ : ∃ j : Fin n, j ∈ {i : Fin n | L.successiveMinima i = L.successiveMinima k} ∧ (∀ i : Fin n, i ∈ {i : Fin n | L.successiveMinima i = L.successiveMinima k} → j ≤ i) := by
+        exact ⟨ Finset.min' ( Finset.univ.filter fun i => L.successiveMinima i = L.successiveMinima k ) ⟨ k, by aesop ⟩, by simpa using Finset.min'_mem ( Finset.univ.filter fun i => L.successiveMinima i = L.successiveMinima k ) ⟨ k, by aesop ⟩, fun i hi => Finset.min'_le _ _ <| by aesop ⟩;
+      use j; aesop;
+      exact lt_of_le_of_ne ( left ▸ L.successiveMinima_mono a.le ) fun h => a.not_ge ( right _ h )
+
+
+
+/-- The ellipsoid T defined in the proof of Minkowski's Second Theorem. -/
+def minkowski_ellipsoid (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) : Set (𝔼 n) :=
+  let b' := gramSchmidt ℝ b
+  { y | ∑ i, (inner ℝ y (b' i) / (‖b' i‖ * lambdas i)) ^ 2 < 1 }
+
+/-
+The Minkowski ellipsoid is convex.
+-/
+theorem minkowski_ellipsoid_convex (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) (hlambdas : ∀ i, 0 < lambdas i) :
+    Convex ℝ (minkowski_ellipsoid b lambdas) := by
+      let b_GS := gramSchmidt ℝ b
+      intro x hx y hy a b ha hb hab;
+      -- Apply the linearity of the inner product and the triangle inequality.
+      have h_inner_triangle : ∀ i, (inner ℝ (a • x + b • y) (b_GS i) / (‖b_GS i‖ * lambdas i)) ^ 2 ≤ a * (inner ℝ x (b_GS i) / (‖b_GS i‖ * lambdas i)) ^ 2 + b * (inner ℝ y (b_GS i) / (‖b_GS i‖ * lambdas i)) ^ 2 := by
+        -- Apply the linearity of the inner product and the triangle inequality to each term in the sum.
+        intro i
+        have h_inner_triangle : (a * ⟪x, b_GS i⟫_ℝ + b * ⟪y, b_GS i⟫_ℝ) ^ 2 ≤ (a + b) * (a * ⟪x, b_GS i⟫_ℝ ^ 2 + b * ⟪y, b_GS i⟫_ℝ ^ 2) := by
+          nlinarith [ sq_nonneg ( ⟪x, b_GS i⟫_ℝ - ⟪y, b_GS i⟫_ℝ ), mul_nonneg ha hb ];
+        simp_all ( config := { decide := Bool.true } ) [ div_pow, mul_pow, inner_add_left, inner_smul_left ];
+        convert div_le_div_of_nonneg_right h_inner_triangle ( mul_nonneg ( sq_nonneg _ ) ( sq_nonneg _ ) ) using 1 ; ring;
+      -- Apply the triangle inequality to each term in the sum.
+      have h_sum_triangle : ∑ i, (inner ℝ (a • x + b • y) (b_GS i) / (‖b_GS i‖ * lambdas i)) ^ 2 ≤ a * ∑ i, (inner ℝ x (b_GS i) / (‖b_GS i‖ * lambdas i)) ^ 2 + b * ∑ i, (inner ℝ y (b_GS i) / (‖b_GS i‖ * lambdas i)) ^ 2 := by
+        simpa only [ Finset.mul_sum _ _ _, Finset.sum_add_distrib ] using Finset.sum_le_sum fun i _ => h_inner_triangle i;
+      unfold minkowski_ellipsoid at *; aesop;
+      cases lt_or_ge a b <;> nlinarith
+
+/-
+The Minkowski ellipsoid is centrally symmetric.
+-/
+theorem minkowski_ellipsoid_symmetric (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) :
+    IsCentrallySymmetric (minkowski_ellipsoid b lambdas) := by
+      intro y hy; simp_all +decide [ minkowski_ellipsoid ];
+      simpa only [ neg_div, neg_sq ] using hy
+
+/-
+Definition of the scaling linear equivalence for the Minkowski ellipsoid.
+-/
+
+/-- The linear equivalence that scales the orthonormal basis vectors by lambdas. -/
+noncomputable def minkowski_scaling (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) (hlambdas : ∀ i, lambdas i ≠ 0) : (𝔼 n) ≃ₗ[ℝ] (𝔼 n) :=
+  let u := Basis_of_gramSchmidtOrthonormalBasis b
+  let f := Basis.constr u ℝ (fun i => lambdas i • u i)
+  have h_inv : Function.Bijective f := by
+    have h_inv : Invertible f := by
+      use ( u.constr ℝ ) fun i => ( lambdas i ) ⁻¹ • u i;
+      · ext i; aesop;
+      · ext x; simp +decide [ f, hlambdas ] ;
+    obtain ⟨ g, hg ⟩ := h_inv;
+    exact ⟨ LinearMap.injective_of_comp_eq_id _ _ ‹_›, LinearMap.surjective_of_comp_eq_id _ _ ‹_› ⟩
+  LinearEquiv.ofBijective f h_inv
+
+/-
+The determinant of the scaling map is the product of the scaling factors.
+-/
+
+theorem minkowski_scaling_det (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) (hlambdas : ∀ i, lambdas i ≠ 0) :
+    LinearMap.det (minkowski_scaling b lambdas hlambdas).toLinearMap = ∏ i, lambdas i := by
+      -- The determinant of a diagonal matrix is the product of its diagonal entries.
+      have h_det_diag : (LinearMap.toMatrix (Basis_of_gramSchmidtOrthonormalBasis b) (Basis_of_gramSchmidtOrthonormalBasis b) (minkowski_scaling b lambdas hlambdas)).det = ∏ i, lambdas i := by
+        rw [ Matrix.det_of_upperTriangular ];
+        · congr;
+          ext i; unfold minkowski_scaling; simp +decide [ LinearMap.toMatrix_apply ] ;
+        · intro i j hij; simp at hij;
+          unfold minkowski_scaling;
+          simp +decide [ LinearMap.toMatrix_apply, hij.ne' ];
+      rw [ ← h_det_diag, LinearMap.det_toMatrix ]
+
+theorem minkowski_ellipsoid_mem_iff (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) (y : 𝔼 n) :
+    y ∈ minkowski_ellipsoid b lambdas ↔ ∑ i, (inner ℝ y (Basis_of_gramSchmidtOrthonormalBasis b i) / lambdas i) ^ 2 < 1 := by
+      unfold LatticeCrypto.Foundations.Lattice.minkowski_ellipsoid; aesop;
+      · convert a using 3 ; norm_num [ div_mul_eq_div_div ];
+        erw [ InnerProductSpace.gramSchmidtOrthonormalBasis_apply ] ; aesop;
+        · unfold InnerProductSpace.gramSchmidtNormed; aesop;
+          rw [ inner_smul_right ] ; ring!;
+        · aesop;
+          unfold InnerProductSpace.gramSchmidtNormed at a_1; aesop;
+          have := InnerProductSpace.gramSchmidt_ne_zero x b.linearIndependent; aesop;
+      · convert a using 2 ; norm_num [ div_mul_eq_div_div ];
+        unfold LatticeCrypto.Utils.LinearAlgebra.Basis_of_gramSchmidtOrthonormalBasis; aesop;
+        rw [ InnerProductSpace.gramSchmidtOrthonormalBasis_apply ];
+        · unfold InnerProductSpace.gramSchmidtNormed; aesop;
+          rw [ inner_smul_right ] ; ring;
+        · simp +decide [ InnerProductSpace.gramSchmidtNormed ];
+          exact gramSchmidt_ne_zero x b.linearIndependent
+
+/-
+The Minkowski ellipsoid is the image of the unit ball under the scaling map.
+-/
+
+theorem minkowski_ellipsoid_eq_image_ball (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) (hlambdas : ∀ i, lambdas i ≠ 0) :
+    minkowski_ellipsoid b lambdas = (minkowski_scaling b lambdas hlambdas).toLinearMap '' (Metric.ball 0 1) := by
+    by_contra h_contra;
+    have h_eq : ∀ x : LatticeCrypto.Utils.Vec.𝔼 n, x ∈ minkowski_ellipsoid b lambdas ↔ ‖(minkowski_scaling b lambdas hlambdas).symm x‖ < 1 := by
+      have h_eq : ∀ x : LatticeCrypto.Utils.Vec.𝔼 n, ‖(minkowski_scaling b lambdas hlambdas).symm x‖ ^ 2 = ∑ i, (inner ℝ x (Basis_of_gramSchmidtOrthonormalBasis b i) / lambdas i) ^ 2 := by
+        intro x
+        have h_expand : (minkowski_scaling b lambdas hlambdas).symm x = ∑ i, (inner ℝ x (Basis_of_gramSchmidtOrthonormalBasis b i) / lambdas i) • Basis_of_gramSchmidtOrthonormalBasis b i := by
+          have hT_inv : ∀ i, (minkowski_scaling b lambdas hlambdas).symm (Basis_of_gramSchmidtOrthonormalBasis b i) = (1 / lambdas i) • Basis_of_gramSchmidtOrthonormalBasis b i := by
+            intro i;
+            have hT_inv : (minkowski_scaling b lambdas hlambdas) ((1 / lambdas i) • Basis_of_gramSchmidtOrthonormalBasis b i) = Basis_of_gramSchmidtOrthonormalBasis b i := by
+              unfold LatticeCrypto.Foundations.Lattice.minkowski_scaling; aesop;
+            rw [ ← hT_inv, LinearEquiv.symm_apply_apply ];
+            rw [ hT_inv ];
+          -- By definition of $T$, we know that $x = \sum_{i=1}^n \langle x, u_i \rangle u_i$.
+          have hx : x = ∑ i, inner ℝ x (Basis_of_gramSchmidtOrthonormalBasis b i) • Basis_of_gramSchmidtOrthonormalBasis b i := by
+            convert ( Basis.sum_repr ( Basis_of_gramSchmidtOrthonormalBasis b ) x ) |> Eq.symm;
+            unfold LatticeCrypto.Utils.LinearAlgebra.Basis_of_gramSchmidtOrthonormalBasis; aesop;
+            rw [ OrthonormalBasis.repr_apply_apply ];
+            rw [ real_inner_comm ];
+          conv_lhs => rw [ hx ];
+          simp +decide [ div_eq_inv_mul, hT_inv ];
+          exact Finset.sum_congr rfl fun _ _ => by rw [ smul_smul, mul_comm ] ;
+        rw [ h_expand, ← real_inner_self_eq_norm_sq ];
+        simp +decide [ inner_sum, sum_inner, inner_smul_left, inner_smul_right, sq ];
+        rw [ Finset.sum_congr rfl ] ; intros ; rw [ Finset.sum_eq_single ‹_› ] <;> aesop;
+        · simp +decide [ Basis_of_gramSchmidtOrthonormalBasis ];
+        · simp +decide [ Basis_of_gramSchmidtOrthonormalBasis, a_2 ];
+      aesop;
+      · rw [ ← Real.sqrt_sq ( norm_nonneg _ ) ];
+        rw [ Real.sqrt_lt' ] <;> aesop;
+        exact?;
+      · exact minkowski_ellipsoid_mem_iff b lambdas x |>.2 ( by nlinarith [ h_eq x, norm_nonneg ( ( minkowski_scaling b lambdas hlambdas ).symm x ) ] );
+    refine' h_contra _;
+    ext x; specialize h_eq x; aesop;
+
+/-
+The volume of the Minkowski ellipsoid is the product of the scaling factors times the volume of the unit ball.
+-/
+
+theorem minkowski_ellipsoid_volume (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) (hlambdas : ∀ i, 0 < lambdas i) :
+    (lebesgueMeasure (minkowski_ellipsoid b lambdas)).toReal = (∏ i, lambdas i) * unitBallVolume n := by
+      -- By the properties of the scaling map and the unit ball, we can rewrite the volume expression.
+      have h_eq : minkowski_ellipsoid b lambdas = (minkowski_scaling b lambdas (fun i => ne_of_gt (hlambdas i))).toLinearMap '' Metric.ball 0 1 := by
+        exact minkowski_ellipsoid_eq_image_ball b lambdas fun i => ne_of_gt (hlambdas i);
+      rw [ h_eq, MeasureTheory.Measure.addHaar_image_linearMap ] ; aesop;
+      rw [ minkowski_scaling_det b lambdas ( fun i => ne_of_gt ( hlambdas i ) ) ] ; norm_num [ abs_of_pos, Finset.abs_prod, hlambdas ] ;
+      exact Or.inl rfl
+
+/-
+Definition of the extremal basis for a geometric lattice.
+-/
+
+/-- The basis of vectors attaining the successive minima. -/
+noncomputable def GeometricLattice.extremalBasis (L : GeometricLattice n n) : Basis (Fin n) ℝ (𝔼 n) :=
+  let x := Classical.choose L.linearIndependent_successiveMinima_attained
+  let h := Classical.choose_spec L.linearIndependent_successiveMinima_attained
+  basisOfLinearIndependentOfCardEqFinrank h.2 (by simp [finrank_euclideanSpace])
+
+/-
+Inequality for the Minkowski ellipsoid sum for vectors in a subspace.
+-/
+
+lemma minkowski_ellipsoid_disjoint_ineq (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) (k : Fin n) (v : 𝔼 n)
+    (hv_span : v ∈ Submodule.span ℝ (Set.image b (Finset.univ.filter (fun i => i ≤ k))))
+    (hlambdas_pos : ∀ i, 0 < lambdas i)
+    (hlambdas_mono : ∀ i j, i ≤ j → j ≤ k → lambdas i ≤ lambdas j) :
+    ∑ i, (inner ℝ v (gramSchmidt ℝ b i) / (‖gramSchmidt ℝ b i‖ * lambdas i)) ^ 2 ≥ ‖v‖ ^ 2 / (lambdas k) ^ 2 := by
+      -- Since v is in the span of the first k basis vectors, its projection onto the Gram-Schmidt vectors b'_i for i > k is zero.
+      have h_proj_zero : ∀ i, k < i → ⟪v, gramSchmidt ℝ b i⟫_ℝ = 0 := by
+        -- By definition of Gram-Schmidt, each Gram-Schmidt vector is orthogonal to all previous basis vectors.
+        have h_orthogonal : ∀ i j : Fin n, i < j → ⟪gramSchmidt ℝ b j, b i⟫_ℝ = 0 := by
+          exact fun i j a => gramSchmidt_inv_triangular ℝ (⇑b) a;
+        intro i hi; rw [ inner_eq_zero_symm ] ; rw [ Submodule.mem_span ] at hv_span;
+        specialize hv_span ( LinearMap.ker ( innerₛₗ ℝ ( gramSchmidt ℝ b i ) ) ) ; simp_all +decide [ Set.subset_def ];
+        exact hv_span fun x hx => h_orthogonal x i ( lt_of_le_of_lt hx hi );
+      -- Since v is in the span of the first k basis vectors, we can write it as a linear combination of these vectors.
+      obtain ⟨c, hc⟩ : ∃ c : Fin n → ℝ, v = ∑ i, c i • gramSchmidt ℝ b i := by
+        have h_gram_schmidt_span : Submodule.span ℝ (Set.range (gramSchmidt ℝ b)) = ⊤ := by
+          have h_gram_schmidt_span : Submodule.span ℝ (Set.range (gramSchmidt ℝ b)) = Submodule.span ℝ (Set.range b) := by
+            exact span_gramSchmidt ℝ ⇑b;
+          rw [ h_gram_schmidt_span, b.span_eq ];
+        have := h_gram_schmidt_span.ge ( Submodule.mem_top : v ∈ ⊤ ) ; rw [ Submodule.mem_span_range_iff_exists_fun ] at this; tauto;
+      -- Since $v$ is in the span of the first $k$ basis vectors, we have $\|v\|^2 = \sum_{i=0}^{k} c_i^2 \|b'_i\|^2$.
+      have hv_norm_sq : ‖v‖^2 = ∑ i ∈ Finset.univ.filter (fun i => i ≤ k), c i^2 * ‖gramSchmidt ℝ b i‖^2 := by
+        have hv_norm_sq : ‖v‖^2 = ∑ i, c i^2 * ‖gramSchmidt ℝ b i‖^2 := by
+          have hv_norm_sq : ‖v‖^2 = ∑ i, ∑ j, c i * c j * ⟪gramSchmidt ℝ b i, gramSchmidt ℝ b j⟫_ℝ := by
+            rw [ hc, ← real_inner_self_eq_norm_sq ];
+            simp +decide [ inner_sum, sum_inner, inner_smul_left, inner_smul_right ];
+            simp +decide only [Finset.mul_sum _ _ _, mul_assoc];
+            simp +decide only [real_inner_comm];
+          have hv_norm_sq : ∀ i j, i ≠ j → ⟪gramSchmidt ℝ b i, gramSchmidt ℝ b j⟫_ℝ = 0 := by
+            exact fun i j a => gramSchmidt_orthogonal ℝ (⇑b) a;
+          simp_all +decide [ sq, mul_assoc ];
+          exact Finset.sum_congr rfl fun i hi => by rw [ Finset.sum_eq_single i ] <;> aesop ; simp ( config := { decide := Bool.true } ) [ ← sq, inner_self_eq_norm_sq_to_K ] ;
+        rw [ hv_norm_sq, ← Finset.sum_subset ( Finset.filter_subset ( fun i => i ≤ k ) Finset.univ ) ];
+        simp +zetaDelta at *;
+        intro i hi; specialize h_proj_zero i hi; rw [ hc ] at h_proj_zero; simp_all +decide ;
+        rw [ sum_inner, Finset.sum_eq_single i ] at h_proj_zero;
+        . have h := h_proj_zero
+          -- Expand the inner product of a scalar multiple
+          have h' : (c i) * ⟪gramSchmidt ℝ (⇑b) i, gramSchmidt ℝ (⇑b) i⟫_ℝ = 0 := by
+            simpa [inner_smul_left] using h
+          -- Split the product = 0
+          have h'' := mul_eq_zero.mp h'
+          -- Conclude
+          rcases h'' with hc0 | hinner0
+          · left
+            exact hc0
+          · right
+            -- ⟪v,v⟫ = 0 ⇒ v = 0
+            exact inner_self_eq_zero.mp hinner0
+        . classical
+          intro b₁ hb₁ hb₁_ne
+          -- expand scalar multiplication in inner product
+          simp [inner_smul_left, hb₁_ne, gramSchmidt_orthogonal]
+        . aesop
+      -- Since $v$ is in the span of the first $k$ basis vectors, we have $\langle v, b'_i \rangle = c_i \|b'_i\|^2$ for $i \leq k$.
+      have hv_inner : ∀ i, i ≤ k → ⟪v, gramSchmidt ℝ b i⟫_ℝ = c i * ‖gramSchmidt ℝ b i‖^2 := by
+        intro i hi; rw [ hc, sum_inner ] ; simp ( config := { decide := Bool.true } ) [ inner_smul_left ] ;
+        rw [ Finset.sum_eq_single i ] <;> simp ( config := { contextual := Bool.true } ) [ inner_self_eq_norm_sq_to_K, gramSchmidt_orthogonal ];
+      -- Substitute hv_inner into the sum.
+      have h_sum_subst : ∑ i, (⟪v, gramSchmidt ℝ b i⟫_ℝ / (‖gramSchmidt ℝ b i‖ * lambdas i)) ^ 2 = ∑ i ∈ Finset.univ.filter (fun i => i ≤ k), (c i / lambdas i) ^ 2 * ‖gramSchmidt ℝ b i‖ ^ 2 := by
+        rw [ Finset.sum_filter ] ; refine' Finset.sum_congr rfl fun i hi => _ ; by_cases hi' : k < i <;> simp_all ( config := { decide := Bool.true } ) [ div_pow, mul_pow, mul_comm, ne_of_gt ( hlambdas_pos _ ) ] ;
+        by_cases hi'' : ‖gramSchmidt ℝ b i‖ = 0 <;> simp_all ( config := { decide := Bool.true } ) [ div_eq_mul_inv, mul_assoc, mul_comm, mul_left_comm, sq ];
+      -- Since $\lambda_i \leq \lambda_k$ for all $i \leq k$, we have $(c_i / \lambda_i)^2 \geq (c_i / \lambda_k)^2$.
+      have h_ineq : ∀ i, i ≤ k → (c i / lambdas i) ^ 2 ≥ (c i / lambdas k) ^ 2 := by
+        intro i hi; rw [ div_pow, div_pow ] ; gcongr; -- <;> aesop;
+        . nlinarith [hlambdas_pos i]
+        . nlinarith [hlambdas_pos i]
+        . exact hlambdas_mono i k hi (by rfl)
+      simp_all ( config := { decide := Bool.true } ) [ div_pow ];
+      simpa only [ Finset.sum_div _ _ _, div_mul_eq_mul_div, Finset.sum_mul ] using Finset.sum_le_sum fun i hi => mul_le_mul_of_nonneg_right ( h_ineq i <| Finset.mem_filter.mp hi |>.2 ) <| sq_nonneg _
+
+/-
+If a lattice vector has norm less than the k-th successive minimum, it is in the span of the first k extremal basis vectors.
+-/
+
+lemma mem_span_of_norm_lt (L : GeometricLattice n n) (v : 𝔼 n) (hv : v ∈ L.nonzeroVectors) (k : Fin n)
+    (h_lt : ‖v‖ < L.successiveMinima k) :
+    v ∈ Submodule.span ℝ (Set.image (GeometricLattice.extremalBasis L) (Finset.Iio k)) := by
+      norm_num +zetaDelta at *;
+      -- Suppose v is not in the span of x_0, ..., x_{k-1}. Then v is linearly independent of the set {x_i | i < k}.
+      by_contra h_not_in_span
+      have h_lin_indep : LinearIndependent ℝ (Fin.snoc (fun i : Fin k => Classical.choose L.linearIndependent_successiveMinima_attained (Fin.castLE (by
+      exact k.2.le) i)) v) := by
+        all_goals generalize_proofs at *;
+        rw [ linearIndependent_fin_snoc ] ; aesop
+        all_goals generalize_proofs at *;
+        · exact Classical.choose_spec ( L.linearIndependent_successiveMinima_attained ) |>.2.comp _ ( fun i => by aesop );
+        · rw [ Finsupp.mem_span_range_iff_exists_finsupp ] at a;
+          contrapose! h_not_in_span;
+          aesop;
+          refine' Submodule.sum_mem _ fun i hi => _;
+          refine' Submodule.smul_mem _ _ _;
+          refine' Submodule.subset_span ⟨ Fin.castLE ( by aesop ) i, _, _ ⟩ <;> aesop
+          all_goals generalize_proofs at *;
+          · exact Fin.castSucc_lt_last i;
+          · unfold GeometricLattice.extremalBasis; aesop;
+      generalize_proofs at *;
+      exact inductive_step_contradiction L k ( Fin.is_lt k ) ( fun i => Classical.choose ( L.linearIndependent_successiveMinima_attained ) ( Fin.castLE ( Nat.le_of_lt k.2 ) i ) ) ( by
+        refine' linearIndependent_fin_snoc.mp h_lin_indep |>.1 ) ( by
+        exact fun i => Classical.choose_spec L.linearIndependent_successiveMinima_attained |>.1 _ |>.1 ) ( by
+        intro i; have := Classical.choose_spec ( L.linearIndependent_successiveMinima_attained ) ; aesop; ) v hv h_lin_indep h_lt
+
+/-
+The Minkowski ellipsoid contains no non-zero lattice points.
+-/
+
+theorem minkowski_ellipsoid_disjoint (L : GeometricLattice n n) :
+    ∀ v ∈ L.nonzeroVectors, v ∉ minkowski_ellipsoid (GeometricLattice.extremalBasis L) (L.successiveMinima) := by
+      -- Let's choose any non-zero lattice vector v and apply the two cases.
+      intro v hv_nonzero
+      by_cases hv_gt : ‖v‖ ≥ L.successiveMinima (Fin.mk (n - 1) (Nat.sub_lt n.pos one_pos));
+      · have h_sum_ge_one : ∑ i, (inner ℝ v (gramSchmidt ℝ (GeometricLattice.extremalBasis L) i) / (‖gramSchmidt ℝ (GeometricLattice.extremalBasis L) i‖ * L.successiveMinima i)) ^ 2 ≥ ‖v‖ ^ 2 / (L.successiveMinima (Fin.mk (n - 1) (Nat.sub_lt n.pos one_pos))) ^ 2 := by
+          apply minkowski_ellipsoid_disjoint_ineq;
+          · have h_span : v ∈ Submodule.span ℝ (Set.range (GeometricLattice.extremalBasis L)) := by
+              simp +zetaDelta at *;
+            rw [ Finsupp.mem_span_range_iff_exists_finsupp ] at h_span;
+            rcases h_span with ⟨ c, rfl ⟩ ; rw [ Finsupp.sum ] ; aesop;
+            exact Submodule.sum_mem _ fun i hi => Submodule.smul_mem _ _ <| Submodule.subset_span <| Set.mem_image_of_mem _ <| Nat.le_sub_one_of_lt <| Fin.is_lt i;
+          · exact fun i => GeometricLattice.successiveMinima_pos L i;
+          · exact fun i j hij hj => L.successiveMinima_mono hij;
+        contrapose! h_sum_ge_one;
+        exact lt_of_lt_of_le h_sum_ge_one <| by rw [ le_div_iff₀ ] <;> nlinarith [ show 0 < L.successiveMinima ( Fin.mk ( n - 1 ) ( Nat.sub_lt n.pos one_pos ) ) from GeometricLattice.successiveMinima_pos L _ ] ;
+      · obtain ⟨ k, hk₁, hk₂ ⟩ := exists_index_between_norms L ( n - 1 ) ( Nat.sub_lt n.pos zero_lt_one ) v hv_nonzero ( by aesop );
+        -- By mem_span_of_norm_lt, v is in the span of {x_i | i < k+1}, i.e., i ≤ k.
+        have h_span : v ∈ Submodule.span ℝ (Set.image (GeometricLattice.extremalBasis L) (Finset.Iio (⟨ k + 1, by
+          exact Nat.lt_pred_iff.mp k.2 ⟩ : Fin n))) := by
+          apply mem_span_of_norm_lt;
+          · assumption;
+          · exact hk₂
+        generalize_proofs at *;
+        -- By minkowski_ellipsoid_disjoint_ineq with this k, the sum is ≥ ‖v‖^2 / λ_k^2 ≥ 1.
+        have h_sum_ge_one : ∑ i : Fin n, (inner ℝ v (gramSchmidt ℝ (GeometricLattice.extremalBasis L) i) / (‖gramSchmidt ℝ (GeometricLattice.extremalBasis L) i‖ * L.successiveMinima i)) ^ 2 ≥ ‖v‖ ^ 2 / (L.successiveMinima (Fin.castLE (Nat.le_of_lt ‹_›) k)) ^ 2 := by
+          apply minkowski_ellipsoid_disjoint_ineq;
+          · refine' Submodule.span_mono _ h_span;
+            simp +decide ;
+            exact fun x hx => ⟨ x, Nat.le_of_lt_succ <| by aesop, rfl ⟩;
+          · exact fun i => GeometricLattice.successiveMinima_pos L i;
+          · exact fun i j a a_1 => GeometricLattice.successiveMinima_mono L a;
+        -- Since ‖v‖ ≥ L.successiveMinima (Fin.castLE (Nat.le_of_lt ‹_›) k), we have ‖v‖^2 / (L.successiveMinima (Fin.castLE (Nat.le_of_lt ‹_›) k))^2 ≥ 1.
+        have h_norm_ge_one : ‖v‖ ^ 2 / (L.successiveMinima (Fin.castLE (Nat.le_of_lt ‹_›) k)) ^ 2 ≥ 1 := by
+          rw [ ge_iff_le, le_div_iff₀ ] <;> nlinarith [ show 0 < L.successiveMinima ( Fin.castLE ( Nat.le_of_lt ‹_› ) k ) from by exact? ];
+        exact fun h => h_norm_ge_one.not_gt <| h_sum_ge_one.trans_lt <| by simpa using h;
+
+/-
+Minkowski's Second Theorem: The product of successive minima times the unit ball volume is bounded by 2^n times the lattice determinant.
+-/
+
 theorem GeometricLattice.minkowski_second (L : GeometricLattice n n) :
-    (∏ i : Fin n, L.successiveMinima i) * unitBallVolume n ≤
-    (2 : ℝ) ^ (n : ℕ) * L.det := by
-  -- Step 1: Get linearly independent vectors achieving the successive minima
-  have h_exists_vectors : ∃ (x : Fin n → 𝔼 n),
-      (∀ i : Fin n, x i ∈ L.nonzeroVectors ∧ ‖x i‖ = L.successiveMinima i) ∧
-      LinearIndependent ℝ (fun i : Fin n => x i) := by
-    -- Use that successive minima are achieved (successiveMinima_attained)
-    -- and can be chosen to be linearly independent
-    sorry
+    (∏ i : Fin n, L.successiveMinima i) * unitBallVolume n ≤ (2 : ℝ) ^ (n : ℕ) * L.det := by
+      -- By Minkowski's Convex Body Theorem, if the volume of the ellipsoid is greater than $(2^n) \cdot \text{det}(L)$, then it would contain a non-zero lattice point.
+      have h_minkowski : ∀ S : Set (𝔼 n), Convex ℝ S → IsCentrallySymmetric S → MeasurableSet S → (2 ^ (n : ℕ) * L.det < (lebesgueMeasure S).toReal) → ∃ v ∈ L.nonzeroVectors, v ∈ S := by
+        exact fun S a a_1 a_2 a_3 => minkowski_convex_body L S a a_1 a_2 a_3;
+      contrapose! h_minkowski;
+      refine' ⟨ minkowski_ellipsoid ( GeometricLattice.extremalBasis L ) ( L.successiveMinima ), minkowski_ellipsoid_convex _ _ _, minkowski_ellipsoid_symmetric _ _, _, _, _ ⟩;
+      · exact fun i => successiveMinima_pos L i;
+      · exact measurableSet_lt ( by measurability ) ( by measurability );
+      · refine' lt_of_lt_of_le h_minkowski _;
+        rw [ minkowski_ellipsoid_volume ];
+        exact fun i => successiveMinima_pos L i;
+      · exact?
 
-  obtain ⟨x, ⟨hx_norms, hx_li⟩⟩ := h_exists_vectors
-
-  -- Step 2: Gram-Schmidt orthogonalization
-  -- Let x̄₁, ..., x̄ₙ be the Gram-Schmidt orthogonalization of x₁, ..., xₙ
-  let gram_schmidt := InnerProductSpace.gramSchmidt ℝ (fun i : Fin n => x i)
-
-  have hgs_orthogonal : Pairwise fun i j => ⟪(gram_schmidt i), (gram_schmidt j)⟫ = 0 := by
-    sorry
-
-  have hgs_norms : ∀ i : Fin n, ‖gram_schmidt i‖ > 0 := by
-    intro i
-    sorry
-
-  -- Step 3: Construct the ellipsoid T with axes gram_schmidt and semi-axes λᵢ
-  let T := { y : 𝔼 n | ∑ i : Fin n, (⟪y, (gram_schmidt i)⟫ / (‖gram_schmidt i‖ * L.successiveMinima i)) ^ 2 < 1 }
-
-  -- Step 4: T is centrally symmetric and convex (ellipsoid)
-  have hT_convex : Convex ℝ T := by
-    -- Ellipsoids defined by quadratic form are convex
-    sorry
-
-  have hT_symm : IsCentrallySymmetric T := by
-    intro y hy
-    simp only [T, Set.mem_setOf] at hy ⊢
-    sorry
-
-  have hT_meas : MeasurableSet T := by
-    -- Ellipsoid is measurable
-    sorry
-
-  -- Step 5: T contains no non-zero lattice points
-  have hT_no_lattice : ∀ v ∈ L.nonzeroVectors, v ∉ T := by
-    intro v hv_L hv_ne
-
-    -- v can be written as a linear combination of x₁, ..., xₙ
-    have h_decomp : v ∈ Submodule.span ℝ (Set.range x) := by
-      -- Lattice is generated by x₁, ..., xₙ
-      sorry
-
-    sorry
-
-  -- Step 6: Volume of T
-  -- vol(T) = (∏ᵢ λᵢ) · vol(Bⁿ) · constant for Gram-Schmidt basis
-  have hvol_T : (lebesgueMeasure T).toReal = (∏ i : Fin n, L.successiveMinima i) * unitBallVolume n := by
-    -- Volume of ellipsoid with semi-axes λ₁, ..., λₙ
-    sorry
-
-  -- Step 7: Apply Minkowski's convex body theorem
-  -- Since vol(T) ≤ 2ⁿ det(L) (by convexity and no non-zero lattice points)
-  have h_vol_bound : (lebesgueMeasure T).toReal ≤ (2 : ℝ) ^ (n : ℕ) * L.det := by
-    -- Would need contrapositive: if vol(T) > 2ⁿ det(L), then T contains non-zero lattice point
-    -- But we proved T contains no such points
-    by_contra h_contra
-    push_neg at h_contra
-    obtain ⟨v, hv_L, hv_T⟩ := L.minkowski_convex_body T hT_convex hT_symm hT_meas h_contra
-    exact hT_no_lattice v hv_L hv_T
-
-  rw [hvol_T] at h_vol_bound
-  exact h_vol_bound
-
+/-
+Minkowski's Second Theorem (sqrt form): The geometric mean of successive minima is bounded by sqrt(n) times the n-th root of the determinant.
+-/
 
 theorem GeometricLattice.minkowski_second_sqrt (L : GeometricLattice n n) :
-    (∏ i : Fin n, L.successiveMinima i) ^ (1 / (n : ℝ)) ≤
-    Real.sqrt n * (L.det) ^ (1 / (n : ℝ)) := by
-  -- From minkowski_second: ∏ λᵢ * vol(Bⁿ) ≤ 2ⁿ * det(L)
-  have h_second := L.minkowski_second
+    (∏ i : Fin n, L.successiveMinima i) ^ (1 / (n : ℝ)) ≤ Real.sqrt n * (L.det) ^ (1 / (n : ℝ)) := by
+      rw [ mul_comm ];
+      -- Taking the n-th root of both sides of the inequality from Minkowski's second theorem.
+      have h_root : (∏ i : Fin n, L.successiveMinima i) ≤ (Real.sqrt n) ^ (n : ℕ) * L.det := by
+        have := @GeometricLattice.minkowski_second;
+        have := @unitBallVolume_lb n;
+        rw [ div_le_iff₀ ( by positivity ) ] at this;
+        nlinarith [ show 0 < L.det from L.det_pos, show 0 < ( 2 : ℝ ) ^ ( n : ℕ ) by positivity, show 0 < ( Real.sqrt n ) ^ ( n : ℕ ) by positivity, show 0 < ( ∏ i : Fin n, L.successiveMinima i ) by exact Finset.prod_pos fun i _ => L.successiveMinima_pos i, ‹∀ { n : ℕ+ } ( L : GeometricLattice n n ), ( ∏ i, L.successiveMinima i ) * unitBallVolume n ≤ 2 ^ ( n : ℕ ) * L.det› L ];
+      exact le_trans ( Real.rpow_le_rpow ( Finset.prod_nonneg fun _ _ => le_of_lt ( GeometricLattice.successiveMinima_pos L _ ) ) h_root ( by positivity ) ) ( by rw [ Real.mul_rpow ( by positivity ) ( by exact le_of_lt ( L.det_pos ) ), ← Real.rpow_natCast, ← Real.rpow_mul ( by positivity ), mul_one_div_cancel ( by positivity ), Real.rpow_one ] ; ring_nf; norm_num )
 
-  -- Rearrange: ∏ λᵢ ≤ 2ⁿ * det(L) / vol(Bⁿ)
-  have h_prod_bound : ∏ i : Fin n, L.successiveMinima i ≤
-                      (2 : ℝ) ^ (n : ℕ) * L.det / unitBallVolume n := by
-    have hvol_pos : 0 < unitBallVolume n := by
-      exact unitBallVolume_pos -- Unit ball has positive volume
-    rw [le_div_iff₀ hvol_pos]
-    exact h_second
-
-  -- Take 1/n-th power
-  have h_prod_pos : 0 < ∏ i : Fin n, L.successiveMinima i := by
-    apply Finset.prod_pos
-    intro i _
-    exact L.successiveMinima_pos i
-
-  have hdet_pos : 0 < L.det := L.det_pos
-
-  -- vol(Bⁿ) ≥ (2/√n)ⁿ for the unit ball
-  have hvol_bound : (2 : ℝ) ^ (n : ℕ) / unitBallVolume n ≤ (Real.sqrt n) ^ (n : ℕ) := by
-    -- Standard bound on unit ball volume
-    sorry
-
-  calc (∏ i : Fin n, L.successiveMinima i) ^ (1 / (n : ℝ))
-      ≤ ((2 : ℝ) ^ (n : ℕ) * L.det / unitBallVolume n) ^ (1 / (n : ℝ)) := by
-        apply Real.rpow_le_rpow (le_of_lt h_prod_pos)
-        exact h_prod_bound
-        norm_num
-    _ = ((2 : ℝ) ^ (n : ℕ)) ^ (1 / (n : ℝ)) * (L.det) ^ (1 / (n : ℝ)) / (unitBallVolume n) ^ (1 / (n : ℝ)) := by
-        have h_inner : (2 : ℝ) ^ (n : ℕ) * (L.det / unitBallVolume n) =
-                       (2 : ℝ) ^ (n : ℕ) * L.det / unitBallVolume n := by ring
-        rw [← h_inner]
-        rw [Real.mul_rpow (by norm_num : (0 : ℝ) ≤ 2 ^ (n : ℕ)) (div_nonneg (le_of_lt hdet_pos) (unitBallVolume_pos.le))]
-        sorry
-    _ = 2 * (L.det) ^ (1 / (n : ℝ)) / (unitBallVolume n) ^ (1 / (n : ℝ)) := by
-        congr 1
-        rw [← Real.rpow_natCast, ← Real.rpow_mul (by norm_num : (0 : ℝ) ≤ 2)]
-        sorry
-    _ ≤ Real.sqrt n * (L.det) ^ (1 / (n : ℝ)) := by
-        -- Requires: 2 / (vol(Bⁿ))^(1/n) ≤ √n
-        sorry
-
-end
+end minkowski_2
 
 end LatticeCrypto.Foundations.Lattice
