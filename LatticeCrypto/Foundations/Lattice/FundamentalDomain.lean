@@ -145,6 +145,21 @@ theorem GeometricLattice.det_eq_of_equiv {L1 L2 : GeometricLattice n n}
   rw [eq_iff_basis_equiv] at h
   exact LatticeBasis.volume_of_unimodularEquiv h
 
+/-- The det of the dual lattice is simply the inverse -/
+theorem LatticeBasis.dual_volume_eq_inv (B : SquareLatticeBasis n) :
+    B.dual.volume = 1 / B.volume := by
+  simp [LatticeBasis.volume];
+  rw [ LatticeBasis.dual_asMatrix ];
+  simp +decide [ Matrix.det_transpose ]
+
+theorem GeometricLattice.dual_det_eq_inv (L : GeometricLattice n n) :
+    L.dual.det = 1 / L.det := by
+  -- Apply the theorem that states the volume of the dual basis is the inverse of the volume of the original basis.
+  have h_det_inv : L.basis.dual.volume = 1 / L.basis.volume := by
+    exact LatticeBasis.dual_volume_eq_inv L.basis;
+  -- Apply the theorem that states the volume of the dual basis is the inverse of the volume of the original basis to conclude the proof.
+  convert h_det_inv using 1
+
 /-- Theorem proving that `LatticeBasis.fundamentalDomain` is indeed a fundamental domain.
   over its ZSpan
  -/

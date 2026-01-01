@@ -10,6 +10,7 @@ import Mathlib.LinearAlgebra.Span.Defs               -- For AddSubgroup.zspan
 import Mathlib.Data.Real.Basic                  -- For ℝ (Real)
 import Mathlib.LinearAlgebra.Basis.Basic
 import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
+import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
 import Mathlib.Algebra.Module.ZLattice.Basic
 import Mathlib.Data.PNat.Basic
 
@@ -87,6 +88,14 @@ def LatticeBasis.fromMatrix (M : Matrix (Fin n) (Fin k) ℝ) (le_dim : k ≤ n)
   { basis := fun i => M.col i
     le_dim := le_dim
     li := li }
+
+/-- Convert a LatticeBasis to a linear equivalence over 𝔼 n -/
+def LatticeBasis.asLinearEquiv (B : SquareLatticeBasis n) : (𝔼 n) ≃ₗ[ℝ] (𝔼 n) :=
+  have hu : IsUnit B.asMatrix.det := by
+    unfold LatticeBasis.asMatrix
+    rw [←Matrix.isUnit_iff_isUnit_det, ←Matrix.linearIndependent_cols_iff_isUnit]
+    exact B.li
+  B.asMatrix.toLinearEquiv (n := Fin n) stdBasis hu
 
 /-- Convert a SquareLatticeBasis to a Basis of the ambient space -/
 def LatticeBasis.asTopBasis (B : SquareLatticeBasis n) : Module.Basis (Fin n) ℝ (𝔼 n) :=
