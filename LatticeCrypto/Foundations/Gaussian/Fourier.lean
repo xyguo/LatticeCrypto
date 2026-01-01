@@ -37,7 +37,7 @@ open Real Complex MeasureTheory LatticeCrypto.Foundations.Lattice LatticeCrypto.
 
 /-! Fourier transform of rhoS -/
 noncomputable def rhoS_FT {n : ℕ+} (s : ℝ) (x : 𝔼 n) : ℂ :=
-  Real.fourierIntegral (fun v => (rhoS s v : ℂ)) x
+  𝓕 (fun v => (rhoS s v : ℂ)) x
 
 /-- The Fourier transform of rhoS is a scaled version of itself -/
 theorem rhoS_FT_eq {n : ℕ+} (s : ℝ) (h : 0 < s) (x : 𝔼 n) :
@@ -366,8 +366,8 @@ lemma integral_periodize_eq_integral_real (f : 𝔼 n → ℝ) (L : GeometricLat
       convert h_integral using 3;
       (expose_names; exact integral_shift_eq_integral_domain_real f L x)
 
-/-! If `g = periodize f L` for some `Integrable f`, then g_FS(w) = f_FT(w) / L.det -/
-theorem periodization (L : GeometricLattice n n) (f : 𝔼 n → ℂ) (hf : Integrable f) (w : L.dual.carrier) :
+/-! The Periodization Lemma: If `g = periodize f L` for some `Integrable f`, then g_FS(w) = f_FT(w) / L.det -/
+theorem fourierCoefficient_of_periodization_eq_fourierTransform (L : GeometricLattice n n) (f : 𝔼 n → ℂ) (hf : Integrable f) (w : L.dual.carrier) :
     fourierCoefficient L (fun x => periodize f L x) w = (1 / L.det : ℂ) * 𝓕 (fun v => f v) (w : 𝔼 n) := by
       -- By definition of the Fourier transform, we can rewrite the integral as the sum of the Fourier transforms of the shifted functions.
       have h_fourier_transform : ∫ x in L.basis.fundamentalDomain, (periodize f L x) * cexp (-2 * Real.pi * I * (inner ℝ x (w : 𝔼 n))) = ∑' v : L.carrier, ∫ x in L.basis.fundamentalDomain, f (x + v) * cexp (-2 * Real.pi * I * (inner ℝ x (w : 𝔼 n))) := by
@@ -432,12 +432,12 @@ theorem periodization (L : GeometricLattice n n) (f : 𝔼 n → ℂ) (hf : Inte
         exact Or.inl ( by congr; ext; rw [ ← Complex.exp_neg ] )
 
 /-! Specialization of the periodization theorem for real-value `f` -/
-lemma periodization_real (L : GeometricLattice n n) (f : 𝔼 n → ℝ) (hf : Integrable f) (w : L.dual.carrier) :
+lemma fourierCoefficient_of_periodization_eq_fourierTransform_real (L : GeometricLattice n n) (f : 𝔼 n → ℝ) (hf : Integrable f) (w : L.dual.carrier) :
     fourierCoefficientReal L (fun x => periodize f L x) w = (1 / L.det : ℂ) * 𝓕 (fun v => (f v : ℂ)) (w : 𝔼 n) := by
   -- Apply the periodization theorem to the real function `f` by converting it to a complex function.
   have h_complex_periodization : fourierCoefficient L (fun x => periodize (fun v => (f v : ℂ)) L x) w = (1 / L.det : ℂ) * 𝓕 (fun v => (f v : ℂ)) (w : 𝔼 n) := by
     -- Apply the periodization theorem to the complex function `f` by converting it to a complex function.
-    apply periodization L (fun v => (f v : ℂ)) (by
+    apply fourierCoefficient_of_periodization_eq_fourierTransform L (fun v => (f v : ℂ)) (by
     exact hf.ofReal) w;
   convert h_complex_periodization using 2;
   -- The periodization of f as a real function is the same as the periodization of f as a complex function because the real function is just the real part of the complex function.
@@ -448,9 +448,10 @@ lemma periodization_real (L : GeometricLattice n n) (f : 𝔼 n → ℝ) (hf : I
   rw [ Complex.ofReal_tsum ]
 
 
-theorem periodization_rhoST (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s) (T : (𝔼 n) ≃L[ℝ] (𝔼 n)) (w : L.dual.carrier) :
+theorem fourierCoefficient_of_rhoST_periodize_eq_fourierTransform_rhoST
+  (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s) (T : (𝔼 n) ≃L[ℝ] (𝔼 n)) (w : L.dual.carrier) :
     fourierCoefficient L (fun x => (rhoST_periodize s T L x : ℂ)) w = (1 / L.det : ℂ) * 𝓕 (fun v => (rhoST s T v : ℂ)) (w : 𝔼 n) := by
-  convert periodization L _ _ _
+  convert fourierCoefficient_of_periodization_eq_fourierTransform L _ _ _
   · convert Complex.ofReal_tsum _
   · convert rhoST.integrable s hs.ne' T
 
