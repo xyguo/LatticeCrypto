@@ -238,6 +238,7 @@ lemma GeometricLattice.lattice_point_in_lambda_zero_ball_is_zero (L : GeometricL
   the ball of radius r contains i linearly independent lattice vectors.
 
   Formally: λᵢ(L) = inf { r > 0 : dim(span_ℝ(L ∩ B(0,r))) ≥ i }
+  In the literature, the index i is 1-based, but here we use 0-based indexing for Fin type.
 -/
 noncomputable def GeometricLattice.successiveMinima (L : GeometricLattice n n) (i : Fin n) : ℝ :=
   sInf { r : ℝ | 0 < r ∧
@@ -245,6 +246,18 @@ noncomputable def GeometricLattice.successiveMinima (L : GeometricLattice n n) (
       S.card = i.val + 1 ∧
       (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r) ∧
       LinearIndependent ℝ (fun v : S => (v : 𝔼 n)) }
+
+noncomputable abbrev GeometricLattice.succMin₁ (L : GeometricLattice n n) : ℝ :=
+  L.successiveMinima ⟨0, n.pos⟩
+
+noncomputable abbrev GeometricLattice.succMin₂ (L : GeometricLattice n n) (h : 1 < n := by decide) : ℝ :=
+  L.successiveMinima ⟨1, h⟩
+
+noncomputable abbrev GeometricLattice.succMinₙ (L : GeometricLattice n n) : ℝ :=
+  L.successiveMinima ⟨n - 1, by
+    have : 0 < (n : ℕ) := by exact n.pos
+    exact Nat.sub_lt (Nat.pos_of_ne_zero (by exact n.pos.ne.symm)) (by decide)
+  ⟩
 
 
 noncomputable def GeometricLattice.successiveMinima' (L : GeometricLattice n n) (i : Fin n) : ℝ :=
@@ -512,6 +525,97 @@ theorem GeometricLattice.successiveMinima_boundedAbove (L : GeometricLattice n n
         · -- Since the image is exactly the set of basis vectors, and the chosen element is the one that was mapped to x, this should hold.
           funext x; exact (by
           have := Classical.choose_spec ( Finset.mem_image.mp x.2 ) ; aesop;)
+
+/-- Scaling a geometric lattice by a positive scalar scales its successive minima by the same factor. -/
+theorem GeometricLattice.successiveMinima_scale (L : GeometricLattice n n) (i : Fin n) (s : ℝ) (hs : 0 < s) :
+  (L.smul s hs.ne.symm).successiveMinima i = s * L.successiveMinima i := by
+  generalize_proofs at *;
+  -- Since scaling each vector by s scales the norms by s, the dimension of the span remains the same. Therefore, the successive minima of sL is s times the successive minima of L.
+  have h_scale : ∀ r : ℝ, (Module.rank ℝ (Submodule.span ℝ {v | v ∈ (L.smul s ‹_›) ∧ v ≠ 0 ∧ ‖v‖ ≤ r})) = (Module.rank ℝ (Submodule.span ℝ {v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s})) := by
+    intro r;
+    -- By definition of scaling, we have that $v \in (L.smul s ‹_›)$ if and only if $v = s \cdot u$ for some $u \in L$.
+    have h_scale : {v : 𝔼 n | v ∈ (L.smul s ‹_›) ∧ v ≠ 0 ∧ ‖v‖ ≤ r} = {s • u | u ∈ {v : 𝔼 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s}} := by
+      ext v; simp [GeometricLattice.smul];
+      constructor;
+      · intro hv
+        obtain ⟨u, hu⟩ : ∃ u ∈ L, v = s • u := by
+          have h_scale : v ∈ Submodule.span ℤ (Set.range (fun i => s • L.basis.cols i)) := by
+            exact hv.1;
+          rw [ Finsupp.mem_span_range_iff_exists_finsupp ] at h_scale;
+          obtain ⟨ c, rfl ⟩ := h_scale;
+          use ∑ i, c i • L.basis.cols i;
+          simp_all +decide [ Finsupp.sum_fintype, Finset.smul_sum ];
+          exact ⟨ by simpa [ smul_smul, mul_comm ] using L.mem_iff_exists_coeffs ( ∑ i, c i • L.basis.cols i ) |>.2 ⟨ c, rfl ⟩, Finset.sum_congr rfl fun _ _ => by rw [ SMulCommClass.smul_comm ] ⟩;
+        field_simp;
+        exact ⟨ u, ⟨ hu.1, by aesop, by rw [ hu.2, norm_smul, Real.norm_of_nonneg hs.le ] at hv; linarith ⟩, hu.2.symm ⟩;
+      · rintro ⟨ u, ⟨ hu₁, hu₂, hu₃ ⟩, rfl ⟩ ; simp_all +decide [ norm_smul, abs_of_pos hs ];
+        -- Since $u \in L$, multiplying by $s$ (a scalar) keeps it in the lattice.
+        have h_smul : s • u ∈ (L.basis.smul s ‹_›).toLattice := by
+          -- Since $u \in L$, we can write $u$ as a linear combination of the basis vectors of $L$.
+          obtain ⟨c, hc⟩ : ∃ c : Fin n → ℤ, u = ∑ i, c i • L.basis.cols i := by
+            exact (mem_iff_exists_coeffs L u).mp hu₁;
+          -- Since $s • u$ is a linear combination of the scaled basis vectors with integer coefficients, it is in the lattice.
+          have h_comb : s • u = ∑ i, c i • (s • L.basis.cols i) := by
+            simp +decide [ hc, Finset.smul_sum ];
+            exact Finset.sum_congr rfl fun _ _ => by rw [ SMulCommClass.smul_comm ] ;
+          exact h_comb.symm ▸ Submodule.sum_mem _ fun i _ => Submodule.smul_mem _ _ ( Submodule.subset_span <| Set.mem_range_self _ );
+        exact ⟨ h_smul, by rwa [ le_div_iff₀' hs ] at hu₃ ⟩;
+    rw [ h_scale ];
+    rw [ show { x : LatticeCrypto.Utils.Vec.𝔼 n | ∃ u ∈ { v : LatticeCrypto.Utils.Vec.𝔼 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s }, s • u = x } = ( fun u => s • u ) '' { v : LatticeCrypto.Utils.Vec.𝔼 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s } by aesop, Submodule.span_eq_span ];
+    · exact Set.image_subset_iff.mpr fun x hx => Submodule.smul_mem _ _ ( Submodule.subset_span hx );
+    · intro v hv; exact (by
+      -- Since $v$ is in the set ${v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s}$, we have $s • v$ in the image of this set under the function $u ↦ s • u$.
+      have h_image : s • v ∈ (fun u => s • u) '' {v : LatticeCrypto.Utils.Vec.𝔼 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s} := by
+        exact ⟨ v, hv, rfl ⟩;
+      exact Submodule.smul_mem _ ( s⁻¹ ) ( Submodule.subset_span h_image ) |> fun h => by simpa [ hs.ne' ] using h;);
+  -- By definition of successive minima, we know that if the dimension of the span is the same, then the infimum of the radii is the same.
+  have h_inf : ∀ r : ℝ, (Module.rank ℝ (Submodule.span ℝ {v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r})) ≥ i.val + 1 ↔ (Module.rank ℝ (Submodule.span ℝ {v | v ∈ (L.smul s ‹_›) ∧ v ≠ 0 ∧ ‖v‖ ≤ s * r})) ≥ i.val + 1 := by
+    simp_all +decide ;
+    exact fun r => by rw [ mul_div_cancel_left₀ _ hs.ne' ] ;
+  have h_inf_eq : sInf { r : ℝ | 0 < r ∧ (Module.rank ℝ (Submodule.span ℝ {v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r})) ≥ i.val + 1 } = sInf { r : ℝ | 0 < r ∧ (Module.rank ℝ (Submodule.span ℝ {v | v ∈ (L.smul s ‹_›) ∧ v ≠ 0 ∧ ‖v‖ ≤ r})) ≥ i.val + 1 } / s := by
+    rw [ eq_div_iff hs.ne', mul_comm ];
+    rw [ ← smul_eq_mul, ← Real.sInf_smul_of_nonneg hs.le ];
+    congr with x ; simp +decide [ Set.mem_smul_set ];
+    constructor <;> intro h;
+    · rcases h with ⟨ y, ⟨ hy₁, hy₂ ⟩, rfl ⟩ ; exact ⟨ mul_pos hs hy₁, by simpa [ mul_comm ] using h_inf y |>.1 hy₂ ⟩ ;
+    · use x / s;
+      specialize h_inf ( x / s ) ; simp_all +decide [ mul_div_cancel₀ _ hs.ne' ] ;
+  convert congr_arg ( fun x => s * x ) h_inf_eq.symm using 1;
+  · field_simp;
+    convert GeometricLattice.successiveMinima_defs_eq ( L.smul s ‹_› ) i using 1;
+  · congr! 2;
+    convert GeometricLattice.successiveMinima_defs_eq L i using 1
+
+/-- Scaling a geometric lattice by a positive scalar will cause its dual's successive minima to shrink by the same factor. -/
+theorem GeometricLattice.successiveMinima_scale_dual (L : GeometricLattice n n) (i : Fin n) (s : ℝ) (hs : 0 < s) :
+  (L.smul s hs.ne.symm).dual.successiveMinima i = L.dual.successiveMinima i / s := by
+  -- By definition of dual, scaling L by s scales its dual by 1/s.
+  have h_dual_scale : (L.smul s hs.ne.symm).dual = L.dual.smul (1 / s) (by
+  positivity) := by
+    all_goals generalize_proofs at *;
+    -- By definition of the dual basis, we know that the dual of the scaled lattice is the dual of the original lattice scaled by 1/s.
+    have h_dual_scale : (L.smul s hs.ne.symm).basis.dual = (L.basis.dual).smul (1 / s) (by
+    (expose_names; exact pf_1)) := by
+      all_goals generalize_proofs at *;
+      unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.dual;
+      -- By definition of matrix multiplication and the properties of the inverse, we can show that the dual of the scaled lattice is the dual of the original lattice scaled by the reciprocal of the scalar.
+      have h_dual_scale : (Matrix.transpose (s • L.basis.asMatrix))⁻¹ = (1 / s) • (Matrix.transpose L.basis.asMatrix)⁻¹ := by
+        rw [ Matrix.inv_eq_left_inv ];
+        simp +decide [ Matrix.transpose_smul, hs.ne' ];
+        exact Matrix.nonsing_inv_mul _ ( show IsUnit L.basis.asMatrix.transpose.det from isUnit_iff_ne_zero.mpr <| by simpa [ Matrix.det_transpose ] using LatticeBasis.det_ne_zero L.basis );
+      -- By definition of matrix multiplication and the properties of the inverse, we can show that the columns of the dual matrix of the scaled lattice are equal to the columns of the dual matrix of the original lattice scaled by 1/s.
+      ext i j; simp ;
+      convert congr_fun ( congr_fun h_dual_scale j ) i using 1;
+      unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.smul; aesop;
+    generalize_proofs at *;
+    exact congr_arg _ h_dual_scale
+  generalize_proofs at *;
+  -- By definition of successive minima, we know that scaling the lattice by $1/s$ scales the successive minima by $1/s$.
+  have h_scale_succ_min : ∀ (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s), (L.smul s hs.ne.symm).successiveMinima i = s * L.successiveMinima i := by
+    exact fun L s hs => successiveMinima_scale L i s hs
+  generalize_proofs at *;
+  rw [ h_dual_scale, h_scale_succ_min ] <;> ring_nf ; aesop
+
 
 end successive_minima_basics
 

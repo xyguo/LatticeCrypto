@@ -22,11 +22,11 @@ This project aims to implement fundamental lattice-based cryptography algorithms
 
 ### 1.2 Major analytic tools
 - **Module**: `LatticeCrypto.Foundations.Lattice`
-- [ ] Discrete Gaussian, sampling
+- [X] Discrete Gaussian
   - [ ] Probability: common distributions, expectation, concentration inequalities (Markov/Chebyshev/Chernoff)
-  - [ ] Fourier transform, FFT, Poisson's Summation Formula
+  - [X] Fourier transform, FFT, Poisson's Summation Formula
+- [X] Banasczyk's transference theorem
 - [ ] Smoothing parameter
-- [ ] Banasczyk's bound
 
 ### 1.3 Lattice Algorithms
 - **Module**: `LatticeCrypto.Foundations.Algorithms`
@@ -34,6 +34,7 @@ This project aims to implement fundamental lattice-based cryptography algorithms
 - [ ] LLL (Lenstra-Lenstra-Lovász) lattice reduction algorithm
 - [ ] BKZ (Block Korkine-Zolotarev) algorithm basics
 - [ ] Babai's Nearest Plane
+- [ ] Discrete Gaussian sampling
 
 ### 1.4 Lattice Problems and Hardness
 - **Module**: `LatticeCrypto.Foundations.Hardness`

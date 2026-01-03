@@ -38,7 +38,6 @@ def rhoS (s : ℝ) (x : E) : ℝ := rho (s⁻¹ • x)
 /-- The scaled-tilted Gaussian ρ_s ∘ T(x) = ρ(Tx/s) = exp(-π ‖ T x ‖^2 / s^2) -/
 def rhoST (s : ℝ) (T : E ≃L[ℝ] E) (x : E) : ℝ := rhoS s (T x)
 
-@[simp]
 lemma rhoST_Id_eq_rhoS (s : ℝ) (x : E) :
   rhoST s (ContinuousLinearEquiv.refl ℝ E) x = rhoS s x := by
   simp [rhoST, rhoS, rho, ContinuousLinearEquiv.refl_apply]
@@ -97,11 +96,6 @@ theorem rhoS_eq_Pi_gaussianPDF (s : ℝ) (x : 𝔼 n) (h: s > 0):
 /-- Handy corollary for ρ=1 -/
 theorem rho_eq_gaussianPDF (x : 𝔼 n) :
     rho x = ProbabilityTheory.gaussianPDFReal 0 ⟨1 / (2 * π), by positivity⟩ ‖x‖ := by
-    -- Proof involves simple algebra:
-    -- gaussianPDFReal 0 (1/2π) x
-    -- = (1 / sqrt(2 * π * (1/2π))) * exp( - (x - 0)^2 / (2 * (1/2π)) )
-    -- = (1 / 1) * exp( - x^2 * π )
-    -- = rho x
     have h1 := rhoS_eq_gaussianPDF 1 x
     simp [rhoS_1_eq_rho] at h1
     simp [h1]
@@ -187,23 +181,62 @@ theorem GeometricLattice.latticeSum_eq_latticeSumOn (L : GeometricLattice n n) (
     L.latticeSum f = L.latticeSumOn (fun v => f (v : 𝔼 n)) :=
   rfl
 
-noncomputable def rhoSMass (s : ℝ) (L : GeometricLattice n n) : ℝ :=
-  L.latticeSum (fun v => rhoS s (v : 𝔼 n))
+/-- The tilted and scaled rhoMass -/
+noncomputable def rhoSTMass (s : ℝ) (T : (𝔼 n) ≃L[ℝ] (𝔼 n) ) (c : 𝔼 n) (L : GeometricLattice n n) : ℝ :=
+  L.latticeSum (fun v => rhoST s T (v + c))
 
-noncomputable def rhoSMass.ENNReal (s : ℝ) (L : GeometricLattice n n) : ENNReal :=
-  L.latticeSum (fun v => ENNReal.ofReal (rhoS s (v : 𝔼 n)))
+noncomputable def rhoSTMass.ENNReal (s : ℝ) (T : (𝔼 n) ≃L[ℝ] (𝔼 n)) (c : 𝔼 n) (L : GeometricLattice n n) : ENNReal :=
+  L.latticeSum (fun v => ENNReal.ofReal (rhoST s T (v + c)))
 
-noncomputable def rhoSMassCoset (s : ℝ) (L : GeometricLattice n n) (c : 𝔼 n) : ℝ :=
-  L.latticeSum (fun x => rhoS s (x + c))
+noncomputable def rhoSTMassOn (s : ℝ) (T : (𝔼 n) ≃L[ℝ] (𝔼 n)) (c : 𝔼 n) (L : GeometricLattice n n) (S : Set (𝔼 n)) : ℝ :=
+  L.latticeSum (fun v => (S.indicator (rhoST s T)) (v + c))
 
-noncomputable def rhoSMassCoset.ENNReal (s : ℝ) (L : GeometricLattice n n) (c : 𝔼 n) : ENNReal :=
-  L.latticeSum (fun v => ENNReal.ofReal (rhoS s (v + c : 𝔼 n)))
+theorem rhoSTMassOn_univ (s : ℝ) (T : (𝔼 n) ≃L[ℝ] (𝔼 n)) (c : 𝔼 n) (L : GeometricLattice n n) :
+  rhoSTMassOn s T c L Set.univ = rhoSTMass s T c L := by
+  classical
+  simp [rhoSTMassOn, rhoSTMass]
 
-noncomputable def rhoSTMass (s : ℝ) (T : (𝔼 n) ≃L[ℝ] (𝔼 n) ) (L : GeometricLattice n n) : ℝ :=
-  L.latticeSum (fun v => rhoST s T (v : 𝔼 n))
+/-- The untilted but s-scaled rhoMass -/
+noncomputable def rhoSMass (s : ℝ) (c : 𝔼 n) (L : GeometricLattice n n) : ℝ :=
+  rhoSTMass s (ContinuousLinearEquiv.refl ℝ (𝔼 n)) c L
 
-noncomputable def rhoSTMass.ENNReal (s : ℝ) (T : (𝔼 n) ≃L[ℝ] (𝔼 n) ) (L : GeometricLattice n n) : ENNReal :=
-  L.latticeSum (fun v => ENNReal.ofReal (rhoST s T (v : 𝔼 n)))
+noncomputable def rhoSMassOn
+  (s : ℝ) (c : 𝔼 n)
+  (L : GeometricLattice n n)
+  (S : Set (𝔼 n)) : ℝ :=
+  rhoSTMassOn s (ContinuousLinearEquiv.refl ℝ (𝔼 n)) c L S
+
+theorem rhoSMass_def {s c L} :
+  rhoSMass s c L = L.latticeSum (fun v => rhoS s (v + c: 𝔼 n)) :=
+  rfl
+
+theorem rhoSMass_no_shift_def {s L} :
+  rhoSMass s 0 L = L.latticeSum (fun v => rhoS s (v: 𝔼 n)) :=
+  by rw [ rhoSMass_def ]; congr; ext; simp
+
+@[simp]
+theorem rhoSMassOn_def {s c L} {S : Set (𝔼 n)} :
+  rhoSMassOn s c L S = L.latticeSum (fun v => (S.indicator (rhoS s)) (v + c)) :=
+  rfl
+
+theorem rhoSTMass_Id_eq_rhoSMass (s c L) :
+  rhoSTMass s (ContinuousLinearEquiv.refl ℝ (𝔼 n)) c L = rhoSMass s c L :=
+  rfl
+
+/-- The unscaled rhoMass -/
+noncomputable def rhoMass (c : 𝔼 n) (L : GeometricLattice n n) : ℝ :=
+  rhoSMass 1 c L
+
+/-- Filtered rhoMass on subset -/
+noncomputable def rhoMassOn
+  (c : 𝔼 n)
+  (L : GeometricLattice n n)
+  (S : Set (𝔼 n)) : ℝ :=
+  rhoSMassOn 1 c L S
+
+theorem rhoSMass_one_eq_rhoMass (c : 𝔼 n) L :
+   rhoSMass 1 c L = rhoMass c L :=
+  rfl
 
 
 end gaussian
@@ -507,9 +540,10 @@ noncomputable def rhoS_periodizeQuotient (s : ℝ) (L : GeometricLattice n n) : 
   periodizeQuotient (fun v => rhoS s v) L
 
 /-! The periodized rho's value equals that of the rhoMass of a coset-/
-theorem rhoS_periodize_eq_rhoSMassCoset (s : ℝ) (L : GeometricLattice n n) (x : 𝔼 n) :
-    rhoS_periodize s L x = rhoSMassCoset s L x := by
-  dsimp [rhoS_periodize, periodize, rhoSMassCoset];
+theorem rhoS_periodize_eq_rhoSMass_on_coset (s : ℝ) (L : GeometricLattice n n) (x : 𝔼 n) :
+    rhoS_periodize s L x = rhoSMass s x L := by
+  dsimp [rhoS_periodize, periodize];
+  rw [rhoSMass_def]
   congr;
   funext v;
   rw [ add_comm ]
@@ -529,12 +563,12 @@ noncomputable def rho_periodizeQuotient (L : GeometricLattice n n) : L.Quotient 
   Note: This is often interpreted as the probability density of the continuous
   Gaussian reduced modulo L.
 -/
-noncomputable def rhoS_normalized_periodize (s : ℝ) (L : GeometricLattice n n) (x : 𝔼 n) : ℝ :=
-  periodize (fun v => rhoS s v) L x / rhoSMass 1 L
+-- noncomputable def rhoS_normalized_periodize (s : ℝ) (L : GeometricLattice n n) (x : 𝔼 n) : ℝ :=
+--   periodize (fun v => rhoS s v) L x / rhoSMass s 0 L
 
-/-- The Normalized Periodization on the quotient. -/
-noncomputable def rhoS_normalized_periodizeQuotient (s : ℝ) (L : GeometricLattice n n) : L.Quotient → ℝ :=
-  fun x => rhoS_periodizeQuotient s L x / rhoSMass 1 L
+-- /-- The Normalized Periodization on the quotient. -/
+-- noncomputable def rhoS_normalized_periodizeQuotient (s : ℝ) (L : GeometricLattice n n) : L.Quotient → ℝ :=
+--   fun x => rhoS_periodizeQuotient s L x / rhoSMass s 0 L
 
 end periodization
 
@@ -729,7 +763,7 @@ theorem summable_rhoST_shift_center (L : GeometricLattice n n) (s : ℝ) (hs : 0
 
 /-- Corollary : for a same lattice, a wider Gaussian has larger mass -/
 lemma rhoSTMass_mono {s₁ s₂ : ℝ} {T : (𝔼 n) ≃L[ℝ] (𝔼 n)} (h1  : 1 ≤ s₁) (h : s₁ ≤ s₂) (L : GeometricLattice n n) :
-    rhoSTMass s₁ T L ≤ rhoSTMass s₂ T L := by
+    rhoSTMass s₁ T 0 L ≤ rhoSTMass s₂ T 0 L := by
   have h_sum_ge_s₁ : ∀ v : L.carrier, rhoST s₁ T ((v : 𝔼 n)) ≤ rhoST s₂ T ((v : 𝔼 n)) := by
     intros v; exact (rhoST_mono h1 h T (v : 𝔼 n));
   apply_rules [ Summable.tsum_le_tsum ];
@@ -739,20 +773,16 @@ lemma rhoSTMass_mono {s₁ s₂ : ℝ} {T : (𝔼 n) ≃L[ℝ] (𝔼 n)} (h1  : 
     specialize this L s₁ (by linarith) T 0;
     aesop
   ·
+    convert summable_rhoST L s₁ ( by linarith : 0 < s₁ ) T 0 using 1;
+    norm_num [ add_zero]
+  .
     convert summable_rhoST L s₂ ( by linarith : 0 < s₂ ) T 0 using 1;
-    norm_num [ sub_zero ]
+    norm_num [ add_zero]
 
-
+/-- Corollary : just apply the above to T = identity map -/
 lemma rhoSMass_mono {s₁ s₂ : ℝ} (h1 : 1 ≤ s₁) (h : s₁ ≤ s₂) (L : GeometricLattice n n) :
-    rhoSMass s₁ L ≤ rhoSMass s₂ L := by
-  have h_sum_ge_s₁ : ∀ v : L.carrier, rhoS s₁ ((v : 𝔼 n)) ≤ rhoS s₂ ((v : 𝔼 n)) := by
-    intros v
-    apply rhoS_mono h1 h
-  apply_rules [ Summable.tsum_le_tsum ];
-  · convert summable_rhoS L s₁ ( by linarith ) 0 using 1;
-    norm_num;
-  · convert summable_rhoS L s₂ ( by linarith ) 0 using 1;
-    norm_num
+    rhoSMass s₁ 0 L ≤ rhoSMass s₂ 0 L := by
+    exact rhoSTMass_mono h1 h L (T := ContinuousLinearEquiv.refl _ _)
 
 /-- Discrete Gaussian weight function for a lattice vector v with center c and parameter s. -/
 noncomputable def dGWeight {L: GeometricLattice n n} (s : ℝ) (c : 𝔼 n) (v : L.carrier) : ℝ :=
@@ -762,9 +792,9 @@ noncomputable def dGWeight {L: GeometricLattice n n} (s : ℝ) (c : 𝔼 n) (v :
 noncomputable def dGZ (L : GeometricLattice n n) (s : ℝ) (c : 𝔼 n) : ℝ :=
   ∑' v : L.carrier, dGWeight (L:=L) s c v
 
-lemma dGZ_eq_rhoSMassCoset (L : GeometricLattice n n) (s : ℝ) (c : 𝔼 n) :
-  dGZ L s c = rhoSMassCoset s L (-c) := by
-    dsimp [dGZ, dGWeight, rhoSMassCoset];
+lemma dGZ_eq_rhoSCosetMass (L : GeometricLattice n n) (s : ℝ) (c : 𝔼 n) :
+  dGZ L s c = rhoSMass s (-c) L := by
+    dsimp [dGZ, dGWeight, rhoSMass];
     congr;
 
 /-

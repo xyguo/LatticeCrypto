@@ -502,35 +502,36 @@ lemma summable_fourierCoefficient_of_rhoS_periodize (L : GeometricLattice n n) (
   Poisson Summation Formula for Gaussian functions over lattices.
 -/
 theorem poisson_summation_rhoS (L : GeometricLattice n n) (s : ℝ) (h_s : 0 < s) :
-    rhoSMass s L = (1 / L.det) * (s ^ (n : ℕ)) * rhoSMass (1 / s) L.dual := by
-      have h_poisson : L.latticeSum (fun v => (rhoS s v : ℂ)) = (1 / L.det : ℂ) * L.dual.latticeSum (fun w => (rhoS_FT s w : ℂ)) := by
-        convert poisson_summation L ( fun v => ( rhoS s v : ℂ ) ) _ _ _ using 1 <;> norm_num [ rhoS.integrable, h_s.ne' ];
-        · have h_cont : Continuous (rhoST_periodize s (ContinuousLinearEquiv.refl ℝ (𝔼 n)) L) := by
-            apply rhoST_periodize.continuous;
-            positivity;
-          convert Complex.continuous_ofReal.comp h_cont using 1;
-          ext; norm_num [ rhoST_periodize, rhoST, rhoS ] ;
-          unfold periodize; norm_num [ Complex.ofReal_tsum ] ;
-          unfold GeometricLattice.latticeSum; norm_num [ Complex.ofReal_tsum ] ;
-        · have h_summable : Summable (fourierCoefficientReal L (rhoS_periodize s L)) := by
-            exact summable_fourierCoefficient_of_rhoS_periodize L s h_s;
-          convert h_summable using 1;
-          unfold fourierCoefficientReal fourierCoefficient; norm_num [ Complex.exp_re, Complex.exp_im, Complex.cos, Complex.sin ] ;
-          congr! 3;
-          ext; norm_cast;
-          erw [ Complex.ofReal_tsum ] ; norm_num [ Complex.ofReal_mul, Complex.ofReal_exp ];
-          exact rfl;
-      convert congr_arg Complex.re h_poisson using 1;
-      · erw [ Complex.re_tsum ] ; norm_cast;
-        convert summable_rhoS L s h_s 0 using 1;
-        ext; simp +decide [ rhoS ] ;
-      · -- By definition of `rhoS_FT`, we have `rhoS_FT s w = (s ^ (n : ℕ) : ℂ) * (rhoS (1 / s) w : ℂ)`.
-        have h_rhoS_FT : ∀ w : 𝔼 n, rhoS_FT s w = (s ^ (n : ℕ) : ℂ) * (rhoS (1 / s) w : ℂ) := by
-          exact fun w => rhoS_FT_eq s h_s w;
-        norm_num [ h_rhoS_FT, mul_assoc ];
-        unfold rhoSMass; norm_cast; norm_num [ tsum_mul_left ] ;
-        unfold GeometricLattice.latticeSum; norm_num [ tsum_mul_left ] ;
-        norm_cast ; norm_num [ Complex.exp_re, Complex.exp_im, Complex.log_re, Complex.log_im, Complex.cpow_def ]
+    rhoSMass s 0 L = (1 / L.det) * (s ^ (n : ℕ)) * rhoSMass (1 / s) 0 L.dual := by
+  have h_poisson : L.latticeSum (fun v => (rhoS s v : ℂ)) = (1 / L.det : ℂ) * L.dual.latticeSum (fun w => (rhoS_FT s w : ℂ)) := by
+    convert poisson_summation L ( fun v => ( rhoS s v : ℂ ) ) _ _ _ using 1 <;> norm_num [ rhoS.integrable, h_s.ne' ];
+    · have h_cont : Continuous (rhoST_periodize s (ContinuousLinearEquiv.refl ℝ (𝔼 n)) L) := by
+        apply rhoST_periodize.continuous;
+        positivity;
+      convert Complex.continuous_ofReal.comp h_cont using 1;
+      ext; norm_num [ rhoST_periodize, rhoST, rhoS ] ;
+      unfold periodize; norm_num [ Complex.ofReal_tsum ] ;
+      unfold GeometricLattice.latticeSum; norm_num [ Complex.ofReal_tsum ] ;
+    · have h_summable : Summable (fourierCoefficientReal L (rhoS_periodize s L)) := by
+        exact summable_fourierCoefficient_of_rhoS_periodize L s h_s;
+      convert h_summable using 1;
+      unfold fourierCoefficientReal fourierCoefficient; norm_num [ Complex.exp_re, Complex.exp_im, Complex.cos, Complex.sin ] ;
+      congr! 3;
+      ext; norm_cast;
+      erw [ Complex.ofReal_tsum ] ; norm_num [ Complex.ofReal_mul, Complex.ofReal_exp ];
+      exact rfl;
+  convert congr_arg Complex.re h_poisson using 1;
+  · simp [rhoSMass, rhoSTMass] ; erw [ Complex.re_tsum ] ; norm_cast;
+    convert summable_rhoS L s h_s 0 using 1;
+    ext; simp +decide [ rhoS ] ;
+  · -- By definition of `rhoS_FT`, we have `rhoS_FT s w = (s ^ (n : ℕ) : ℂ) * (rhoS (1 / s) w : ℂ)`.
+    simp [rhoSMass_def]
+    have h_rhoS_FT : ∀ w : 𝔼 n, rhoS_FT s w = (s ^ (n : ℕ) : ℂ) * (rhoS (1 / s) w : ℂ) := by
+      exact fun w => rhoS_FT_eq s h_s w;
+    norm_num [ h_rhoS_FT, mul_assoc ];
+    norm_cast; norm_num [ tsum_mul_left ] ;
+    unfold GeometricLattice.latticeSum; norm_num [ tsum_mul_left ] ;
+    norm_cast ; norm_num [ Complex.exp_re, Complex.exp_im, Complex.log_re, Complex.log_im, Complex.cpow_def ]
 
 /-
 The Fourier transform of the shifted Gaussian `rhoS(· - u)` is `e^{-2πi <u, w>} * rhoS_FT(w)`.
@@ -549,10 +550,10 @@ lemma rhoS_shift_FT (s : ℝ) (u : 𝔼 n) (w : 𝔼 n) :
       convert h_translation ( fun v => ( rhoS s v : ℂ ) ) using 1
 
 /-
-`rhoSMassCoset s L u` is equal to the lattice sum of `rhoS s (v - u)`.
+`rhoSCosetMass s L u` is equal to the lattice sum of `rhoS s (v - u)`.
 -/
-lemma rhoSMassCoset_eq_latticeSum_sub (s : ℝ) (L : GeometricLattice n n) (u : 𝔼 n) :
-  rhoSMassCoset s L u = L.latticeSum (fun v => rhoS s (v - u)) := by
+lemma rhoSMass_on_coset_eq_latticeSum_sub (s : ℝ) (L : GeometricLattice n n) (u : 𝔼 n) :
+  rhoSMass s u L = L.latticeSum (fun v => rhoS s (v - u)) := by
     have h_reindex : ∑' x : L.carrier, rhoS s (x + u) = ∑' x : L.carrier, rhoS s (-x + u) := by
       -- Since the lattice is closed under negation, the map x ↦ -x is a bijection on the lattice.
       have h_bij : Function.Bijective (fun x : L.carrier => -x : L.carrier → L.carrier) := by
@@ -606,7 +607,7 @@ lemma rhoS_shifted_integrable (s : ℝ) (hs : s ≠ 0) (u : 𝔼 n) :
   Poission Summation for rhoS on cosets
 -/
 theorem poisson_summation_rhoS_coset (L : GeometricLattice n n) (s : ℝ) (h_s : 0 < s) (u : 𝔼 n) :
-    (rhoSMassCoset s L u : ℂ) = (1 / L.det) * (s ^ (n : ℕ)) * L.dual.latticeSum (fun v => cexp (-2 * π * I * inner ℝ u (v : 𝔼 n)) * rhoS (1 / s) v) := by
+    (rhoSMass s u L : ℂ) = (1 / L.det) * (s ^ (n : ℕ)) * L.dual.latticeSum (fun v => cexp (-2 * π * I * inner ℝ u (v : 𝔼 n)) * rhoS (1 / s) v) := by
     -- Apply the Poisson summation formula to the shifted Gaussian function.
     have h_poisson : L.latticeSum (fun v => (rhoS s (v - u) : ℝ)) = (1 / L.det : ℝ) * L.dual.latticeSum (fun w => 𝓕 (fun v => (rhoS s (v - u) : ℂ)) w) := by
       have h_poisson : L.latticeSum (fun v => (rhoS s (v - u) : ℝ)) = (1 / L.det : ℂ) * L.dual.latticeSum (fun w => 𝓕 (fun v => (rhoS s (v - u) : ℂ)) w) := by
@@ -634,22 +635,22 @@ theorem poisson_summation_rhoS_coset (L : GeometricLattice n n) (s : ℝ) (h_s :
         exact h_s);
       simp_all +decide [ mul_assoc ];
       exact tsum_mul_left;
-    simp_all +decide [ mul_assoc, rhoSMassCoset_eq_latticeSum_sub ]
+    rw [rhoSMass_on_coset_eq_latticeSum_sub]
+    simp_all +decide [ mul_assoc ]
 
 
 /-- For any lattice L and s ≥ 1, there is rhoS(s, L) ≤ sⁿ * rho(L). -/
 theorem rhoSMass_scaling_mono (s : ℝ) (h_s : s ≥ 1) (L : GeometricLattice n n) :
-    rhoSMass s L ≤ (s ^ (n : ℕ)) * rhoSMass 1 L := by
+    rhoSMass s 0 L ≤ (s ^ (n : ℕ)) * rhoSMass 1 0 L := by
   -- Proof idea:
   -- rhoS(s, v) = rho(v / s) ≤ rho(v) for s ≥ 1
   -- Therefore, summing over all v ∈ L gives the desired inequality.
-  unfold rhoSMass;
   have h_dual_det : L.dual.det = 1 / L.det := by
     exact GeometricLattice.dual_det_eq_inv L;
   have h_poisson : L.latticeSum (fun v => rhoS s v) = (1 / L.det) * s ^ (n : ℕ) * L.dual.latticeSum (fun v => rhoS (1 / s) v) := by
-    convert poisson_summation_rhoS L s ( by positivity ) using 1;
+    convert poisson_summation_rhoS L s ( by positivity ) using 1 <;> simp [rhoSMass_def];
   -- Since $s \geq 1$, we have $s^n \geq 1$ and $1 / s \leq 1$, thus $\rho(1 / s, L^*) \leq \rho(L^*)$.
-  have h_rho_bound : L.dual.latticeSum (fun v => rhoS (1 / s) v) ≤ L.dual.latticeSum (fun v => rhoS 1 v) := by
+  have h_rho_bound_1 : L.dual.latticeSum (fun v => rhoS (1 / s) v) ≤ L.dual.latticeSum (fun v => rhoS 1 v) := by
     apply_rules [ Summable.tsum_le_tsum ];
     · unfold LatticeCrypto.Foundations.Gaussian.rhoS;
       unfold LatticeCrypto.Foundations.Gaussian.rho; norm_num; ring_nf ;
@@ -658,24 +659,27 @@ theorem rhoSMass_scaling_mono (s : ℝ) (h_s : s ≥ 1) (L : GeometricLattice n 
       simpa using this L.dual ( 1 / s ) ( one_div_pos.mpr ( zero_lt_one.trans_le h_s ) ) 0;
     · have := @LatticeCrypto.Foundations.Gaussian.summable_rhoS n L.dual;
       simpa using this 1 zero_lt_one 0
-  have h_rho_bound : L.latticeSum (fun v => rhoS 1 v) = L.det⁻¹ * L.dual.latticeSum (fun v => rhoS 1 v) := by
-    convert poisson_summation_rhoS L 1 zero_lt_one using 1 ; norm_num [ h_dual_det ];
-    unfold LatticeCrypto.Foundations.Gaussian.rhoSMass; aesop;
-  simp_all +decide [ div_eq_inv_mul, mul_assoc, mul_comm ];
+  have h_rho_bound_2 : L.latticeSum (fun v => rhoS 1 v) = L.det⁻¹ * L.dual.latticeSum (fun v => rhoS 1 v) := by
+    have h_poisson := poisson_summation_rhoS L 1 zero_lt_one
+    simp at h_poisson; simp [rhoSMass_def] at h_poisson;
+    aesop;
+  simp_all +decide [ div_eq_inv_mul, mul_assoc, mul_comm ]; simp [rhoSMass_def]
+  rw [ h_poisson ];
   gcongr;
-  exact inv_nonneg.mpr ( le_of_lt ( L.det_pos ) )
+  rw [ h_rho_bound_2 ];
+  gcongr; exact (inv_pos.mpr L.det_pos).le
 
 /-- For any lattice coset L + u, rhoS(s, L + u) ≤ rhoS(s, L).
 -/
 theorem rhoSMass_shift_mono (L : GeometricLattice n n) (s : ℝ) (hs: 0 < s) (u : 𝔼 n) :
-    rhoSMassCoset s L u ≤ rhoSMass s L := by
+    rhoSMass s u L ≤ rhoSMass s 0 L := by
   -- Proof idea:
   -- Since rhoS is non-negative, shifting by u does not increase the sum.
-  have h_rhoSMassCoset_nonneg : 0 ≤ rhoSMassCoset s L u := by
+  have h_rhoSCosetMass_nonneg : 0 ≤ rhoSMass s u L := by
     exact tsum_nonneg fun _ => Real.exp_nonneg _
-  have h_rhoSMassCoset_eq_complex : ‖(rhoSMassCoset s L u : ℂ)‖ = rhoSMassCoset s L u := by
-    exact_mod_cast abs_of_nonneg h_rhoSMassCoset_nonneg
-  rw [ ← h_rhoSMassCoset_eq_complex,  poisson_summation_rhoS_coset L s hs u];
+  have h_rhoSCosetMass_eq_complex : ‖(rhoSMass s u L : ℂ)‖ = rhoSMass s u L := by
+    exact_mod_cast abs_of_nonneg h_rhoSCosetMass_nonneg
+  rw [ ← h_rhoSCosetMass_eq_complex,  poisson_summation_rhoS_coset L s hs u];
   unfold GeometricLattice.latticeSum;
   have h_le : ∀ (v : L.dual.carrier) (a : ℝ), ‖cexp (-2 * π * I * inner ℝ u (v : 𝔼 n)) * a‖ = ‖a‖ := by
     -- The norm of the product of two complex numbers is the product of their norms.
@@ -694,7 +698,7 @@ theorem rhoSMass_shift_mono (L : GeometricLattice n n) (s : ℝ) (hs: 0 < s) (u 
   · rw [ poisson_summation_rhoS ];
     · norm_num [ abs_of_nonneg, hs.le, L.det_pos ];
       rw [ abs_of_nonneg ( show 0 ≤ L.det from le_of_lt ( L.det_pos ) ) ];
-      congr! 2;
+      congr! 2; simp [rhoSMass_def, GeometricLattice.latticeSum];
       exact tsum_congr fun v => by rw [ abs_of_nonneg ( rhoS_pos _ _ |> le_of_lt ) ] ;
     · positivity
 
