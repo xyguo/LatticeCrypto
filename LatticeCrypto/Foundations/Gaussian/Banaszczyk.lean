@@ -21,7 +21,19 @@ namespace LatticeCrypto.Foundations.Gaussian
 
 /-!
   # Tail bounds for Discrete Gaussians
--/
+  * `rhoMass_outside_ball_stronger`:  Let Bₙ denote the open Euclidean unit ball. Then, for any lattice L and any s > 0, then we have rho(c + L \setminus \sqrt{n} B_n)  < (0.2)^n rho(L),
+  where $L \setminus \sqrt{n} B_n$ is the set of lattice points of norm no-shorter than √{n}.
+  * `rhoMass_outside_ball`: Weaker similar bound but with 2^{-n} instead of (0.2)^n.
+  * Corollary `rhoMass_with_long_sv_stronger` : lattices with long shortest vector have exponentially small Gaussian mass outside the origin: `L.shortestVectorLength ≥ Real.sqrt (n : ℝ))` implies
+    `rhoMassOn 0 L {0}ᶜ < 0.2 ^ (n : ℝ) / (1 - 0.2 ^ (n : ℝ))`
+  * Corollary `rhoMass_with_long_sv` : weaker similar bound but with 2^{-n} instead of (0.2)^n
+
+  The tail bounds also have some uniformity implications for discrete Gaussians over lattices with long shortest vector.
+  * `rhoMass_ub_on_dual_with_long_sv`: lattices with long shortest vector have upperbounded rhoMass on the dual cosets: `L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝔼 n)` →
+    `rhoMass u L.dual ≤ (1 + 2 * (2 : ℝ)^(-n : ℝ)) * L.det`
+  * `rhoMass_lb_on_dual_with_long_sv`: lattices with long shortest vector have lowerbounded rhoMass on the dual cosets: `L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝔼 n)` →
+    `rhoMass u L.dual ≥ (1 - 2 * (2 : ℝ)^(-n : ℝ)) * L.det`
+--/
 section concentration
 
 open Real Complex MeasureTheory
@@ -37,6 +49,12 @@ variable {n : ℕ+} (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s)
 abbrev 𝔅 {n : ℕ+} (c : 𝔼 n) (r : ℝ) := Metric.ball c r
 
 
+/-!
+  ## Numeric bounds used for deriving tail bounds
+  * `numeric_bound_for_tail_bound`: exp(-3πn/4) * 2^n < 2^{-n}.
+  * `base_bound_strong` : Real.exp (-3 * Real.pi / 4) * 2 < 0.2
+  * `stronger_numeric_bound_for_tail_bound`: Real.exp (-3 * Real.pi * n / 4) * (2 ^ n) < (0.2 ^ n)
+-/
 section numeric_bounds
 /-
 ln(4) < 3π/4 using proven bounds.
@@ -75,7 +93,7 @@ lemma pi_gt_31 : Real.pi > 3.1 := by
   have : Real.pi > 3.14 := Real.pi_gt_d2
   linarith
 
-lemma base_bound_weak : Real.exp (-3 * Real.pi / 4) * 2 < 0.2 := by
+lemma base_bound_strong : Real.exp (-3 * Real.pi / 4) * 2 < 0.2 := by
   -- We'll use that $e^{-3\pi/4} \cdot 2 < 0.2$ to bound the expression. This follows from the fact that $e^{-3\pi/4} < 0.1$.
   have h_exp : Real.exp (-3 * Real.pi / 4) < 0.1 := by
     rw [ ← Real.log_lt_log_iff ( by positivity ) ] <;> norm_num;
@@ -91,13 +109,28 @@ lemma base_bound_weak : Real.exp (-3 * Real.pi / 4) * 2 < 0.2 := by
     rw [ Real.log_div ] <;> norm_num ; linarith;
   norm_num at * ; linarith
 
-lemma numeric_bound_stronger (n : ℕ+) :
-  (Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ)) / (1 - (Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ))) < (2 : ℝ)^(-(n : ℝ)) * (1 - (2 : ℝ)^(-(n : ℝ))) := by
+lemma stronger_numeric_bound_for_tail_bound (n : ℕ+) :
+  Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ) < (0.2 : ℝ)^(n : ℝ) := by
+  set K : ℝ := Real.exp (-3 * Real.pi / 4) * 2;
+  have hK : K < 0.2 := by
+    have hK : K < 0.2 := by
+      exact base_bound_strong;
+    exact hK;
+  -- Substitute $K < 0.2$ into the inequality.
+  have h_sub : K ^ (n : ℝ) < (0.2 : ℝ) ^ (n : ℝ) := by
+    rw [Real.rpow_natCast, Real.rpow_natCast]
+    exact pow_lt_pow_left₀ hK ( by positivity ) ( by positivity : ( n : ℕ ) ≠ 0 );
+  convert h_sub using 1 ; norm_num [ Real.rpow_mul, Real.rpow_neg, inv_pow ]
+  simp [K]; ring_nf;
+  rw [← Real.exp_nat_mul]; ring_nf
+
+lemma numeric_bound_strong (n : ℕ+) :
+  (Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ)) / (1 - (Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ))) < (0.2 : ℝ)^(n : ℝ) / (1 - (0.2 : ℝ)^(n : ℝ)) := by
     -- Substitute $K = \exp(-3\pi n/4) \cdot 2^n$ and use the bound $K < 0.2^n$.
     set K : ℝ := Real.exp (-3 * Real.pi * n / 4) * 2 ^ (n : ℝ)
     have hK : K < (0.2 : ℝ) ^ (n : ℝ) := by
       have hK : K < (0.2 : ℝ)^(n : ℝ) := by
-        have := base_bound_weak
+        have := base_bound_strong
         norm_num +zetaDelta at *;
         convert pow_lt_pow_left₀ this ( by positivity ) ( by positivity : ( n : ℕ ) ≠ 0 ) using 1 ; ring_nf;
         rw [ ← Real.exp_nat_mul ] ; ring_nf;
@@ -106,6 +139,14 @@ lemma numeric_bound_stronger (n : ℕ+) :
     have h_sub : K / (1 - K) < (0.2 : ℝ) ^ (n : ℝ) / (1 - (0.2 : ℝ) ^ (n : ℝ)) := by
       gcongr ; norm_num at *;
       exact pow_lt_one₀ ( by norm_num ) ( by norm_num ) ( by positivity );
+    exact h_sub
+
+lemma numeric_bound_weaker (n : ℕ+) :
+  (Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ)) / (1 - (Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ))) < (2 : ℝ)^(-(n : ℝ)) * (1 - (2 : ℝ)^(-(n : ℝ))) := by
+    set K : ℝ := Real.exp (-3 * Real.pi * n / 4) * 2 ^ (n : ℝ)
+    have h_sub : K / (1 - K) < (0.2 : ℝ) ^ (n : ℝ) / (1 - (0.2 : ℝ) ^ (n : ℝ)) := by
+      unfold K
+      exact numeric_bound_strong n;
     -- We need to show that $0.2^n / (1 - 0.2^n) \le (1/2)^n * (1 - (1/2)^n)$.
     have h_final : (0.2 : ℝ) ^ (n : ℝ) / (1 - (0.2 : ℝ) ^ (n : ℝ)) ≤ (1 / 2 : ℝ) ^ (n : ℝ) * (1 - (1 / 2 : ℝ) ^ (n : ℝ)) := by
       rw [ div_le_iff₀ ] <;> norm_num;
@@ -115,6 +156,22 @@ lemma numeric_bound_stronger (n : ℕ+) :
       · exact pow_lt_one₀ ( by norm_num ) ( by norm_num ) ( by positivity );
     convert h_sub.trans_le h_final using 1 ; norm_num [ Real.rpow_neg ];
     norm_num [ ← inv_pow ]
+
+
+/-- The upper bound of `rhoMassOn (0 : 𝔼 n) L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ` -/
+noncomputable abbrev rhoMassTailBoundConst (n : ℕ+) : ℝ :=
+  0.2 ^ (n : ℝ) / (1 - 0.2 ^ (n : ℝ))
+
+/-- Handy upperbound for rhoMassTailBoundConst-/
+lemma rhoMassTailBoundConst_le_4_pow_neg_n (n : ℕ+) :
+  rhoMassTailBoundConst n ≤ (4 : ℝ) ^ (-n : ℝ) := by
+  -- By simplifying, we can see that the inequality holds for all positive integers n.
+  have h_simplify : ∀ n : ℕ+, (0.2 : ℝ) ^ (n : ℝ) / (1 - (0.2 : ℝ) ^ (n : ℝ)) ≤ (4 : ℝ) ^ (-(n : ℝ)) := by
+    intro n; rw [ div_le_iff₀ ] <;> norm_num [ Real.rpow_neg ];
+    · induction n using PNat.recOn <;> norm_num [ pow_succ' ] at *;
+      nlinarith [ pow_pos ( by norm_num : ( 0 : ℝ ) < 1 / 5 ) ( ↑‹ℕ+› : ℕ ), pow_le_pow_of_le_one ( by norm_num : ( 0 : ℝ ) ≤ 1 / 5 ) ( by norm_num ) ( show ( ↑‹ℕ+› : ℕ ) ≥ 1 from Nat.one_le_iff_ne_zero.mpr <| PNat.ne_zero _ ) ];
+    · exact pow_lt_one₀ ( by norm_num ) ( by norm_num ) ( by positivity );
+  exact h_simplify n
 
 end numeric_bounds
 
@@ -172,8 +229,8 @@ lemma rhoMassOn_le_factor_mul_rhoSMassOn (c : 𝔼 n) (L : GeometricLattice n n)
     rho(c + L \setminus \sqrt{n} B_n)  < 2^{−n} rho(L),
   where L \setminus \sqrt{n} B_n is the set of lattice points of norm no-shorter than √{n}.
 -/
-theorem rhoMass_outside_ball (c : 𝔼 n) (L : GeometricLattice n n) :
-  rhoMassOn c L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ < (2 : ℝ)^(-n : ℝ) * (rhoMass 0 L) := by
+lemma rhoMass_outside_ball_stronger (c : 𝔼 n) (L : GeometricLattice n n) :
+  rhoMassOn c L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ < (0.2 : ℝ)^(n : ℝ) * (rhoMass 0 L) := by
     have := rhoMassOn_le_factor_mul_rhoSMassOn c L;
     -- Apply Lemma 2 to bound the mass outside the ball.
     have h_bound : rhoMassOn c L (𝔅 0 (Real.sqrt (n : ℝ)))ᶜ ≤ Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ) * rhoSMass 1 0 L := by
@@ -191,21 +248,36 @@ theorem rhoMass_outside_ball (c : 𝔼 n) (L : GeometricLattice n n) :
       have h_bound : rhoSMass 2 c L ≤ 2 ^ (n : ℝ) * rhoSMass 1 0 L := by
         exact le_trans ( rhoSMass_shift_mono L 2 ( by norm_num ) c ) ( by simpa using rhoSMass_scaling_mono 2 ( by norm_num ) L );
       nlinarith [ Real.exp_pos ( -3 * Real.pi * n / 4 ) ];
-    have h_bound : Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ) * rhoSMass 1 0 L < (2 : ℝ)^(-(n : ℝ)) * rhoSMass 1 0 L := by
+    have h_bound : Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ) * rhoSMass 1 0 L < (0.2 : ℝ)^(n : ℝ) * rhoSMass 1 0 L := by
       gcongr;
       · refine' lt_of_lt_of_le _ ( Summable.le_tsum _ 0 _ ) <;> norm_num;
         · exact Real.exp_pos _;
         · simp [rhoST_Id_eq_rhoS] ; convert summable_rhoMassOn_integrand 1 zero_lt_one 0 L Set.univ using 1;
           ext; simp [rhoS];
         · exact fun _ _ _ => Real.exp_nonneg _;
-      · convert numeric_bound_for_tail_bound n using 1;
+      · convert stronger_numeric_bound_for_tail_bound n using 1;
     convert lt_of_le_of_lt ‹_› h_bound using 1
 
+/-- Handy bound 2^{-n} on rhoMass on lattice points outside ball of radius √n -/
+theorem rhoMass_outside_ball (c : 𝔼 n) (L : GeometricLattice n n) :
+  rhoMassOn c L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ < (2 : ℝ)^(-n : ℝ) * (rhoMass 0 L) := by
+  have : (0.2 : ℝ)^(n : ℝ) < (2 : ℝ)^(-(n : ℝ)) := by
+    norm_num [ Real.rpow_def_of_pos ];
+    simp +zetaDelta at *;
+    -- Since $2 < 5$, we can apply the logarithm function to both sides, preserving the inequality.
+    apply Real.log_lt_log; norm_num; norm_num
+  have h_bound := rhoMass_outside_ball_stronger c L;
+  -- By combining the results from h_bound and this, we can conclude the proof.
+  apply lt_of_lt_of_le h_bound (mul_le_mul_of_nonneg_right this.le (by
+  -- The Gaussian function is non-negative, so the sum of non-negative terms is non-negative.
+  apply tsum_nonneg; intro v; exact Real.exp_nonneg _))
+
+
 /-- Corollary : lattices with long shortest vector have exponentially small Gaussian mass outside the origin -/
-theorem rhoMass_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength > Real.sqrt (n : ℝ)) :
-  rhoMassOn 0 L {0}ᶜ < (2 : ℝ)^(-n : ℝ) * (1 - (2 : ℝ)^(-n : ℝ)) := by
+theorem rhoMass_with_long_sv_stronger (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) :
+  rhoMassOn 0 L {0}ᶜ < 0.2 ^ (n : ℝ) / (1 - 0.2 ^ (n : ℝ)) := by
   have h_eq : (L.carrier : Set (𝔼 n)) ∩ {0}ᶜ = (L.carrier : Set (𝔼 n)) ∩ (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ := by
-    have h_len : ∀ v : L.carrier, v ≠ 0 → ‖(v : 𝔼 n)‖ > Real.sqrt (n : ℝ) := by
+    have h_len : ∀ v : L.carrier, v ≠ 0 → ‖(v : 𝔼 n)‖ ≥ Real.sqrt (n : ℝ) := by
       intro v hv;
       have h_vlen : ‖(v : 𝔼 n)‖ ≥ L.shortestVectorLength := by
         -- Since $v$ is a non-zero lattice point, its norm is in the set of non-zero norms, so the infimum (which is the shortest vector length) must be less than or equal to any element in that set.
@@ -223,7 +295,7 @@ theorem rhoMass_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVecto
       linarith;
     apply Set.ext;
     simp +zetaDelta at *;
-    exact fun x hx => ⟨ fun hx' => le_of_lt ( h_len x hx hx' ), fun hx' => by contrapose! hx'; aesop ⟩
+    exact fun x hx => ⟨ fun hx' => ( h_len x hx hx' ), fun hx' => by contrapose! hx'; aesop ⟩
 
   have h_eq' : rhoMassOn 0 L {0}ᶜ = rhoMassOn 0 L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ := by
     unfold rhoMassOn rhoSMassOn rhoSTMassOn;
@@ -231,50 +303,42 @@ theorem rhoMass_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVecto
     apply tsum_congr; intro v; simp [Set.indicator];
     specialize h_eq v ; aesop
 
-  have h_concentration := rhoMass_outside_ball 0 L
+  have h_concentration := rhoMass_outside_ball_stronger 0 L
   rw [←h_eq'] at h_concentration
 
   have : rhoMass 0 L = 1 + rhoMassOn 0 L {0}ᶜ := by
-    unfold rhoMassOn rhoMass rhoSMassOn rhoSMass rhoSTMassOn rhoSTMass; norm_num [ Set.indicator ] ;
-    convert Summable.tsum_eq_add_tsum_ite _ _ using 1;
-    rotate_right;
-    exact ⟨ 0, L.carrier.zero_mem ⟩;
-    all_goals try infer_instance;
-    · unfold rhoST; norm_num [ rho ] ;
-      unfold GeometricLattice.latticeSum; aesop;
-    · convert summable_rhoMassOn_integrand 1 zero_lt_one 0 L ( Set.univ : Set ( LatticeCrypto.Utils.Vec.𝔼 n ) ) using 1;
-      ext; simp +decide [ rhoST ] ;
+    have h_eq := rhoSMass_eq_one_add_rhoSMassOn_nonzero L 1 zero_lt_one
+    rw [ rhoSMass_one_eq_rhoMass, rhoSMassOn_one_eq_rhoMassOn ] at h_eq
+    exact h_eq
   rw [ this ] at h_concentration
-  have : 1 - (2 : ℝ)^(-n : ℝ) ≥ 1/2 := by
-    -- Since $2^{-(n : ℝ)} \leq 1/2$ for all $n \geq 1$, we have $1 - 2^{-(n : ℝ)} \geq 1/2$. This follows from the fact that $2^{-(n : ℝ)}$ is a decreasing function and $2^{-1} = 1/2$.
-    have h_bound : (2 : ℝ) ^ (-(n : ℝ)) ≤ 1 / 2 := by
-      simpa using inv_anti₀ ( by positivity ) ( Real.rpow_le_rpow_of_exponent_le ( by norm_num ) ( Nat.one_le_cast.mpr n.pos ) );
-    -- By subtracting $2^{-(n : ℝ)}$ from 1, we get $1 - 2^{-(n : ℝ)} \geq 1 - 1/2 = 1/2$.
-    linarith
-  have h_final : (Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ)) / (1 - (Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ))) < (2 : ℝ)^(-(n : ℝ)) * (1 - (2 : ℝ)^(-(n : ℝ))) := by
-    convert numeric_bound_stronger n using 1;
-  have h_final : rhoMassOn 0 L {0}ᶜ ≤ (Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ)) * rhoMass 0 L := by
-    have h_final : rhoMassOn 0 L {0}ᶜ ≤ Real.exp (-3 * Real.pi * n / 4) * rhoSMassOn 2 0 L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ := by
-      convert rhoMassOn_le_factor_mul_rhoSMassOn 0 L using 1;
-    have h_final : rhoSMassOn 2 0 L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ ≤ 2 ^ (n : ℝ) * rhoMass 0 L := by
-      have h_final : rhoSMassOn 2 0 L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ ≤ rhoSMass 2 0 L := by
-        apply_rules [ Summable.tsum_le_tsum ];
-        · simp +decide [ Set.indicator ];
-          exact fun x hx => by split_ifs <;> [ exact le_rfl; exact le_trans ( by norm_num ) ( Real.exp_nonneg _ ) ] ;
-        · convert summable_rhoMassOn_integrand 2 ( by norm_num ) 0 L ( Set.univ \ 𝔅 0 ( Real.sqrt n ) ) using 1;
-          ext; simp [Set.indicator];
-          unfold rhoST; aesop;
-        · convert summable_rhoMassOn_integrand 2 ( by norm_num ) 0 L ( Set.univ : Set ( LatticeCrypto.Utils.Vec.𝔼 n ) ) using 1;
-          ext; simp [rhoST, rhoS];
-      exact h_final.trans ( by simpa [ rhoSMass_one_eq_rhoMass ] using rhoSMass_scaling_mono 2 ( by norm_num ) L );
-    nlinarith [ Real.exp_pos ( -3 * Real.pi * n / 4 ) ];
-  rw [ div_lt_iff₀ ] at *;
-  · nlinarith [ show ( 0 : ℝ ) < Real.exp ( -3 * Real.pi * n / 4 ) * 2 ^ ( n : ℝ ) by positivity, show ( 0 : ℝ ) < 2 ^ ( - ( n : ℝ ) ) * ( 1 - 2 ^ ( - ( n : ℝ ) ) ) by exact mul_pos ( Real.rpow_pos_of_pos zero_lt_two _ ) ( sub_pos.mpr ( by rw [ Real.rpow_lt_one_iff_of_pos ] <;> norm_num ) ) ];
-  · have := numeric_bound_for_tail_bound n; norm_num at * ; linarith;
 
+  have h1 : rhoMassOn 0 L {0}ᶜ < 0.2 ^ (n : ℝ) + 0.2 ^ (n : ℝ) * rhoMassOn 0 L {0}ᶜ := by
+    linarith;
+  have h2 : (1 - 0.2 ^ (n : ℝ)) * rhoMassOn 0 L {0}ᶜ < 0.2 ^ (n : ℝ) := by
+    linarith;
+  have h_final : rhoMassOn 0 L {0}ᶜ < 0.2 ^ (n : ℝ) / (1 - 0.2 ^ (n : ℝ)) := by
+    have h_pos : 0 < (1 - (0.2 : ℝ) ^ (n : ℝ)) := by
+      exact sub_pos_of_lt ( Real.rpow_lt_one ( by norm_num ) ( by norm_num ) ( by positivity ) );
+    rwa [ lt_div_iff₀' h_pos ]
+  exact h_final
+
+/-- The weaker but handy bound that's less than 2^{-n} -/
+theorem rhoMass_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) :
+  rhoMassOn 0 L {0}ᶜ < (2 : ℝ)^(-n : ℝ) * (1 - (2 : ℝ)^(-n : ℝ)) := by
+  have h_bound := rhoMass_with_long_sv_stronger L h_svl;
+  have h_num_le : (0.2 : ℝ) ^ (n : ℝ) / (1 - (0.2 : ℝ) ^ (n : ℝ)) ≤ (1 / 2 : ℝ) ^ (n : ℝ) * (1 - (1 / 2 : ℝ) ^ (n : ℝ)) := by
+    rw [ div_le_iff₀ ] <;> norm_num;
+    · rcases n with ( _ | _ | n ) <;> norm_num [ pow_succ' ] at *;
+      · contradiction;
+      · nlinarith only [ show ( 1 / 5 : ℝ ) ^ n ≤ ( 1 / 2 : ℝ ) ^ n by gcongr ; norm_num, show ( 1 / 5 : ℝ ) ^ n ≥ 0 by positivity, show ( 1 / 2 : ℝ ) ^ n ≥ 0 by positivity, show ( 1 / 5 : ℝ ) ^ n ≤ 1 by exact pow_le_one₀ ( by norm_num ) ( by norm_num ), show ( 1 / 2 : ℝ ) ^ n ≤ 1 by exact pow_le_one₀ ( by norm_num ) ( by norm_num ), mul_le_mul_of_nonneg_left ( show ( 1 / 5 : ℝ ) ^ n ≤ ( 1 / 2 : ℝ ) ^ n by gcongr ; norm_num ) ( show ( 0 : ℝ ) ≤ ( 1 / 2 : ℝ ) ^ n by positivity ) ];
+    · exact pow_lt_one₀ ( by norm_num ) ( by norm_num ) ( by positivity );
+  have : (1 / 2 : ℝ) ^ (n : ℝ) = (2 : ℝ) ^ (-(n : ℝ)) := by
+    rw [one_div, Real.inv_rpow, Real.rpow_neg]; norm_num; norm_num
+  rw [ this ] at h_num_le;
+  exact lt_of_lt_of_le h_bound h_num_le
 
 /-- Corollary : lattices with long shortest vector have almost uniform rhoMass on the dual cosets -/
-theorem rhoMass_ub_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength > Real.sqrt (n : ℝ)) (u : 𝔼 n) :
+theorem rhoMass_ub_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝔼 n) :
   rhoMass u L.dual ≤ (1 + 2 * (2 : ℝ)^(-n : ℝ)) * L.det := by
   have h_poisson := poisson_summation_rhoS_coset L.dual 1 (by positivity) u
   unfold GeometricLattice.latticeSum at h_poisson
@@ -317,7 +381,7 @@ theorem rhoMass_ub_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.sh
     exact rfl
 
 /-- Corollary : lattices with long shortest vector have almost uniform rhoMass on the dual cosets -/
-theorem rhoMass_lb_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength > Real.sqrt (n : ℝ)) (u : 𝔼 n) :
+theorem rhoMass_lb_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝔼 n) :
   rhoMass u L.dual ≥ (1 - 2 * (2 : ℝ)^(-n : ℝ)) * L.det := by
   have h_poisson := poisson_summation_rhoS_coset L.dual 1 (by positivity) u
   unfold GeometricLattice.latticeSum at h_poisson
@@ -378,6 +442,9 @@ end LatticeCrypto.Foundations.Gaussian
 namespace LatticeCrypto.Foundations.Lattice
 /-!
   # The covering radius
+  * Definition of the covering radius of a lattice
+  * Relation between the covering radius and the shortest vector length of the dual lattice
+  `GeometricLattice.coveringRadius_ge_half_succMinₙ (L : GeometricLattice n n) : L.μ ≥ L.succMinₙ / 2`
 -/
 section covering_radius
 
@@ -648,6 +715,9 @@ namespace LatticeCrypto.Foundations.Gaussian
     1/2 ≤ μ(L^*) * λ₁(L) ≤ n
   Or equivalently:
     1 ≤ λₙ(L^*) * λ₁(L) ≤ 2n
+  * `theorem transference_lb` : `1 ≤ L.dual.succMinₙ * L.succMin₁`
+  * `theorem transference_ub_μ_succMin₁` : `L.dual.μ * L.succMin₁ ≤ n`
+  * `theorem transference_ub` : `L.dual.succMinₙ * L.succMin₁ ≤ 2 * n`
 -/
 section transference_theorem
 
@@ -715,10 +785,11 @@ lemma transference_contradiction (hn : n ≥ Banaszczyk_transference_threshold_c
     have h_bounds : rhoMass 0 L.dual ≤ (1 + 2 * (2 : ℝ)^(-n : ℝ)) * L.det ∧ rhoMass (-v) L.dual ≥ (1 - 2 * (2 : ℝ)^(-n : ℝ)) * L.det := by
       apply And.intro;
       · apply rhoMass_ub_on_dual_with_long_sv;
-        convert h1 using 1;
-        exact Eq.symm (GeometricLattice.successiveMinima_one L);
+        have : L.succMin₁ = L.shortestVectorLength := by exact L.successiveMinima_one
+        rw [ ←this ]; exact le_of_lt h1
       · apply rhoMass_lb_on_dual_with_long_sv;
-        exact h1.trans_le ( by exact le_of_eq <| by exact GeometricLattice.successiveMinima_one L );
+        have : L.succMin₁ = L.shortestVectorLength := by exact L.successiveMinima_one
+        rw [ ←this ]; exact le_of_lt h1
     -- Let `x = 2^{-n}`. The inequality is `(1 - 2x) / (1 + 2x) < x`, which simplifies to `1 - 3x - 2x^2 < 0`.
     set x : ℝ := (2 : ℝ)^(-n : ℝ)
     have h_ineq : (1 - 2 * x) / (1 + 2 * x) < x := by

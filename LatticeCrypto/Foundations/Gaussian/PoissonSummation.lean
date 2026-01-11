@@ -34,125 +34,6 @@ open Real Complex MeasureTheory
 variable {n : ℕ+}
 
 
--- /--
---   The sum over the lattice is equal to the sum over integer vectors transformed by the basis.
--- -/
--- lemma latticeSum_eq_tsum_Zn {n : ℕ+} (L : GeometricLattice n n) (f : 𝔼 n → ℝ) :
---     L.latticeSum f = ∑' k : Fin n → ℤ, f (L.basis.ofCoeffs k) := by
---       -- By definition of `LatticeBasis`, every element in the lattice can be written as a linear combination of the basis vectors with integer coefficients.
---       have h_decomp : ∀ v ∈ L.carrier, ∃ k : Fin n → ℤ, v = L.basis.ofCoeffs k := by
---         intro v hv;
---         exact (GeometricLattice.mem_iff_exists_coeffs L v).mp hv;
---       have h_count : ∀ k1 k2 : Fin n → ℤ, k1 ≠ k2 → L.basis.ofCoeffs k1 ≠ L.basis.ofCoeffs k2 := by
---         intros k1 k2 hk_ne h_eq;
---         have h_coeff_eq : L.basis.repr (L.basis.ofCoeffs k1) (L.basis.ofCoeffs_mem k1) = L.basis.repr (L.basis.ofCoeffs k2) (L.basis.ofCoeffs_mem k2) := by
---           congr;
---         rw [ L.basis.repr_ofCoeffs, L.basis.repr_ofCoeffs ] at h_coeff_eq ; aesop;
---       have h_sum_eq : ∑' (v : L.carrier), f (v : 𝔼 n) = ∑' (k : Fin n → ℤ), f (L.basis.ofCoeffs k) := by
---         have : Set.range (fun k : Fin n → ℤ => L.basis.ofCoeffs k) = L.carrier := by
---           ext v
---           simp ;
---           exact Iff.symm (Submodule.mem_span_range_iff_exists_fun ℤ)
---         rw [ Set.ext_iff ] at this;
---         erw [ ← Equiv.tsum_eq ( Equiv.ofBijective ( fun k : Fin n → ℤ => ⟨ L.basis.ofCoeffs k, by specialize this ( L.basis.ofCoeffs k ) ; aesop ⟩ : ( Fin n → ℤ ) → ↥L.carrier ) ⟨ fun a b h => by contrapose! h; aesop, fun a => by specialize this a; aesop ⟩ ) ] ; aesop;
---       exact h_sum_eq
-
-
--- /-- Helper: Explicit cast from integer tuple to real vector -/
--- def intTupleToVec (k : Fin n → ℤ) : 𝔼 n := fun i => (k i : ℝ)
-
--- /-- Poisson Summation Formula for Gaussian functions over ℤ. This is a thin wrapper of `Real.tsum_exp_neg_mul_int_sq`-/
--- lemma poisson_summation_rhoS_Z (s : ℝ) (h_s : 0 < s) :
---   ∑' k : ℤ, rhoS s (k : ℝ) = s * ∑' k : ℤ, rhoS (1 / s) (k : ℝ) := by
---   -- Unfold rhoS to see the exponential structure
---   -- rho_s(x) = exp(-π * ||x||^2 / s^2) = exp(-π/s^2 * x^2)
---   unfold rhoS rho;
---   -- Apply Mathlib's Poisson Summation Formula for 1D Gaussian
---   -- ∑ exp(-π n^2 / s^2) = s * ∑ exp(-π n^2 s^2)
---   have : 0 < 1 / s ^ 2 := by
---     apply div_pos; positivity; positivity;
---   have h_psf := Real.tsum_exp_neg_mul_int_sq this;
---   simp [mul_pow]
---   rw [inv_eq_one_div]
---   field_simp at h_psf;
---   convert congr_arg ( · * s ) h_psf using 1 <;> ring_nf;
---   norm_num [ ← Real.sqrt_eq_rpow, h_s.le, h_s.ne' ];
---   -- Since $s$ is positive, multiplying and dividing by $s$ cancels out, leaving the sum unchanged.
---   field_simp [h_s.ne']
-
--- lemma tsum_finprod_eq_finprod_tsum (n : ℕ) (f : Fin n → ℤ → ℝ) (hs: ∀ (i : Fin n), Summable (fun v : ℤ => f i v) ): (∑' (k : Fin n → ℤ), ∏ i, f i (k i)) = ∏ i, (∑' (z : ℤ), f i z) := by
---   have h_abs_conv : ∀ {n : ℕ} {f : Fin n → ℤ → ℝ}, (∀ i, Summable (fun z => |f i z|)) → ∑' k : Fin n → ℤ, ∏ i, f i (k i) = ∏ i, ∑' z : ℤ, f i z := by
---     intro n f hf; induction n <;> simp_all +decide [ Fin.prod_univ_succ ] ;
---     rename_i k hk;
---     rw [ ← hk fun i => hf i.succ ];
---     have h_fubini : ∀ {f : ℤ → ℝ} {g : (Fin k → ℤ) → ℝ}, Summable (fun z => |f z|) → Summable (fun k => |g k|) → ∑' (k : ℤ × (Fin k → ℤ)), f k.1 * g k.2 = (∑' (z : ℤ), f z) * (∑' (k : Fin k → ℤ), g k) := by
---       intros f g hf hg;
---       rw [ Summable.tsum_prod ];
---       · simp +decide only [tsum_mul_left, tsum_mul_right];
---       · exact .of_norm <| by simpa using Summable.mul_norm ( hf.norm ) ( hg.norm ) ;
---     convert h_fubini ( hf 0 ) _ using 1;
---     · rw [ ← Equiv.tsum_eq ( Equiv.ofBijective ( fun k : ℤ × ( Fin k → ℤ ) => Fin.cons k.1 k.2 ) ⟨ fun a => _, fun a => _ ⟩ ) ] <;> norm_num [ Fin.cons ];
---       exact fun a => ⟨ a 0, fun i => a i.succ, by ext i; cases i using Fin.inductionOn <;> rfl ⟩;
---     · simp_all +decide [ Finset.abs_prod ];
---       have h_prod_summable : ∀ {k : ℕ} {f : Fin k → ℤ → ℝ}, (∀ i, Summable (fun z => |f i z|)) → Summable (fun k : Fin k → ℤ => ∏ i, |f i (k i)|) := by
---         intro k f hf; induction k <;> simp_all +decide [ Fin.prod_univ_succ ] ;
---         · exact ⟨ _, hasSum_fintype _ ⟩;
---         · rename_i n ih;
---           have h_prod_summable : Summable (fun k : ℤ × (Fin n → ℤ) => |f 0 k.1| * ∏ i, |f (Fin.succ i) (k.2 i)|) := by
---             have h_prod_summable : Summable (fun k : ℤ => |f 0 k|) ∧ Summable (fun k : Fin n → ℤ => ∏ i, |f (Fin.succ i) (k i)|) := by
---               exact ⟨ hf 0, ih fun i => hf i.succ ⟩;
---             exact .of_norm <| by simpa using Summable.mul_norm ( h_prod_summable.1.norm ) ( h_prod_summable.2.norm ) ;
---           convert h_prod_summable.comp_injective ( show Function.Injective ( fun k : Fin ( n + 1 ) → ℤ => ( k 0, fun i => k ( Fin.succ i ) ) ) from fun a b h => by simpa [ funext_iff, Fin.forall_fin_succ ] using h ) using 1;
---       exact h_prod_summable fun i => hf i.succ;
---   exact h_abs_conv fun i => Summable.abs ( hs i )
-
--- /-!
---   Poisson Summation Formula for Gaussian functions over ℤⁿ.
--- -/
--- theorem poisson_summation_rhoS_Zn (s : ℝ) (h_s : 0 < s) :
---   ∑' k : Fin n → ℤ, rhoS s (intTupleToVec k) = (s ^ (n : ℕ)) * ∑' k : Fin n → ℤ, rhoS (1 / s) (intTupleToVec k) := by
---   -- Proof idea:
---   -- 1. Unfold rho_s to see the exponential structure
---   -- rho_s(x) = exp(-π * ||x||^2 / s^2) = exp(-π/s^2 * ∑ x_i^2) = ∏ exp(-π/s^2 * x_i^2)
---   have h_split (k : Fin n → ℤ) (t : ℝ) :
---       rhoS t (intTupleToVec k) = ∏ i : Fin n, rhoS t (k i : ℝ) := by
---     simp [rhoS, rho, ←Real.exp_sum, Real.exp_eq_exp]
---     -- Expand norm squared: ||x||^2 = ∑ x_i^2
---     simp [intTupleToVec, PiLp.norm_sq_eq_of_L2]
---     -- Algebra: -π * (∑ x_i^2) / t^2 = ∑ (-π * x_i^2 / t^2)
---     ring_nf
---     simp [←Finset.mul_sum]
---     -- Re-assemble into product of exponentials
---     ring_nf
-
---   -- 2. Convert the n-dimensional sum into a product of 1D sums
---   -- ∑_{k ∈ Z^n} ∏_i f(k_i) = ∏_i (∑_{z ∈ Z} f(z))
---   rw [tsum_congr (fun k => h_split k s)]
---   rw [tsum_congr (fun k => h_split k (1/s))]
-
-
---   -- 3. Apply the 1D Poisson Summation Formula to each term
---   let term (t : ℝ) := ∑' z : ℤ, rhoS t (z : ℝ)
---   have h_1d_psf : term s = s * term (1/s) := by
---     exact poisson_summation_rhoS_Z s h_s
-
---   -- 4. Finish the algebra
---   have h_prod_psf : ∀ (n : ℕ) (f : Fin n → ℤ → ℝ), (∀ i, Summable (fun v : ℤ => f i v)) → (∑' (k : Fin n → ℤ), ∏ i, f i (k i)) = ∏ i, (∑' (z : ℤ), f i z) := by
---     exact fun n f a => tsum_finprod_eq_finprod_tsum n f a;
---   have h_summable : ∀ i : Fin n, Summable (fun v : ℤ => rhoS s (v : ℝ)) ∧ Summable (fun v : ℤ => rhoS (1 / s) (v : ℝ)) := by
---     -- Since the Gaussian function is summable over the integers, both sums are summable.
---     have h_gauss_summable : ∀ t : ℝ, 0 < t → Summable (fun v : ℤ => rhoS t (v : ℝ)) := by
---       intro t ht
---       have h_gauss_summable : Summable (fun v : ℤ => Real.exp (-Real.pi * (v : ℝ)^2 / t^2)) := by
---         have := @summable_int_gaussian_1d ( Real.pi / t ^ 2 ) ( by positivity );
---         exact this.congr fun _ => by ring_nf;
---       convert h_gauss_summable using 2 ; unfold Gaussian.rhoS ; norm_num [ div_eq_mul_inv, mul_assoc, mul_comm, mul_left_comm ];
---       unfold Gaussian.rho; norm_num [ mul_pow, mul_assoc, mul_comm, mul_left_comm ] ;
---     exact fun i => ⟨ h_gauss_summable s h_s, h_gauss_summable ( 1 / s ) ( one_div_pos.mpr h_s ) ⟩;
---   rw [ h_prod_psf n _ fun i => h_summable i |>.1, h_prod_psf n _ fun i => h_summable i |>.2 ];
---   simp +zetaDelta at *;
---   rw [ h_1d_psf, mul_pow ]
-
 /-- Poisson Summation Formula on Z^n -/
 theorem poisson_summation_Zn (f : 𝔼 n → ℂ)
   (h_int : Integrable f)
@@ -701,6 +582,83 @@ theorem rhoSMass_shift_mono (L : GeometricLattice n n) (s : ℝ) (hs: 0 < s) (u 
       congr! 2; simp [rhoSMass_def, GeometricLattice.latticeSum];
       exact tsum_congr fun v => by rw [ abs_of_nonneg ( rhoS_pos _ _ |> le_of_lt ) ] ;
     · positivity
+
+noncomputable section AristotleLemmas
+
+lemma re_tsum_tail_ge_neg_rhoMassOn (L : GeometricLattice n n) (u : 𝔼 n) :
+  (∑' v : L.dual.carrier, (if v = 0 then 0 else cexp (-2 * π * I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ))).re ≥ -rhoMassOn 0 L.dual {0}ᶜ := by
+    unfold LatticeCrypto.Foundations.Gaussian.rhoMassOn;
+    simp +zetaDelta at *;
+    refine' neg_le_of_abs_le _;
+    refine' le_trans ( Complex.abs_re_le_norm _ ) _;
+    convert norm_tsum_le_tsum_norm _;
+    · unfold LatticeCrypto.Foundations.Gaussian.rhoS; norm_num [ Complex.norm_exp ] ;
+      unfold LatticeCrypto.Foundations.Gaussian.rho; norm_num [ Complex.norm_exp ] ;
+      rw [ tsum_congr ] ; aesop;
+      intro b; split_ifs <;> simp_all +decide [ Complex.norm_exp ] ;
+      norm_cast;
+    · -- The series $\sum_{v \in \Lambda^*} \rho(v)$ is summable by the properties of the Gaussian function and the lattice.
+      have h_summable : Summable (fun v : L.dual.carrier => (LatticeCrypto.Foundations.Gaussian.rho v : ℝ)) := by
+        convert summable_rhoS L.dual 1 zero_lt_one 0 using 1;
+        aesop;
+      refine' .of_nonneg_of_le ( fun v => norm_nonneg _ ) ( fun v => _ ) h_summable.norm;
+      split_ifs <;> norm_num [ Complex.norm_exp ]
+
+lemma summable_rho_exponential (L : GeometricLattice n n) (u : 𝔼 n) :
+  Summable (fun v : L.dual.carrier => cexp (-2 * π * I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ)) := by
+    -- Since the Gaussian function is non-negative and its sum is finite, it is summable.
+    have h_summable : Summable (fun v : L.dual.carrier => (LatticeCrypto.Foundations.Gaussian.rho v : ℝ)) := by
+      -- Apply the lemma `summable_rhoS` with `s = 1` and `c = 0`.
+      have := summable_rhoS L.dual 1 (by norm_num) 0;
+      aesop;
+    exact .of_norm <| by simpa [ Complex.norm_exp ] using h_summable.norm;
+
+open Real Complex MeasureTheory LatticeCrypto.Foundations.Lattice LatticeCrypto.Utils.Vec LatticeCrypto.Foundations.Gaussian
+
+lemma rhoMass_eq_real_part_poisson (L : GeometricLattice n n) (u : 𝔼 n) :
+  rhoMass u L = (1 / L.det) * (1 + (∑' v : L.dual.carrier, (if v = 0 then 0 else cexp (-2 * π * I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ))).re) := by
+    have := @LatticeCrypto.Foundations.Gaussian.poisson_summation_rhoS_coset n L 1;
+    specialize this zero_lt_one u;
+    have h_lattice_sum : L.dual.latticeSum (fun v : 𝔼 n => cexp (-2 * Real.pi * I * (inner ℝ u v : ℂ)) * (rho v : ℂ)) = (∑' v : L.dual.carrier, cexp (-2 * Real.pi * I * (inner ℝ u (v : 𝔼 n) : ℂ)) * (rho (v : 𝔼 n) : ℂ)) := by
+      exact rfl;
+    convert congr_arg Complex.re this using 1;
+    rw [ Summable.tsum_eq_add_tsum_ite ] at h_lattice_sum;
+    case b => exact ⟨ 0, by simp +decide ⟩;
+    · simp_all +decide ;
+      unfold LatticeCrypto.Foundations.Gaussian.rho; norm_num;
+      exact Or.inl rfl;
+    · exact summable_rho_exponential L u
+
+end AristotleLemmas
+
+/-- Corollary : If ρ(L.dual \setminus {0}) ≤ ε for some ε>0, then ρ(x + L) ≥ (1−ε) / (1+ε) * ρ(L) for all x ∈ 𝔼 n -/
+theorem rhoMass_almost_uniform_on_dual_if_small_tail (L : GeometricLattice n n) (ε : ℝ) (hε : 0 < ε) (h_tail : rhoMassOn 0 L.dual {0}ᶜ ≤ ε) (u : 𝔼 n) :
+  rhoMass u L ≥ (1 - ε) / (1 + ε) * rhoMass 0 L := by
+
+  -- By `rhoMass_eq_real_part_poisson`, `rhoMass u L = (1 / L.det) * (1 + tail.re)` and `rhoMass 0 L = (1 / L.det) * (1 + tail₀.re)`.
+  have h_rho_mass_u_L : rhoMass u L = (1 / L.det) * (1 + (∑' v : L.dual.carrier, (if v = 0 then 0 else cexp (-2 * Real.pi * I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ))).re) := by
+    convert rhoMass_eq_real_part_poisson L u using 1
+  have h_rho_mass_0_L : rhoMass 0 L = (1 / L.det) * (1 + (∑' v : L.dual.carrier, (if v = 0 then 0 else (rho v : ℂ))).re) := by
+    convert rhoMass_eq_real_part_poisson L 0 using 1;
+    norm_num [ inner_zero_left ];
+  -- By `re_tsum_tail_ge_neg_rhoMassOn`, `tail.re ≥ -rhoMassOn 0 L.dual {0}ᶜ`.
+  have h_tail_re_ge_neg_rhoMassOn : (∑' v : L.dual.carrier, (if v = 0 then 0 else cexp (-2 * Real.pi * I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ))).re ≥ -rhoMassOn 0 L.dual {0}ᶜ := by
+    exact re_tsum_tail_ge_neg_rhoMassOn L u;
+  -- By `rhoMass_eq_real_part_poisson`, `rhoMass 0 L = (1 + tail₀.re) / det(L)`.
+  have h_rho_mass_0_L' : rhoMass 0 L = (1 + rhoMassOn 0 L.dual {0}ᶜ) / L.det := by
+    convert h_rho_mass_0_L using 1;
+    rw [ div_mul_eq_mul_div, rhoMassOn ];
+    rw [ show ( ∑' v : L.dual.carrier, if v = 0 then 0 else ( rho v : ℂ ) ) = ( ∑' v : L.dual.carrier, if v = 0 then 0 else ( rho v : ℝ ) ) from ?_ ];
+    · rw [ rhoSMassOn ];
+      simp +decide [ rhoSTMassOn ];
+      simp ( config := { decide := Bool.true } ) [ rhoST, Set.indicator ];
+      unfold GeometricLattice.latticeSum; aesop;
+    · rw [ Complex.ofReal_tsum ];
+      exact tsum_congr fun x => by split_ifs <;> simp +decide [ * ] ;
+  rw [ ge_iff_le, mul_comm ];
+  rw [ h_rho_mass_u_L, h_rho_mass_0_L', div_mul_div_comm ];
+  rw [ div_mul_eq_mul_div, div_le_div_iff₀ ] <;> try nlinarith [ show 0 < L.det from L.det_pos ];
+  nlinarith [ show 0 < L.det by exact L.det_pos, mul_le_mul_of_nonneg_left h_tail ( show 0 ≤ L.det by exact L.det_pos.le ), mul_le_mul_of_nonneg_left h_tail_re_ge_neg_rhoMassOn ( show 0 ≤ L.det by exact L.det_pos.le ) ]
 
 end poisson_summation_corollaries
 
