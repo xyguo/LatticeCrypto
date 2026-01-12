@@ -49,11 +49,11 @@ theorem rhoS_FT_eq {n : ℕ+} (s : ℝ) (h : 0 < s) (x : 𝔼 n) :
       convert h_ft using 1;
       · unfold rhoS_FT;
         unfold rhoS; norm_num [ Complex.exp_neg, neg_div ] ;
-        unfold rho; norm_num [ ← Complex.exp_neg, norm_smul ] ; ring_nf;
+        norm_num [ ← Complex.exp_neg, norm_smul ] ; ring_nf;
         norm_num [ abs_of_pos h ];
-      · unfold rhoS; norm_cast; simp +decide [ Real.pi_ne_zero ];
+      · norm_cast; simp +decide [ Real.pi_ne_zero ];
         rw [ ← Complex.cpow_natCast _ 2 ] ; rw [ ← Complex.cpow_mul ] ; ring_nf ; norm_num [ h.ne', Real.pi_pos.ne' ] ;
-        · unfold rho; norm_cast; simp +decide [ mul_comm, mul_left_comm ] ;
+        · unfold rhoS; norm_cast; simp +decide [ mul_comm, mul_left_comm ] ;
           norm_num [ norm_smul, mul_pow, mul_assoc, mul_comm, mul_left_comm, Real.pi_pos.ne' ];
           simp +decide [ sq, mul_assoc, mul_left_comm, Real.pi_ne_zero ];
         · norm_num [ Complex.log_im, h.le ];

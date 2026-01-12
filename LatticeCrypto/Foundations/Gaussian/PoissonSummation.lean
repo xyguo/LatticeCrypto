@@ -375,7 +375,7 @@ lemma summable_fourierCoefficient_of_rhoS_periodize (L : GeometricLattice n n) (
       · have h_fourier_transform : 𝓕 (fun v : 𝔼 n => (rhoS s v : ℂ)) (w : 𝔼 n) = (s ^ (n : ℕ) : ℂ) * (rhoS (1 / s) (w : 𝔼 n) : ℂ) := by
           convert rhoS_FT_eq s hs ( w : 𝔼 n ) using 1;
         rw [ h_fourier_transform, mul_assoc ];
-      · convert ( rhoS.integrable s hs.ne' ) |> MeasureTheory.Integrable.norm using 1 ; norm_num [ rhoS ];
+      · convert ( rhoS.integrable s hs.ne' ) |> MeasureTheory.Integrable.norm using 1 ; norm_num ;
         exact funext fun x => by rw [ abs_of_nonneg ( by exact Real.exp_nonneg _ ) ] ;
     rw [ show fourierCoefficientReal L ( rhoS_periodize s L ) = _ from funext h_fourier_coeff ] ; exact Summable.mul_left _ <| by exact_mod_cast h_summable;
 
@@ -402,11 +402,11 @@ theorem poisson_summation_rhoS (L : GeometricLattice n n) (s : ℝ) (h_s : 0 < s
       erw [ Complex.ofReal_tsum ] ; norm_num [ Complex.ofReal_mul, Complex.ofReal_exp ];
       exact rfl;
   convert congr_arg Complex.re h_poisson using 1;
-  · simp [rhoSMass, rhoSTMass] ; erw [ Complex.re_tsum ] ; norm_cast;
+  · simp [rhoSMass ] ; erw [ Complex.re_tsum ] ; norm_cast;
     convert summable_rhoS L s h_s 0 using 1;
-    ext; simp +decide [ rhoS ] ;
+    ext; simp +decide ;
   · -- By definition of `rhoS_FT`, we have `rhoS_FT s w = (s ^ (n : ℕ) : ℂ) * (rhoS (1 / s) w : ℂ)`.
-    simp [rhoSMass_def]
+    simp [rhoSMass]
     have h_rhoS_FT : ∀ w : 𝔼 n, rhoS_FT s w = (s ^ (n : ℕ) : ℂ) * (rhoS (1 / s) w : ℂ) := by
       exact fun w => rhoS_FT_eq s h_s w;
     norm_num [ h_rhoS_FT, mul_assoc ];
@@ -443,7 +443,7 @@ lemma rhoSMass_on_coset_eq_latticeSum_sub (s : ℝ) (L : GeometricLattice n n) (
       norm_num +zetaDelta at *;
     have h_even : ∀ x : 𝔼 n, rhoS s (-x + u) = rhoS s (x - u) := by
       unfold rhoS; intros; ring_nf;
-      unfold rho; norm_num [ neg_add_eq_sub, sub_eq_add_neg ] ;
+      norm_num [ neg_add_eq_sub, sub_eq_add_neg ] ;
       rw [ ← norm_neg ] ; abel_nf;
     aesop
 
@@ -453,6 +453,7 @@ lemma rhoS_sub_FT (s : ℝ) (u : 𝔼 n) (w : 𝔼 n) (hs : 0 < s) :
   (s ^ (n : ℕ) : ℂ) * cexp (-2 * π * I * (inner ℝ u w : ℂ)) * (rhoS (1 / s) w : ℂ) := by
   rw [rhoS_shift_FT, rhoS_FT_eq s hs]
   ring
+
 lemma summable_fourier_rhoS_sub (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s) (u : 𝔼 n) :
   Summable (fourierCoefficient L (periodize (fun v => (rhoS s (v - u) : ℂ)) L)) := by
     have := @fourierCoefficient_of_periodization_eq_fourierTransform;
@@ -529,12 +530,12 @@ theorem rhoSMass_scaling_mono (s : ℝ) (h_s : s ≥ 1) (L : GeometricLattice n 
   have h_dual_det : L.dual.det = 1 / L.det := by
     exact GeometricLattice.dual_det_eq_inv L;
   have h_poisson : L.latticeSum (fun v => rhoS s v) = (1 / L.det) * s ^ (n : ℕ) * L.dual.latticeSum (fun v => rhoS (1 / s) v) := by
-    convert poisson_summation_rhoS L s ( by positivity ) using 1 <;> simp [rhoSMass_def];
+    convert poisson_summation_rhoS L s ( by positivity ) using 1 <;> simp [rhoSMass];
   -- Since $s \geq 1$, we have $s^n \geq 1$ and $1 / s \leq 1$, thus $\rho(1 / s, L^*) \leq \rho(L^*)$.
   have h_rho_bound_1 : L.dual.latticeSum (fun v => rhoS (1 / s) v) ≤ L.dual.latticeSum (fun v => rhoS 1 v) := by
     apply_rules [ Summable.tsum_le_tsum ];
     · unfold LatticeCrypto.Foundations.Gaussian.rhoS;
-      unfold LatticeCrypto.Foundations.Gaussian.rho; norm_num; ring_nf ;
+      norm_num; ring_nf ;
       exact fun x hx => mul_le_mul_of_nonneg_left ( by rw [ norm_smul, Real.norm_of_nonneg ( by positivity ) ] ; exact pow_le_pow_left₀ ( by positivity ) ( le_mul_of_one_le_left ( norm_nonneg _ ) h_s ) _ ) Real.pi_pos.le;
     · have := @LatticeCrypto.Foundations.Gaussian.summable_rhoS;
       simpa using this L.dual ( 1 / s ) ( one_div_pos.mpr ( zero_lt_one.trans_le h_s ) ) 0;
@@ -542,9 +543,9 @@ theorem rhoSMass_scaling_mono (s : ℝ) (h_s : s ≥ 1) (L : GeometricLattice n 
       simpa using this 1 zero_lt_one 0
   have h_rho_bound_2 : L.latticeSum (fun v => rhoS 1 v) = L.det⁻¹ * L.dual.latticeSum (fun v => rhoS 1 v) := by
     have h_poisson := poisson_summation_rhoS L 1 zero_lt_one
-    simp at h_poisson; simp [rhoSMass_def] at h_poisson;
+    simp at h_poisson; simp [rhoSMass] at h_poisson;
     aesop;
-  simp_all +decide [ div_eq_inv_mul, mul_assoc, mul_comm ]; simp [rhoSMass_def]
+  simp_all +decide [ div_eq_inv_mul, mul_assoc, mul_comm ]; simp [rhoSMass]
   rw [ h_poisson ];
   gcongr;
   rw [ h_rho_bound_2 ];
@@ -579,7 +580,7 @@ theorem rhoSMass_shift_mono (L : GeometricLattice n n) (s : ℝ) (hs: 0 < s) (u 
   · rw [ poisson_summation_rhoS ];
     · norm_num [ abs_of_nonneg, hs.le, L.det_pos ];
       rw [ abs_of_nonneg ( show 0 ≤ L.det from le_of_lt ( L.det_pos ) ) ];
-      congr! 2; simp [rhoSMass_def, GeometricLattice.latticeSum];
+      congr! 2; simp [rhoSMass, GeometricLattice.latticeSum];
       exact tsum_congr fun v => by rw [ abs_of_nonneg ( rhoS_pos _ _ |> le_of_lt ) ] ;
     · positivity
 
@@ -592,7 +593,7 @@ lemma re_tsum_tail_ge_neg_rhoMassOn (L : GeometricLattice n n) (u : 𝔼 n) :
     refine' neg_le_of_abs_le _;
     refine' le_trans ( Complex.abs_re_le_norm _ ) _;
     convert norm_tsum_le_tsum_norm _;
-    · unfold LatticeCrypto.Foundations.Gaussian.rhoS; norm_num [ Complex.norm_exp ] ;
+    ·
       unfold LatticeCrypto.Foundations.Gaussian.rho; norm_num [ Complex.norm_exp ] ;
       rw [ tsum_congr ] ; aesop;
       intro b; split_ifs <;> simp_all +decide [ Complex.norm_exp ] ;
@@ -619,6 +620,7 @@ lemma rhoMass_eq_real_part_poisson (L : GeometricLattice n n) (u : 𝔼 n) :
   rhoMass u L = (1 / L.det) * (1 + (∑' v : L.dual.carrier, (if v = 0 then 0 else cexp (-2 * π * I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ))).re) := by
     have := @LatticeCrypto.Foundations.Gaussian.poisson_summation_rhoS_coset n L 1;
     specialize this zero_lt_one u;
+    rw [rhoSMass_one_eq_rhoMass] at this;
     have h_lattice_sum : L.dual.latticeSum (fun v : 𝔼 n => cexp (-2 * Real.pi * I * (inner ℝ u v : ℂ)) * (rho v : ℂ)) = (∑' v : L.dual.carrier, cexp (-2 * Real.pi * I * (inner ℝ u (v : 𝔼 n) : ℂ)) * (rho (v : 𝔼 n) : ℂ)) := by
       exact rfl;
     convert congr_arg Complex.re this using 1;
@@ -649,9 +651,9 @@ theorem rhoMass_almost_uniform_on_dual_if_small_tail (L : GeometricLattice n n) 
     convert h_rho_mass_0_L using 1;
     rw [ div_mul_eq_mul_div, rhoMassOn ];
     rw [ show ( ∑' v : L.dual.carrier, if v = 0 then 0 else ( rho v : ℂ ) ) = ( ∑' v : L.dual.carrier, if v = 0 then 0 else ( rho v : ℝ ) ) from ?_ ];
-    · rw [ rhoSMassOn ];
-      simp +decide [ rhoSTMassOn ];
-      simp ( config := { decide := Bool.true } ) [ rhoST, Set.indicator ];
+    ·
+      simp +decide ;
+      simp ( config := { decide := Bool.true } ) [ Set.indicator ];
       unfold GeometricLattice.latticeSum; aesop;
     · rw [ Complex.ofReal_tsum ];
       exact tsum_congr fun x => by split_ifs <;> simp +decide [ * ] ;

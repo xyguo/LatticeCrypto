@@ -177,25 +177,6 @@ end numeric_bounds
 
 
 /-
-The integrand of rhoMassOn is summable.
--/
-lemma summable_rhoMassOn_integrand (s : ℝ) (hs : 0 < s) (c : 𝔼 n) (L : GeometricLattice n n) (S : Set (𝔼 n)) :
-  Summable (fun v : L.carrier => (S.indicator (rhoS s)) ((v : 𝔼 n) + c)) := by
-    -- The series `∑' v : L.carrier, S.indicator (rhoS s) (v + c)` is absolutely convergent because `rhoS` is absolutely integrable.
-    have h_abs_conv : Summable (fun v : L.carrier => |(S.indicator (rhoS s)) (v + c)|) := by
-      have h_abs_conv : Summable (fun v : L.carrier => rhoS s (v + c)) := by
-        -- Apply the lemma that states the summability of the Gaussian function over the lattice.
-        have h_summable : Summable (fun v : L.carrier => rhoS s (v - c)) := by
-          exact summable_rhoS L s hs c;
-        convert h_summable.comp_injective ( show Function.Injective ( fun v : L.carrier => ⟨ -v.1, by aesop ⟩ : L.carrier → L.carrier ) from fun a b h => by aesop ) using 1;
-        ext; simp +decide [ add_comm, sub_eq_add_neg ] ;
-        unfold rhoS; norm_num [ add_comm, add_left_comm, add_assoc ] ;
-        unfold rho; norm_num [ EuclideanSpace.norm_eq, Finset.sum_add_distrib, add_sq ] ;
-      refine' .of_nonneg_of_le ( fun v => abs_nonneg _ ) ( fun v => _ ) h_abs_conv.norm;
-      by_cases hv : ( v : 𝔼 n ) + c ∈ S <;> simp +decide [ hv, rhoS ];
-    exact h_abs_conv.of_abs
-
-/-
   Handy bound relating ρ₁ and ρ₂.
 -/
 lemma rho_le_rhoS_mul_factor {n : ℕ+} (v : 𝔼 n) (hv : ‖v‖ ≥ Real.sqrt n) :
@@ -213,16 +194,17 @@ lemma rhoMassOn_le_factor_mul_rhoSMassOn (c : 𝔼 n) (L : GeometricLattice n n)
   rhoMassOn c L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ ≤
   Real.exp (-3 * Real.pi * n / 4) * rhoSMassOn 2 c L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ := by
     -- Apply the pointwise inequality to each term in the sum.
+    rw [←rhoSMassOn_one_eq_rhoMassOn]
     have h_term_le : ∀ v : L.carrier, (Set.indicator (𝔅 0 (Real.sqrt n))ᶜ (rhoS 1)) ((v : 𝔼 n) + c) ≤ (Real.exp (-3 * Real.pi * n / 4)) * (Set.indicator (𝔅 0 (Real.sqrt n))ᶜ (rhoS 2)) ((v : 𝔼 n) + c) := by
       intro v; by_cases hv : ( v : 𝔼 n ) + c ∈ 𝔅 0 ( Real.sqrt n ) <;> simp_all +decide [ Set.indicator ] ;
       convert rho_le_rhoS_mul_factor _ hv using 1 ; ring_nf;
     convert Summable.tsum_le_tsum h_term_le _ _ using 1;
     · rw [ tsum_mul_left, rhoSMassOn ];
-      unfold rhoSTMassOn; aesop;
+      aesop;
     · exact SummationFilter.instNeBotUnconditional ↥L.carrier;
-    · convert summable_rhoMassOn_integrand 1 zero_lt_one c L ( 𝔅 0 ( Real.sqrt n ) ) ᶜ using 1;
+    · convert summable_rhoSMassOn 1 zero_lt_one c L ( 𝔅 0 ( Real.sqrt n ) ) ᶜ using 1;
     · refine' Summable.mul_left _ _;
-      convert summable_rhoMassOn_integrand 2 ( by norm_num ) c L ( 𝔅 0 ( Real.sqrt n ) ) ᶜ using 1
+      convert summable_rhoSMassOn 2 ( by norm_num ) c L ( 𝔅 0 ( Real.sqrt n ) ) ᶜ using 1
 
 /--
   Let Bₙ denote the open Euclidean unit ball. Then, for any lattice L and any s > 0,
@@ -239,11 +221,11 @@ lemma rhoMass_outside_ball_stronger (c : 𝔼 n) (L : GeometricLattice n n) :
           have h_nonneg : ∀ v : L.carrier, 0 ≤ (𝔅 0 (Real.sqrt (n : ℝ)))ᶜ.indicator (rhoS 2) ((v : 𝔼 n) + c) := by
             intro v; by_cases hv : ( v : 𝔼 n ) + c ∈ ( 𝔅 0 ( Real.sqrt n ) )ᶜ <;> simp +decide [ hv, rhoS ] ;
             exact Real.exp_nonneg _
-          apply_rules [ Summable.tsum_le_tsum ];
-          · intro v; by_cases hv : ( v : 𝔼 n ) + c ∈ 𝔅 0 ( Real.sqrt n ) <;> simp_all +decide [ rhoST ] ;
+          apply Summable.tsum_le_tsum ;
+          · intro v; by_cases hv : ( v : 𝔼 n ) + c ∈ 𝔅 0 ( Real.sqrt n ) <;> simp_all +decide  ;
             exact Real.exp_nonneg _;
-          · convert summable_rhoMassOn_integrand 2 ( by norm_num ) c L ( 𝔅 0 ( Real.sqrt ( n : ℝ ) ) ) ᶜ using 1;
-          · convert summable_rhoMassOn_integrand 2 ( by norm_num ) c L Set.univ using 1 ; aesop;
+          · convert summable_rhoSMassOn 2 ( by norm_num ) c L ( 𝔅 0 ( Real.sqrt ( n : ℝ ) ) ) ᶜ using 1;
+          · convert summable_rhoSMassOn 2 ( by norm_num ) c L Set.univ using 1 ; aesop;
         exact this.trans ( mul_le_mul_of_nonneg_left h_bound <| by positivity );
       have h_bound : rhoSMass 2 c L ≤ 2 ^ (n : ℝ) * rhoSMass 1 0 L := by
         exact le_trans ( rhoSMass_shift_mono L 2 ( by norm_num ) c ) ( by simpa using rhoSMass_scaling_mono 2 ( by norm_num ) L );
@@ -252,11 +234,12 @@ lemma rhoMass_outside_ball_stronger (c : 𝔼 n) (L : GeometricLattice n n) :
       gcongr;
       · refine' lt_of_lt_of_le _ ( Summable.le_tsum _ 0 _ ) <;> norm_num;
         · exact Real.exp_pos _;
-        · simp [rhoST_Id_eq_rhoS] ; convert summable_rhoMassOn_integrand 1 zero_lt_one 0 L Set.univ using 1;
-          ext; simp [rhoS];
+        · simp ; convert summable_rhoSMassOn 1 zero_lt_one 0 L Set.univ using 1;
+          ext; simp ;
         · exact fun _ _ _ => Real.exp_nonneg _;
       · convert stronger_numeric_bound_for_tail_bound n using 1;
     convert lt_of_le_of_lt ‹_› h_bound using 1
+    rw [ rhoSMass_one_eq_rhoMass ]
 
 /-- Handy bound 2^{-n} on rhoMass on lattice points outside ball of radius √n -/
 theorem rhoMass_outside_ball (c : 𝔼 n) (L : GeometricLattice n n) :
@@ -298,7 +281,7 @@ theorem rhoMass_with_long_sv_stronger (L : GeometricLattice n n) (h_svl : L.shor
     exact fun x hx => ⟨ fun hx' => ( h_len x hx hx' ), fun hx' => by contrapose! hx'; aesop ⟩
 
   have h_eq' : rhoMassOn 0 L {0}ᶜ = rhoMassOn 0 L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ := by
-    unfold rhoMassOn rhoSMassOn rhoSTMassOn;
+    unfold rhoMassOn
     simp +decide [ Set.ext_iff ] at h_eq;
     apply tsum_congr; intro v; simp [Set.indicator];
     specialize h_eq v ; aesop
@@ -352,7 +335,7 @@ theorem rhoMass_ub_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.sh
     refine' le_trans ( norm_tsum_le_tsum_norm _ ) _;
     · simp_all +decide [ Complex.norm_exp ];
       have h_summable : Summable (fun v : L.carrier => rho v) := by
-        have := LatticeCrypto.Foundations.Gaussian.summable_rhoMassOn_integrand 1 zero_lt_one 0 L Set.univ
+        have := LatticeCrypto.Foundations.Gaussian.summable_rhoSMassOn 1 zero_lt_one 0 L Set.univ
         simp_all +decide [ LatticeCrypto.Foundations.Gaussian.rhoS, LatticeCrypto.Foundations.Gaussian.rho ];
       exact h_summable.abs;
     · simp_all +decide [ Complex.norm_exp ];
@@ -362,7 +345,7 @@ theorem rhoMass_ub_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.sh
       rw [ Summable.tsum_eq_add_tsum_ite ];
       congr! 1;
       · unfold Gaussian.rho; norm_num;
-      · convert summable_rhoMassOn_integrand 1 zero_lt_one 0 L ( Set.univ : Set ( 𝔼 n ) ) using 1;
+      · convert summable_rhoSMassOn 1 zero_lt_one 0 L ( Set.univ : Set ( 𝔼 n ) ) using 1;
         ext; simp [LatticeCrypto.Foundations.Gaussian.rho];
     have h_sum_abs : ∑' v : L.carrier, (if v = 0 then 0 else rho v) ≤ 2 * 2 ^ (-(n : ℝ)) := by
       have h_sum_abs : ∑' v : L.carrier, (if v = 0 then 0 else rho v) ≤ rhoMassOn 0 L {0}ᶜ := by
@@ -407,8 +390,8 @@ theorem rhoMass_lb_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.sh
           apply_rules [ Summable.tsum_pos ];
           rotate_right;
           exact ⟨ 0, by simp +decide ⟩;
-          · convert LatticeCrypto.Foundations.Gaussian.summable_rhoMassOn_integrand 1 zero_lt_one u L.dual ( Set.univ ) using 1;
-            ext; simp +decide [ LatticeCrypto.Foundations.Gaussian.rhoST, LatticeCrypto.Foundations.Gaussian.rhoS ] ;
+          · convert summable_rhoSMassOn 1 zero_lt_one u L.dual ( Set.univ ) using 1;
+            ext; simp +decide  ;
           · exact fun _ => Real.exp_nonneg _;
           · exact Real.exp_pos _;
         rw [ tsum_eq_zero_of_not_summable h_sum ] ; norm_num [ h_gauss_mass_pos.ne' ];
@@ -421,7 +404,7 @@ theorem rhoMass_lb_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.sh
         · split_ifs <;> simp_all +decide [ Complex.norm_exp ];
           · exact Real.exp_nonneg _;
           · rw [ abs_of_nonneg ( by exact Real.exp_pos _ |> le_of_lt ) ];
-        · convert summable_rhoMassOn_integrand 1 zero_lt_one 0 L Set.univ using 1 ; norm_num [ rhoMassOn ];
+        · convert summable_rhoSMassOn 1 zero_lt_one 0 L Set.univ using 1 ; norm_num [ rhoMassOn ];
     -- The sum of the magnitudes is bounded by rhoMassOn 0 L {0}ᶜ.
     have h_sum_abs_le : ∑' v : ↥L.carrier, (if v = 0 then 0 else rho (v : 𝔼 n)) = rhoMassOn 0 L {0}ᶜ := by
       simp [rhoMassOn];

@@ -82,7 +82,7 @@ lemma rhoS_inv_tendsto_one (v : 𝔼 n) :
     have h_arg : Filter.Tendsto (fun (s : ℝ) => -Real.pi * ‖v‖^2 * s^2) (nhdsWithin 0 (Set.Ioi 0)) (nhds 0) := by
       exact tendsto_nhdsWithin_of_tendsto_nhds ( Continuous.tendsto' ( by continuity ) _ _ <| by norm_num );
     convert Real.continuous_exp.continuousAt.tendsto.comp h_arg using 2 ; norm_num [ LatticeCrypto.Foundations.Gaussian.rhoS ];
-    · unfold LatticeCrypto.Foundations.Gaussian.rho; simp +decide [ mul_pow, norm_smul ] ; ring;
+    · simp +decide [ mul_pow, norm_smul ] ; ring;
     · norm_num
 
 /-
@@ -124,16 +124,15 @@ theorem rhoSMass_inv_tendsto_atTop (L : GeometricLattice n n) :
           exact Set.infinite_coe_iff.mpr ( infinite_dual L );
         have := h_infinite.natEmbedding;
         exact ⟨ Finset.image ( fun i => this i ) ( Finset.range ( M + 1 ) ), by rw [ Finset.card_image_of_injective _ this.injective ] ; simp +arith +decide ⟩;
-      -- By Lemma `summable_rhoMassOn_integrand`, for any finite subset S of L.dual, the sum over S is less than or equal to the total mass.
+      -- By Lemma `summable_rhoSMassOn`, for any finite subset S of L.dual, the sum over S is less than or equal to the total mass.
       have h_le_total : ∀ s : ℝ, 0 < s → ∀ S : Finset L.dual.carrier, ∑ v ∈ S, rhoS (1/s) (v : 𝔼 n) ≤ rhoSMass (1 / s) 0 L.dual := by
         intros s hs S
         have h_sum_le_total : ∑ v ∈ S, rhoS (1/s) (v : 𝔼 n) ≤ ∑' v : L.dual.carrier, rhoS (1/s) (v : 𝔼 n) := by
           refine' Summable.sum_le_tsum _ _ _;
           · exact fun _ _ => Real.exp_nonneg _;
-          · have := summable_rhoMassOn_integrand ( 1 / s ) ( one_div_pos.mpr hs ) 0 L.dual ( Set.univ : Set ( 𝔼 n ) ) ; aesop;
+          · have := summable_rhoSMassOn ( 1 / s ) ( one_div_pos.mpr hs ) 0 L.dual ( Set.univ : Set ( 𝔼 n ) ) ; aesop;
         convert h_sum_le_total using 1;
-        unfold LatticeCrypto.Foundations.Gaussian.rhoSMass;
-        unfold LatticeCrypto.Foundations.Gaussian.rhoSTMass; aesop;
+        unfold LatticeCrypto.Foundations.Gaussian.rhoSMass; aesop;
       -- By Lemma `sum_rhoS_inv_tendsto_card`, for any finite subset S of L.dual, the sum over S tends to the cardinality of S as s -> 0+.
       have h_tendsto_card : ∀ S : Finset L.dual.carrier, Filter.Tendsto (fun s : ℝ => ∑ v ∈ S, rhoS (1/s) (v : 𝔼 n)) (nhdsWithin 0 (Set.Ioi 0)) (nhds S.card) := by
         exact fun S => sum_rhoS_inv_tendsto_card L S;
@@ -149,7 +148,7 @@ lemma tendsto_rhoS_inv_atTop_zero {n : ℕ+} (v : 𝔼 n) (hv : v ≠ 0) :
     -- Since $v \neq 0$, we have $‖s • v‖^2 = s^2 * ‖v‖^2$.
     have h_norm_sq : ∀ s : ℝ, ‖s • v‖^2 = s^2 * ‖v‖^2 := by
       norm_num [ norm_smul, mul_pow ];
-    unfold LatticeCrypto.Foundations.Gaussian.rho; norm_num [ h_norm_sq ];
+    norm_num [ h_norm_sq ];
     exact Filter.Tendsto.const_mul_atTop ( by positivity ) ( Filter.Tendsto.atTop_mul_const ( by positivity ) ( by norm_num ) )
 
 /-
@@ -235,12 +234,12 @@ lemma tendsto_rhoSMassOn_atTop_zero  (L : GeometricLattice n n) :
       convert this.sub ( show Summable fun v : L.carrier => if v = 0 then LatticeCrypto.Foundations.Gaussian.rho ( v : LatticeCrypto.Utils.Vec.𝔼 n ) else 0 from ?_ ) using 2 ; aesop;
       exact ⟨ _, hasSum_single 0 <| by aesop ⟩;
     · simp +zetaDelta at *;
-      intro s hs a ha; split_ifs <;> simp_all +decide [ LatticeCrypto.Foundations.Gaussian.rhoST ] ;
+      intro s hs a ha; split_ifs <;> simp_all +decide ;
       rw [ abs_of_nonneg ( by exact Real.exp_nonneg _ ) ];
       field_simp;
       exact LatticeCrypto.Foundations.Gaussian.rhoS_inv_le_rho_of_ge_one _ _ hs;
     · simp +zetaDelta at *;
-      intro v hv; by_cases hv' : v = 0 <;> simp_all +decide [ LatticeCrypto.Foundations.Gaussian.rhoST ] ;
+      intro v hv; by_cases hv' : v = 0 <;> simp_all +decide ;
       convert tendsto_rhoS_inv_atTop_zero v hv' using 1;
       norm_num [ LatticeCrypto.Foundations.Gaussian.rhoS ]
 
@@ -491,7 +490,7 @@ noncomputable section AristotleLemmas
 /-
 If s < 1/lambda_1(L*), then the Gaussian mass of L* \ {0} with parameter 1/s is strictly greater than 2 * exp(-pi).
 -/
-lemma rhoSMassOn_nonzero_gt_of_s_lt_inv_succMin1 (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s)
+lemma rhoSMassOn_dual_nonzero_gt_of_s_lt_inv_succMin₁ (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s)
     (h_s_lt : s < 1 / L.dual.succMin₁) :
     rhoSMassOn (1 / s) 0 L.dual {0}ᶜ > 2 * Real.exp (-Real.pi) := by
       have h_shortest_dual : ∃ v ∈ L.dual.nonzeroVectors, ∀ w ∈ L.dual.nonzeroVectors, ‖v‖ ≤ ‖w‖ := by
@@ -503,12 +502,11 @@ lemma rhoSMassOn_nonzero_gt_of_s_lt_inv_succMin1 (L : GeometricLattice n n) (s :
         · by_cases h : v = 0 <;> simp_all +decide [ Set.indicator ];
           · exact absurd h hv₁.2;
           · rw [ Finset.sum_pair ] <;> norm_num [ h ];
-            · unfold LatticeCrypto.Foundations.Gaussian.rhoST; aesop;
-            · exact fun h' => h <| by ext i; have := congr_fun h' i; norm_num at *; linarith;
+            exact fun h' => h <| by ext i; have := congr_fun h' i; norm_num at *; linarith;
         · norm_num +zetaDelta at *;
-          intro w hw₁ hw₂ hw₃; by_cases hw₄ : w = 0 <;> simp_all +decide [ LatticeCrypto.Foundations.Gaussian.rhoST ] ;
+          intro w hw₁ hw₂ hw₃; by_cases hw₄ : w = 0 <;> simp_all +decide ;
           exact Real.exp_nonneg _;
-        · exact summable_rhoMassOn_integrand ( 1 / s ) ( one_div_pos.mpr hs ) 0 L.dual { 0 } ᶜ;
+        · exact summable_rhoSMassOn ( 1 / s ) ( one_div_pos.mpr hs ) 0 L.dual { 0 } ᶜ;
       -- Since $s < 1/\lambda_1(L^*)$, we have $s \|v\| < 1$.
       have h_s_norm_v_lt_1 : s * ‖v‖ < 1 := by
         rw [ lt_div_iff₀ ( _ ) ] at h_s_lt;
@@ -523,7 +521,7 @@ lemma rhoSMassOn_nonzero_gt_of_s_lt_inv_succMin1 (L : GeometricLattice n n) (s :
       -- Since $\rhoS(1/s, v) = \exp(-\pi (s \|v\|)^2)$ and $\rhoS(1/s, -v) = \exp(-\pi (s \|v\|)^2)$, we have:
       have h_rho_v_minus_v_eq : LatticeCrypto.Foundations.Gaussian.rhoS (1 / s) v + LatticeCrypto.Foundations.Gaussian.rhoS (1 / s) (-v) = 2 * Real.exp (-Real.pi * (s * ‖v‖) ^ 2) := by
         unfold LatticeCrypto.Foundations.Gaussian.rhoS; norm_num ; ring_nf;
-        unfold LatticeCrypto.Foundations.Gaussian.rho; norm_num ; ring_nf;
+        norm_num ; ring_nf;
         rw [ norm_smul, Real.norm_of_nonneg hs.le ] ; ring_nf;
       linarith
 
@@ -545,7 +543,7 @@ lemma rhoSMassOn_le_pow_rhoMassOn (L : GeometricLattice n n) (s : ℝ) (hs : s �
           exact Real.exp_le_exp.mpr ( by nlinarith [ Real.pi_pos, mul_le_mul_of_nonneg_left hs Real.pi_pos.le, mul_le_mul_of_nonneg_left ( sq_nonneg ( s - 1 ) ) Real.pi_pos.le ] );
         convert mul_le_mul_of_nonneg_left h_exp_bound ( Real.exp_nonneg ( -Real.pi * ‖w‖ ^ 2 ) ) using 1 ; ring_nf;
         unfold LatticeCrypto.Foundations.Gaussian.rhoS ; rw [ ← Real.exp_add ] ; ring_nf;
-        unfold LatticeCrypto.Foundations.Gaussian.rho; norm_num [ norm_smul, mul_pow ] ; ring;
+        norm_num [ norm_smul, mul_pow ] ; ring;
       convert Summable.tsum_le_tsum ( fun x => ?_ ) ?_ ?_;
       any_goals rw [ tsum_mul_right ];
       any_goals rw [ mul_comm ];
@@ -553,11 +551,10 @@ lemma rhoSMassOn_le_pow_rhoMassOn (L : GeometricLattice n n) (s : ℝ) (hs : s �
       all_goals try infer_instance;
       · by_cases hx : x = 0 <;> simp_all +decide [ mul_comm ];
         convert h_term_bound x _ using 1;
-        · unfold LatticeCrypto.Foundations.Gaussian.rhoST; aesop;
         · exact ⟨ x.2, by simpa using hx ⟩;
-      · convert LatticeCrypto.Foundations.Gaussian.summable_rhoMassOn_integrand ( 1 / s ) ( by positivity ) 0 L.dual { 0 } ᶜ using 1;
+      · convert LatticeCrypto.Foundations.Gaussian.summable_rhoSMassOn ( 1 / s ) ( by positivity ) 0 L.dual { 0 } ᶜ using 1;
       · refine' Summable.mul_right _ _;
-        convert summable_rhoMassOn_integrand 1 zero_lt_one 0 L.dual { 0 } ᶜ using 1
+        convert summable_rhoMassOn 0 L.dual { 0 } ᶜ using 1
 
 /-
 For any epsilon > 0, there exists a positive s such that the Gaussian mass of the dual lattice excluding the origin with parameter 1/s is at most epsilon.
@@ -585,15 +582,17 @@ theorem smoothing_paramter_lb_via_dual_succMin₁_for_small_ε (hε : 0 < ε ∧
     by_contra h_contra
     have h_contra' : s < 1 / L.dual.succMin₁ := by
       exact not_le.mp h_contra;
-    exact hε.2.not_gt <| hS.2.trans_lt' <| by linarith [ Real.exp_pos ( -Real.pi ), show LatticeCrypto.Foundations.Gaussian.rhoSMassOn ( 1 / s ) 0 L.dual { 0 } ᶜ > 2 * Real.exp ( -Real.pi ) from rhoSMassOn_nonzero_gt_of_s_lt_inv_succMin1 L s hs h_contra' ] ;
+    exact hε.2.not_gt <| hS.2.trans_lt' <| by linarith [ Real.exp_pos ( -Real.pi ), show LatticeCrypto.Foundations.Gaussian.rhoSMassOn ( 1 / s ) 0 L.dual { 0 } ᶜ > 2 * Real.exp ( -Real.pi ) from rhoSMassOn_dual_nonzero_gt_of_s_lt_inv_succMin₁ L s hs h_contra' ] ;
   rw [ show L.η ε = sInf { s : ℝ | 0 < s ∧ rhoSMassOn ( 1 / s ) 0 L.dual { 0 } ᶜ ≤ ε } from ?_ ];
   · exact le_csInf ( by obtain ⟨ s, hs ⟩ := exists_s_rhoSMassOn_le L ε hε.1; exact ⟨ s, hs ⟩ ) fun s hs => h_lower_bound s hs.1 hs |> le_trans <| le_rfl;
   · convert smoothingParameter_eq_smoothingParameter' L ε
 
 
 noncomputable section AristotleLemmas
+
 /-
-The Gaussian mass of the non-zero vectors is at least 2 * exp(-pi * lambda_1^2).
+  The Gaussian mass of the non-zero vectors is at least 2 * exp(-pi * lambda_1^2).
+  Essentially a special case of `rhoSMassOn_dual_nonzero_gt_of_s_lt_inv_succMin₁`
 -/
 theorem rhoMass_nonzero_ge_2_exp_neg_pi_mul_succMin₁_sq {n : ℕ+} (L : GeometricLattice n n) :
     rhoMassOn (0 : 𝔼 n) L {0}ᶜ ≥ 2 * Real.exp (-Real.pi * L.succMin₁ ^ 2) := by
@@ -610,30 +609,29 @@ theorem rhoMass_nonzero_ge_2_exp_neg_pi_mul_succMin₁_sq {n : ℕ+} (L : Geomet
         · simp +decide [ Set.indicator ];
           intro a ha ha' ha''; split_ifs <;> norm_num [ rhoST ] ;
           exact Real.exp_nonneg _;
-        · convert summable_rhoMassOn_integrand 1 zero_lt_one 0 L { 0 } ᶜ using 1;
+        · convert summable_rhoMassOn 0 L { 0 } ᶜ using 1;
         · field_simp;
           rw [ Finset.sum_pair ] <;> norm_num [ hv₂ ];
-          · unfold rhoST; norm_num [ hv₂ ] ;
-          · exact fun h => hv₂ <| by ext i; have := congr_fun h i; norm_num at *; linarith;
+          exact fun h' => hv₂ <| by ext i; have := congr_fun h' i; norm_num at *; linarith;
       simp_all +decide [ two_mul, rho ]
 
 /-
 rhoSMassOn (1/s) of dual lattice tail is at least exp(-pi * (s * lambda_1(dual))^2).
 -/
-theorem rhoSMassOn_ge_exp_neg_pi_mul_s_sq_mul_succMin₁_sq {n : ℕ+} (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s) :
-    rhoSMassOn (1 / s) (0 : 𝔼 n) L.dual {0}ᶜ ≥ Real.exp (-Real.pi * (s * L.dual.succMin₁)^2) := by
-      -- Apply `rhoSMassOn_tail_scale` to convert `rhoSMassOn (1/s)` to `rhoMassOn` of the scaled lattice `s * L.dual`.
-      have h_convert : rhoSMassOn (1 / s) (0 : 𝔼 n) L.dual {0}ᶜ = rhoMassOn (0 : 𝔼 n) (L.dual.smul s hs.ne.symm) {0}ᶜ := by
-        exact rhoSMassOn_nonzero_scale L.dual s hs;
-      -- Apply `rhoMass_nonzero_ge_2_exp_neg_pi_mul_succMin₁_sq` to the scaled lattice `s * L.dual`.
-      have h_lower_bound : rhoMassOn (0 : 𝔼 n) (L.dual.smul s hs.ne.symm) {0}ᶜ ≥ 2 * Real.exp (-Real.pi * (s * L.dual.succMin₁) ^ 2) := by
-        convert rhoMass_nonzero_ge_2_exp_neg_pi_mul_succMin₁_sq _ using 2;
-        -- The first successive minimum of the dual lattice of the smul of L is s times the first successive minimum of the dual lattice of L.
-        have h_succMin₁_smul : (L.dual.smul s hs.ne.symm).succMin₁ = s * L.dual.succMin₁ := by
-          have := GeometricLattice.successiveMinima_scale L.dual 0 s hs
-          exact this;
-        rw [ h_succMin₁_smul ];
-      linarith [ Real.exp_pos ( -Real.pi * ( s * L.dual.succMin₁ ) ^ 2 ) ]
+theorem rhoSMassOn_nonzero_ge_exp_neg_pi_mul_s_sq_mul_succMin₁_sq {n : ℕ+} (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s) :
+    rhoSMassOn (1 / s) (0 : 𝔼 n) L {0}ᶜ ≥ Real.exp (-Real.pi * ( s * L.succMin₁)^2) := by
+    -- Apply `rhoSMassOn_nonzero_scale` to convert `rhoSMassOn (1/s)` to `rhoMassOn` of the scaled lattice `s * L`.
+    have h_convert : rhoSMassOn (1 / s) (0 : 𝔼 n) L {0}ᶜ = rhoMassOn (0 : 𝔼 n) (L.smul s hs.ne.symm) {0}ᶜ := by
+      exact rhoSMassOn_nonzero_scale L s hs
+    -- Apply `rhoMass_nonzero_ge_2_exp_neg_pi_mul_succMin₁_sq` to the scaled lattice `s * L`.
+    have h_lower_bound : rhoMassOn (0 : 𝔼 n) (L.smul s hs.ne.symm) {0}ᶜ ≥ 2 * Real.exp (-Real.pi * (s * L.succMin₁) ^ 2) := by
+      convert rhoMass_nonzero_ge_2_exp_neg_pi_mul_succMin₁_sq _ using 2;
+      -- The first successive minimum of the lattice of the smul of L is s times the first successive minimum of the lattice of L.
+      have h_succMin₁_smul : (L.smul s hs.ne.symm).succMin₁ = s * L.succMin₁ := by
+        have := GeometricLattice.successiveMinima_scale L 0 s hs
+        exact this;
+      rw [ h_succMin₁_smul ];
+    linarith [ Real.exp_pos ( -Real.pi * ( s * L.succMin₁ ) ^ 2 ) ]
 
 /-
 Algebraic lemma for smoothing parameter lower bound.
@@ -659,7 +657,7 @@ lemma smoothing_parameter_lb_aux {n : ℕ+} (L : GeometricLattice n n) (ε : ℝ
     -- Using the inequality from the provided solution, we have:
     have h_ineq : Real.exp (-Real.pi * (s * L.dual.succMin₁)^2) ≤ ε := by
       have h_ineq : rhoSMassOn (1 / s) (0 : 𝔼 n) L.dual {0}ᶜ ≥ Real.exp (-Real.pi * (s * L.dual.succMin₁)^2) := by
-        exact rhoSMassOn_ge_exp_neg_pi_mul_s_sq_mul_succMin₁_sq L s hs;
+        exact rhoSMassOn_nonzero_ge_exp_neg_pi_mul_s_sq_mul_succMin₁_sq L.dual s hs;
       rw [ rhoSMass_eq_one_add_rhoSMassOn_nonzero ] at h ; linarith;
       positivity;
     have := @smoothing_parameter_lb_algebraic_lemma s L.dual.succMin₁ ε hs;
@@ -819,15 +817,6 @@ private lemma square_completion {n : ℕ+} (v u : 𝔼 n) (t : ℝ) (hu : ‖u�
       ring
 
 /-
-Inequality for the exponential term based on the half-space condition.
--/
-private lemma exp_ineq {n : ℕ+} (v u : 𝔼 n) (t : ℝ) (hu : ‖u‖ = 1) (h : inner ℝ u v ≥ t) (ht : t ≥ 0) :
-    1 ≤ Real.exp (2 * π * inner ℝ v (t • u) - 2 * π * t^2) := by
-      norm_num +zetaDelta at *;
-      rw [ inner_smul_right ];
-      rw [ real_inner_comm ] ; gcongr ; nlinarith [ Real.pi_pos ]
-
-/-
 Pointwise inequality for the Gaussian terms in the half-space tail bound.
 -/
 private lemma gaussian_ineq {n : ℕ+} (v u : 𝔼 n) (t : ℝ) (hu : ‖u‖ = 1) (h : inner ℝ u v ≥ t) (ht : t ≥ 0) :
@@ -860,10 +849,10 @@ protected lemma rhoMassOn_le_shifted_rhoMass {n : ℕ+} (L : GeometricLattice n 
     · rw [ if_neg ];
       · exact mul_nonneg ( Real.exp_nonneg _ ) ( Real.exp_nonneg _ );
       · exact fun h => hv.not_ge <| by simpa [ hu ] using h ( by simpa [ hu ] ) ;
-  · convert summable_rhoMassOn_integrand 1 zero_lt_one x L ( 𝓗 u hu t ) ᶜ using 1;
+  · convert summable_rhoMassOn x L ( 𝓗 u hu t ) ᶜ using 1;
   · refine' Summable.mul_left _ _;
-    convert summable_rhoMassOn_integrand 1 zero_lt_one ( x - t • u ) L ( Set.univ : Set ( 𝔼 n ) ) using 1;
-       ext; simp [rhoST, rhoS]
+    convert summable_rhoMassOn ( x - t • u ) L ( Set.univ : Set ( 𝔼 n ) ) using 1;
+       ext; simp
 
 /-
 For any lattice L, unit vector u ∈ R n, real t ≥ 0, and x ∈ R^n, we have that
@@ -871,9 +860,10 @@ For any lattice L, unit vector u ∈ R n, real t ≥ 0, and x ∈ R^n, we have t
 -/
 theorem rhoMass_affine_half_space_tail_bound {n : ℕ+} (L : GeometricLattice n n) (u : 𝔼 n) (hu : ‖u‖ = 1) (t : ℝ) (ht : t ≥ 0) (x : 𝔼 n) :
     rhoMassOn (x : 𝔼 n) L (𝓗 u hu t)ᶜ ≤ Real.exp (-Real.pi * t ^ 2) * rhoMass 0 L := by
-      have := @rhoSMass_shift_mono n L 1 zero_lt_one ( x - t • u );
-      convert le_trans ( Gaussian.rhoMassOn_le_shifted_rhoMass L u hu t ht x ) ( mul_le_mul_of_nonneg_left this <| by positivity ) using 1
-
+  have := @rhoSMass_shift_mono n L 1 zero_lt_one ( x - t • u );
+  rw [rhoSMass_one_eq_rhoMass] at this ;
+  convert le_trans ( Gaussian.rhoMassOn_le_shifted_rhoMass L u hu t ht x ) ( mul_le_mul_of_nonneg_left this <| by positivity ) using 1
+  rw [rhoSMass_one_eq_rhoMass]
 
 /-
 For any non-zero vector w in the dual lattice and any basis v of the primal lattice, there is a basis vector v_i such that |<w, v_i>| >= 1.
@@ -923,34 +913,33 @@ lemma rhoMassOn_le_sum {n : ℕ+} (L : GeometricLattice n n) {ι : Type*} [Finty
     rhoMassOn 0 L (⋃ i, S i) ≤ ∑ i, rhoMassOn 0 L (S i) := by
   -- By definition of rhoMassOn, we can expand the left-hand side as a sum over lattice vectors.
   simp [rhoMassOn];
-  have h_union_expansion : ∀ v : L.carrier, (⋃ i, S i).indicator (rhoS 1) (v : 𝔼 n) ≤ ∑ i, (S i).indicator (rhoS 1) (v : 𝔼 n) := by
+  have h_union_expansion : ∀ v : L.carrier, (⋃ i, S i).indicator rho (v : 𝔼 n) ≤ ∑ i, (S i).indicator rho (v : 𝔼 n) := by
     intro v
     simp [Set.indicator];
     split_ifs <;> simp_all +decide [ Finset.sum_ite ];
     exact le_mul_of_one_le_left ( by exact le_of_lt ( by exact ( by exact ( by exact ( by exact ( by exact ( by exact ( by exact ( by exact ( by exact ( by exact ( by exact ( by exact ( by exact ( by exact ( by exact by unfold rho; positivity ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ( mod_cast Finset.card_pos.mpr ⟨ Classical.choose ‹∃ i, ( v : 𝔼 n ) ∈ S i›, by simpa using Classical.choose_spec ‹∃ i, ( v : 𝔼 n ) ∈ S i› ⟩ );
   -- By definition of summability, we can interchange the order of summation.
-  have h_summable : Summable (fun v : L.carrier => (⋃ i, S i).indicator (rhoS 1) (v : 𝔼 n)) ∧ ∀ i, Summable (fun v : L.carrier => (S i).indicator (rhoS 1) (v : 𝔼 n)) := by
-    have h_summable : Summable (fun v : L.carrier => rhoS 1 (v : 𝔼 n)) := by
-      unfold rhoS;
-      convert summable_rhoMassOn_integrand 1 zero_lt_one 0 L _ using 1;
+  have h_summable : Summable (fun v : L.carrier => (⋃ i, S i).indicator rho (v : 𝔼 n)) ∧ ∀ i, Summable (fun v : L.carrier => (S i).indicator rho (v : 𝔼 n)) := by
+    have h_summable : Summable (fun v : L.carrier => rho (v : 𝔼 n)) := by
+      convert summable_rhoMassOn 0 L _ using 1;
       swap;
       exact Set.univ;
-      unfold rhoS; aesop;
+      aesop;
     refine' ⟨ _, fun i => _ ⟩;
     · refine' .of_nonneg_of_le ( fun v => _ ) ( fun v => _ ) h_summable;
       · exact Set.indicator_nonneg ( fun _ _ => Real.exp_nonneg _ ) _;
       · by_cases hv : ( v : 𝔼 n ) ∈ ⋃ i, S i <;> simp +decide [ hv ];
         exact Real.exp_nonneg _;
     · refine' Summable.of_nonneg_of_le ( fun v => _ ) ( fun v => _ ) h_summable;
-      · by_cases hi : v.val ∈ S i <;> simp +decide [ hi, rhoS ];
+      · by_cases hi : v.val ∈ S i <;> simp +decide [ hi ];
         exact Real.exp_nonneg _;
-      · by_cases hi : v.val ∈ S i <;> simp +decide [ hi, rhoS ];
+      · by_cases hi : v.val ∈ S i <;> simp +decide [ hi ];
         exact Real.exp_nonneg _;
-  have h_summable : ∑' v : L.carrier, (⋃ i, S i).indicator (rhoS 1) (v : 𝔼 n) ≤ ∑' v : L.carrier, ∑ i, (S i).indicator (rhoS 1) (v : 𝔼 n) := by
+  have h_summable : ∑' v : L.carrier, (⋃ i, S i).indicator rho (v : 𝔼 n) ≤ ∑' v : L.carrier, ∑ i, (S i).indicator rho (v : 𝔼 n) := by
     apply_rules [ Summable.tsum_le_tsum ];
     · exact h_summable.1;
     · exact summable_sum fun i _ => h_summable.2 i;
-  have h_fubini : ∑' v : L.carrier, ∑ i, (S i).indicator (rhoS 1) (v : 𝔼 n) = ∑ i, ∑' v : L.carrier, (S i).indicator (rhoS 1) (v : 𝔼 n) := by
+  have h_fubini : ∑' v : L.carrier, ∑ i, (S i).indicator rho (v : 𝔼 n) = ∑ i, ∑' v : L.carrier, (S i).indicator rho (v : 𝔼 n) := by
     have h_fubini : ∀ {f : ι → L.carrier → ℝ}, (∀ i, Summable (fun v : L.carrier => f i v)) → (∑' v : L.carrier, ∑ i, f i v) = ∑ i, ∑' v : L.carrier, f i v := by
       exact fun {f} a => Summable.tsum_finsetSum fun i a_1 => a i;
     exact h_fubini fun i => by tauto;
@@ -978,10 +967,8 @@ private lemma rhoMass_le_sum_halfspaces {n : ℕ+} (L : GeometricLattice n n)
         exact Real.exp_nonneg _;
       · rw [ if_pos ];
         convert h_union ⟨ _, _ ⟩ <;> aesop;
-    · convert summable_rhoMassOn_integrand 1 zero_lt_one 0 L { 0 } ᶜ using 1;
-    · convert summable_rhoMassOn_integrand 1 zero_lt_one 0 L _;
-      · norm_num;
-      · norm_num;
+    · convert summable_rhoMassOn 0 L { 0 } ᶜ using 1;
+    · convert summable_rhoMassOn 0 L _;
   · refine' le_trans ( _ : _ ≤ _ ) ( Finset.sum_le_sum fun i _ => _ );
     convert rhoMassOn_le_sum L _;
     convert rhoMassOn_le_sum L _;
@@ -1092,8 +1079,6 @@ lemma rhoSMass_dual_bound_scaled {n : ℕ+} (L : GeometricLattice n n) (s t : �
         have h_dual_smul : ∀ (L L' : GeometricLattice n n), L ≡ᵤ L' → rhoMass 0 L = rhoMass 0 L' := by
           intros L L' h_equiv;
           unfold rhoMass;
-          unfold rhoSMass;
-          simp [rhoSTMass];
           unfold GeometricLattice.latticeSum;
           have h_dual_smul : L.carrier = L'.carrier := by
             exact h_equiv;

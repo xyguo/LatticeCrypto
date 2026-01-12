@@ -26,11 +26,11 @@ This project aims to implement fundamental lattice-based cryptography algorithms
   - [ ] Probability: common distributions, expectation, concentration inequalities (Markov/Chebyshev/Chernoff)
   - [X] Fourier transform, FFT, Poisson's Summation Formula
 - [X] Banasczyk's transference theorem
-- [ ] Smoothing parameter
+- [X] Smoothing parameter
 
 ### 1.3 Lattice Algorithms
 - **Module**: `LatticeCrypto.Foundations.Algorithms`
-- [-] ~~Gram-Schmidt orthogonalization~~ (using Mathlib version)
+- [X] ~~Gram-Schmidt orthogonalization~~ (using Mathlib version)
 - [ ] LLL (Lenstra-Lenstra-Lovász) lattice reduction algorithm
 - [ ] BKZ (Block Korkine-Zolotarev) algorithm basics
 - [ ] Babai's Nearest Plane
