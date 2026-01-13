@@ -50,15 +50,15 @@ noncomputable section successive_minima_basics
 -/
 
 /-- The set of non-zero lattice vectors. -/
-def GeometricLattice.nonzeroVectors (L : GeometricLattice n n) : Set (𝔼 n) :=
+def GeometricLattice.nonzeroVectors (L : GeometricLattice n n) : Set (𝓔 n) :=
   { v | v ∈ L ∧ v ≠ 0 }
 
 /-- The set of lattice vectors with norm at most r. -/
-def GeometricLattice.ballIntersect (L : GeometricLattice n n) (r : ℝ) : Set (𝔼 n) :=
+def GeometricLattice.ballIntersect (L : GeometricLattice n n) (r : ℝ) : Set (𝓔 n) :=
   { v | v ∈ L ∧ ‖v‖ ≤ r }
 
 /-- The set of non-zero lattice vectors with norm at most r. -/
-def GeometricLattice.nonzeroBallIntersect (L : GeometricLattice n n) (r : ℝ) : Set (𝔼 n) :=
+def GeometricLattice.nonzeroBallIntersect (L : GeometricLattice n n) (r : ℝ) : Set (𝓔 n) :=
   { v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r }
 
 /-
@@ -74,7 +74,7 @@ lemma exists_min_norm_subset (L : GeometricLattice n n) (S : Set ℝ)
       set T := S ∩ Set.Icc 0 x with hT_def
       have hT_finite : T.Finite := by
         -- Since the lattice intersection with any ball is finite, the set of such norms is finite.
-        have hT_finite : Set.Finite {v : 𝔼 n | v ∈ L.nonzeroVectors ∧ ‖v‖ ≤ x} := by
+        have hT_finite : Set.Finite {v : 𝓔 n | v ∈ L.nonzeroVectors ∧ ‖v‖ ≤ x} := by
           have hT_finite : Set.Finite (L.ballIntersect x) := by
             -- Apply the fact that the intersection of a discrete set with a closed ball is finite.
             apply L.finite_intersection_closedBall x
@@ -101,9 +101,9 @@ theorem GeometricLattice.exists_shortest_vector (L : GeometricLattice n n) :
   obtain ⟨t, ht_open, ht_preimage⟩ := hdiscrete
   have h0_mem : (0 : L.carrier) ∈ Subtype.val ⁻¹' t := by rw [ht_preimage]; exact Set.mem_singleton _
   have ht_open' : IsOpen t := ht_open
-  obtain ⟨ε, hε_pos, hε_ball⟩ := Metric.isOpen_iff.mp ht_open' (0 : 𝔼 n) h0_mem
-  have hε_discrete : ∀ v : L.carrier, ‖(v : 𝔼 n)‖ < ε → v = 0 := fun v hv => by
-    have : (v : 𝔼 n) ∈ t := hε_ball (by simp [dist_zero_right, hv])
+  obtain ⟨ε, hε_pos, hε_ball⟩ := Metric.isOpen_iff.mp ht_open' (0 : 𝓔 n) h0_mem
+  have hε_discrete : ∀ v : L.carrier, ‖(v : 𝓔 n)‖ < ε → v = 0 := fun v hv => by
+    have : (v : 𝓔 n) ∈ t := hε_ball (by simp [dist_zero_right, hv])
     have : v ∈ Subtype.val ⁻¹' t := this
     rw [ht_preimage] at this
     exact this
@@ -129,7 +129,7 @@ theorem GeometricLattice.exists_shortest_vector (L : GeometricLattice n n) :
     rw [← hvr]
     by_contra h
     push_neg at h
-    have hv_in_ball : v ∈ Metric.ball (0 : 𝔼 n) ε := by
+    have hv_in_ball : v ∈ Metric.ball (0 : 𝓔 n) ε := by
       simp [Metric.mem_ball, dist_zero_right, h]
     have hv_norm : ‖(⟨v, hv.1⟩ : L.carrier)‖ < ε := by
       aesop
@@ -156,7 +156,7 @@ theorem GeometricLattice.exists_shortest_vector (L : GeometricLattice n n) :
 
   -- A finite nonempty set has a minimum element (by norm)
   obtain ⟨v, ⟨hv_mem, hv_ne, hv_bound⟩, hv_min⟩ :=
-    hfinite.exists_minimalFor (fun x : (𝔼 n) => ‖x‖) ball₀ hnonempty
+    hfinite.exists_minimalFor (fun x : (𝓔 n) => ‖x‖) ball₀ hnonempty
 
   -- v is the shortest vector
   use v
@@ -175,7 +175,7 @@ theorem GeometricLattice.exists_shortest_vector (L : GeometricLattice n n) :
 
 /-- The length of the shortest non-zero vector in the lattice (first successive minimum). -/
 noncomputable def GeometricLattice.shortestVectorLength (L : GeometricLattice n n) : ℝ :=
-  iInf (fun v : L.nonzeroVectors => ‖(v : 𝔼 n)‖)
+  iInf (fun v : L.nonzeroVectors => ‖(v : 𝓔 n)‖)
 
 /-- Alternative definition: λ₁(L) = inf { ‖v‖ : v ∈ L, v ≠ 0 } -/
 theorem GeometricLattice.shortestVectorLength_eq (L : GeometricLattice n n) :
@@ -192,7 +192,7 @@ theorem GeometricLattice.shortestVectorLength_eq (L : GeometricLattice n n) :
       intro b hb
       obtain ⟨v, hv⟩ := hb;
       -- Since $v \in L.nonzeroVectors$ and $\|v\| = b$, we have $b \in \{ \|v\| \mid v \in L.nonzeroVectors \}$.
-      have h_b_in_set : b ∈ Set.image (fun v : L.nonzeroVectors => ‖(v : 𝔼 n)‖) Set.univ := by
+      have h_b_in_set : b ∈ Set.image (fun v : L.nonzeroVectors => ‖(v : 𝓔 n)‖) Set.univ := by
         aesop;
       simp +zetaDelta at *;
       obtain ⟨ a, ha₁, ha₂ ⟩ := h_b_in_set; exact le_trans ( ciInf_le ⟨ 0, Set.forall_mem_range.mpr fun x => norm_nonneg _ ⟩ ⟨ a, ha₁ ⟩ ) ( by simp +decide [ ha₂ ] ) ;
@@ -205,7 +205,7 @@ theorem GeometricLattice.shortestVectorLength_eq (L : GeometricLattice n n) :
       -- Since the infimum is achieved by some vector in L.nonzeroVectors, we can conclude that there exists a vector v in L.nonzeroVectors such that ‖v‖ is the infimum.
       use v; aesop;
       -- Since $v$ is in the set and for any $w$ in the set, $\|v\| \leq \|w\|$, the infimum must be at least $\|v\|$.
-      have h_inf_ge : ⨅ (v : L.nonzeroVectors), ‖(v : 𝔼 n)‖ ≥ ‖v‖ := by
+      have h_inf_ge : ⨅ (v : L.nonzeroVectors), ‖(v : 𝓔 n)‖ ≥ ‖v‖ := by
         -- Apply the fact that the infimum is the greatest lower bound.
         apply le_csInf;
         · exact ⟨ _, ⟨ ⟨ v, hv ⟩, rfl ⟩ ⟩;
@@ -216,19 +216,19 @@ theorem GeometricLattice.shortestVectorLength_eq (L : GeometricLattice n n) :
 theorem GeometricLattice.shortestVectorLength_pos (L : GeometricLattice n n) :
     0 < L.shortestVectorLength := by
   -- Since the lattice is discrete, there exists a shortest non-zero vector. Let's call this vector v. Then ‖v‖ is positive.
-  obtain ⟨v, hv⟩ : ∃ v : L.nonzeroVectors, ∀ w : L.nonzeroVectors, ‖(v : 𝔼 n)‖ ≤ ‖(w : 𝔼 n)‖ := by
+  obtain ⟨v, hv⟩ : ∃ v : L.nonzeroVectors, ∀ w : L.nonzeroVectors, ‖(v : 𝓔 n)‖ ≤ ‖(w : 𝓔 n)‖ := by
     have := L.exists_shortest_vector;
     exact ⟨ ⟨ this.choose, this.choose_spec.1 ⟩, fun w => this.choose_spec.2 _ w.2 ⟩;
   exact lt_of_lt_of_le ( norm_pos_iff.mpr v.2.2 ) ( le_csInf ⟨ _, Set.mem_range_self v ⟩ <| Set.forall_mem_range.mpr hv )
 
 /-- Any lattice point in the open ball of radius λ₀ is the origin. -/
 lemma GeometricLattice.lattice_point_in_lambda_zero_ball_is_zero (L : GeometricLattice n n)
-    (v : 𝔼 n) (hv : v ∈ L) (hr : ‖v‖ < L.shortestVectorLength) :
+    (v : 𝓔 n) (hv : v ∈ L) (hr : ‖v‖ < L.shortestVectorLength) :
     v = 0 := by
   by_contra hne
   -- v is a non-zero lattice vector with ‖v‖ < λ₁, contradicting definition of λ₁
   have hv_nonzero : v ∈ L.nonzeroVectors := ⟨hv, hne⟩
-  have := ciInf_le (⟨0, fun x ⟨w, hw⟩ => hw ▸ norm_nonneg _⟩ : BddBelow (Set.range fun v : L.nonzeroVectors => ‖(v : 𝔼 n)‖)) ⟨v, hv_nonzero⟩
+  have := ciInf_le (⟨0, fun x ⟨w, hw⟩ => hw ▸ norm_nonneg _⟩ : BddBelow (Set.range fun v : L.nonzeroVectors => ‖(v : 𝓔 n)‖)) ⟨v, hv_nonzero⟩
   convert hr.not_ge _;
   convert this using 1
 
@@ -242,10 +242,10 @@ lemma GeometricLattice.lattice_point_in_lambda_zero_ball_is_zero (L : GeometricL
 -/
 noncomputable def GeometricLattice.successiveMinima (L : GeometricLattice n n) (i : Fin n) : ℝ :=
   sInf { r : ℝ | 0 < r ∧
-    ∃ (S : Finset (𝔼 n)),
+    ∃ (S : Finset (𝓔 n)),
       S.card = i.val + 1 ∧
       (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r) ∧
-      LinearIndependent ℝ (fun v : S => (v : 𝔼 n)) }
+      LinearIndependent ℝ (fun v : S => (v : 𝓔 n)) }
 
 noncomputable abbrev GeometricLattice.succMin₁ (L : GeometricLattice n n) : ℝ :=
   L.successiveMinima ⟨0, n.pos⟩
@@ -277,9 +277,9 @@ theorem GeometricLattice.successiveMinima_defs_eq (L : GeometricLattice n n) :
     -- Since S is a subset of B(0, r) and is linearly independent, the span of S is a subspace of the span of B(0, r).
     intro hr
     obtain ⟨S, hS_card, hS_subset, hS_lin_ind⟩ := hr.right
-    have h_span_S : Submodule.span ℝ (S : Set (𝔼 n)) ≤ Submodule.span ℝ {v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r} := by
+    have h_span_S : Submodule.span ℝ (S : Set (𝓔 n)) ≤ Submodule.span ℝ {v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r} := by
       exact Submodule.span_mono fun x hx => hS_subset x hx;
-    have h_dim_S : Module.rank ℝ (↥(Submodule.span ℝ (S : Set (𝔼 n)))) = (i : ℕ) + 1 := by
+    have h_dim_S : Module.rank ℝ (↥(Submodule.span ℝ (S : Set (𝓔 n)))) = (i : ℕ) + 1 := by
       rw [ @rank_span_set ];
       · aesop;
       · exact hS_lin_ind;
@@ -289,7 +289,7 @@ theorem GeometricLattice.successiveMinima_defs_eq (L : GeometricLattice n n) :
     intro hr h; use hr;
     have h' : ((i.val + 1 : ℕ) : Cardinal) ≤ Module.rank ℝ (Submodule.span ℝ {v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r}) := by
       simpa using h
-    have := rank_span_ge_iff_subset { v : 𝔼 n | v ∈ L ∧ ¬v = 0 ∧ ‖v‖ ≤ r } ( i + 1 );
+    have := rank_span_ge_iff_subset { v : 𝓔 n | v ∈ L ∧ ¬v = 0 ∧ ‖v‖ ≤ r } ( i + 1 );
     exact this.mp ( mod_cast h' )
 
 /-
@@ -300,11 +300,11 @@ theorem GeometricLattice.successiveMinima_defs_eq (L : GeometricLattice n n) :
 lemma GeometricLattice.le_successiveMinima_of_exists_linearIndependent
     (L : GeometricLattice n n)
     {i : Fin n} {r : ℝ} (hr : 0 < r)
-    (S : Finset (𝔼 n))
+    (S : Finset (𝓔 n))
     (h_card : S.card = i.val + 1)
     (h_mem : ∀ v ∈ S, v ∈ L.nonzeroVectors)
     (h_norm : ∀ v ∈ S, ‖v‖ ≤ r)
-    (h_li : LinearIndependent ℝ (fun v : S => (v : 𝔼 n))) :
+    (h_li : LinearIndependent ℝ (fun v : S => (v : 𝓔 n))) :
     L.successiveMinima i ≤ r := by
       refine' csInf_le _ _;
       · exact ⟨ 0, fun x hx => hx.1.le ⟩;
@@ -312,17 +312,17 @@ lemma GeometricLattice.le_successiveMinima_of_exists_linearIndependent
 
 
 theorem GeometricLattice.exists_successiveMinima (L : GeometricLattice n n) (i : Fin n) :
-  ∃ (r : ℝ), 0 < r ∧ ∃ (S : Finset (𝔼 n)),
+  ∃ (r : ℝ), 0 < r ∧ ∃ (S : Finset (𝓔 n)),
       S.card = i.val + 1 ∧
       (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r) ∧
-      LinearIndependent ℝ (fun v : S => (v : 𝔼 n)) := by
+      LinearIndependent ℝ (fun v : S => (v : 𝓔 n)) := by
   -- Choose the first i.val+1 basis vectors
   let idx : Finset (Fin n) := (Finset.univ.filter (fun j : Fin n => j.val ≤ i.val))
   have hcard : idx.card = i.val + 1 := by
     -- size of initial segment {0,1,...,i.val}
     simp +zetaDelta at *;
     rw [ show Finset.filter ( fun j => j ≤ i ) Finset.univ = Finset.Iic i by ext; simp +decide ] ; aesop
-  let S : Finset (𝔼 n) := idx.image fun j => (L.basis.cols j : 𝔼 n)
+  let S : Finset (𝓔 n) := idx.image fun j => (L.basis.cols j : 𝓔 n)
   -- Define r as the maximum norm of these chosen basis vectors
   have hnonempty : S.Nonempty := by
     -- since i.val+1 ≥ 1, there is at least one element
@@ -350,19 +350,19 @@ theorem GeometricLattice.exists_successiveMinima (L : GeometricLattice n n) (i :
   have h_mem : ∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r := by
     intro v hv
     rcases Finset.mem_image.mp hv with ⟨j, hj_idx, rfl⟩
-    have hjL : (L.basis.cols j : 𝔼 n) ∈ L := L.basis_mem j
-    have hj_ne : (L.basis.cols j : 𝔼 n) ≠ 0 := by
+    have hjL : (L.basis.cols j : 𝓔 n) ∈ L := L.basis_mem j
+    have hj_ne : (L.basis.cols j : 𝓔 n) ≠ 0 := by
       -- basis vectors are nonzero
       have := L.basis.li; aesop;
       -- Since the basis is linearly independent, having a zero vector would contradict that.
       apply this.ne_zero j; aesop
-    have hj_le : ‖(L.basis.cols j : 𝔼 n)‖ ≤ r := by
+    have hj_le : ‖(L.basis.cols j : 𝓔 n)‖ ≤ r := by
       -- by definition of r = sup' over S
       exact Finset.le_sup' (fun v => ‖v‖) (by simpa [S, idx] using hv)
     exact ⟨hjL, hj_ne, hj_le⟩
-  have h_li : LinearIndependent ℝ (fun v : S => (v : 𝔼 n)) := by
+  have h_li : LinearIndependent ℝ (fun v : S => (v : 𝓔 n)) := by
     -- a subset of a linearly independent family is linearly independent
-    have h_basis_li : LinearIndependent ℝ (fun j : Fin n => (L.basis.cols j : 𝔼 n)) := L.basis.li
+    have h_basis_li : LinearIndependent ℝ (fun j : Fin n => (L.basis.cols j : 𝓔 n)) := L.basis.li
     -- use linear independence of image of a subset
     convert h_basis_li.comp _ _;
     rotate_left;
@@ -411,7 +411,7 @@ theorem GeometricLattice.successiveMinima_one (L : GeometricLattice n n) :
       have ⟨hv_L, hv_ne, hv_norm⟩ := hS_props v hv_mem
       refine' le_trans ( ciInf_le _ _ ) _;
       -- The norm is always non-negative, so 0 is a lower bound for the range.
-      have h_nonneg : ∀ v : L.nonzeroVectors, 0 ≤ ‖(v : 𝔼 n)‖ := by
+      have h_nonneg : ∀ v : L.nonzeroVectors, 0 ≤ ‖(v : 𝓔 n)‖ := by
         exact fun v => norm_nonneg _;
       exact ⟨ 0, Set.forall_mem_range.mpr h_nonneg ⟩;
       exacts [ ⟨ v, hv_L, hv_ne ⟩, hv_norm ]
@@ -419,7 +419,7 @@ theorem GeometricLattice.successiveMinima_one (L : GeometricLattice n n) :
 /-
  Immediate corollary from the definition: The norm of any non-zero lattice vector is at least the first successive minimum.
 -/
-lemma GeometricLattice.norm_ge_successiveMinima_one (L : GeometricLattice n n) (v : 𝔼 n)
+lemma GeometricLattice.norm_ge_successiveMinima_one (L : GeometricLattice n n) (v : 𝓔 n)
     (hv : v ∈ L.nonzeroVectors) :
     L.successiveMinima ⟨0, n.pos⟩ ≤ ‖v‖ := by
       have := hv;
@@ -467,7 +467,7 @@ theorem GeometricLattice.successiveMinima_mono (L : GeometricLattice n n)
     · intro v hv
       exact hS_props v (hT_sub hv)
     · -- Since T is a subset of S and S is linearly independent, T must also be linearly independent.
-      have hT_li : LinearIndependent ℝ (fun v : S => (v : 𝔼 n)) := by
+      have hT_li : LinearIndependent ℝ (fun v : S => (v : 𝓔 n)) := by
         -- Since $T$ is a subset of $S$, and $S$ is linearly independent, any subset of $S$ is also linearly independent. Therefore, the function from $T$ to the vector space is linearly independent.
         apply hS_li;
       convert hT_li.comp _ _;
@@ -534,7 +534,7 @@ theorem GeometricLattice.successiveMinima_scale (L : GeometricLattice n n) (i : 
   have h_scale : ∀ r : ℝ, (Module.rank ℝ (Submodule.span ℝ {v | v ∈ (L.smul s ‹_›) ∧ v ≠ 0 ∧ ‖v‖ ≤ r})) = (Module.rank ℝ (Submodule.span ℝ {v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s})) := by
     intro r;
     -- By definition of scaling, we have that $v \in (L.smul s ‹_›)$ if and only if $v = s \cdot u$ for some $u \in L$.
-    have h_scale : {v : 𝔼 n | v ∈ (L.smul s ‹_›) ∧ v ≠ 0 ∧ ‖v‖ ≤ r} = {s • u | u ∈ {v : 𝔼 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s}} := by
+    have h_scale : {v : 𝓔 n | v ∈ (L.smul s ‹_›) ∧ v ≠ 0 ∧ ‖v‖ ≤ r} = {s • u | u ∈ {v : 𝓔 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s}} := by
       ext v; simp [GeometricLattice.smul];
       constructor;
       · intro hv
@@ -561,11 +561,11 @@ theorem GeometricLattice.successiveMinima_scale (L : GeometricLattice n n) (i : 
           exact h_comb.symm ▸ Submodule.sum_mem _ fun i _ => Submodule.smul_mem _ _ ( Submodule.subset_span <| Set.mem_range_self _ );
         exact ⟨ h_smul, by rwa [ le_div_iff₀' hs ] at hu₃ ⟩;
     rw [ h_scale ];
-    rw [ show { x : LatticeCrypto.Utils.Vec.𝔼 n | ∃ u ∈ { v : LatticeCrypto.Utils.Vec.𝔼 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s }, s • u = x } = ( fun u => s • u ) '' { v : LatticeCrypto.Utils.Vec.𝔼 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s } by aesop, Submodule.span_eq_span ];
+    rw [ show { x : LatticeCrypto.Utils.Vec.𝓔 n | ∃ u ∈ { v : LatticeCrypto.Utils.Vec.𝓔 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s }, s • u = x } = ( fun u => s • u ) '' { v : LatticeCrypto.Utils.Vec.𝓔 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s } by aesop, Submodule.span_eq_span ];
     · exact Set.image_subset_iff.mpr fun x hx => Submodule.smul_mem _ _ ( Submodule.subset_span hx );
     · intro v hv; exact (by
       -- Since $v$ is in the set ${v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s}$, we have $s • v$ in the image of this set under the function $u ↦ s • u$.
-      have h_image : s • v ∈ (fun u => s • u) '' {v : LatticeCrypto.Utils.Vec.𝔼 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s} := by
+      have h_image : s • v ∈ (fun u => s • u) '' {v : LatticeCrypto.Utils.Vec.𝓔 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s} := by
         exact ⟨ v, hv, rfl ⟩;
       exact Submodule.smul_mem _ ( s⁻¹ ) ( Submodule.subset_span h_image ) |> fun h => by simpa [ hs.ne' ] using h;);
   -- By definition of successive minima, we know that if the dimension of the span is the same, then the infimum of the radii is the same.
@@ -638,10 +638,10 @@ theorem GeometricLattice.successiveMinima_attained (L : GeometricLattice n n) (i
   -- Abbreviate the defining set of λᵢ
   let A : Set ℝ :=
     { r : ℝ | 0 < r ∧
-      ∃ (S : Finset (𝔼 n)),
+      ∃ (S : Finset (𝓔 n)),
         S.card = i.val + 1 ∧
         (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r) ∧
-        LinearIndependent ℝ (fun v : S => (v : 𝔼 n)) }
+        LinearIndependent ℝ (fun v : S => (v : 𝓔 n)) }
 
   have hA_def :
       L.successiveMinima i = sInf A := rfl
@@ -649,11 +649,11 @@ theorem GeometricLattice.successiveMinima_attained (L : GeometricLattice n n) (i
   -- Define the "snapped" set of candidate radii: max norm inside the finite set S
   let B : Set ℝ :=
     { r : ℝ |
-        ∃ (S : Finset (𝔼 n)) (v : 𝔼 n),
+        ∃ (S : Finset (𝓔 n)) (v : 𝓔 n),
           v ∈ S ∧
           S.card = i.val + 1 ∧
           (∀ w ∈ S, w ∈ L ∧ w ≠ 0 ∧ ‖w‖ ≤ r) ∧
-          LinearIndependent ℝ (fun w : S => (w : 𝔼 n)) ∧
+          LinearIndependent ℝ (fun w : S => (w : 𝓔 n)) ∧
           r = ‖v‖ ∧
           ∀ w ∈ S, ‖w‖ ≤ ‖v‖ }
 
@@ -691,7 +691,7 @@ theorem GeometricLattice.successiveMinima_attained (L : GeometricLattice n n) (i
 
     have hb_le_r : b ≤ r := by
       -- Every w in S has ‖w‖ ≤ r, so in particular the maximum does
-      have := ((Finset.sup'_le_iff (f := fun w : (𝔼 n) => ‖w‖) (a := r) (s := S)) hS_nonempty).mpr ?h
+      have := ((Finset.sup'_le_iff (f := fun w : (𝓔 n) => ‖w‖) (a := r) (s := S)) hS_nonempty).mpr ?h
       · simpa [b, hv_eq] using this
       . intro w hw
         exact (hS_props w hw).2.2  -- ‖w‖ ≤ r
@@ -800,15 +800,15 @@ noncomputable section Aristotle_lemmas
 The i-th successive minimum is attained by a set of i+1 linearly independent lattice vectors.
 -/
 theorem successiveMinima_attained_set (L : GeometricLattice n n) (i : Fin n) :
-    ∃ S : Finset (𝔼 n),
+    ∃ S : Finset (𝓔 n),
       S.card = i.val + 1 ∧
       (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ L.successiveMinima i) ∧
-      LinearIndependent ℝ (fun v : S => (v : 𝔼 n)) := by
+      LinearIndependent ℝ (fun v : S => (v : 𝓔 n)) := by
         -- By definition of $L.successiveMinima$, for any $\epsilon > 0$, there exists $r < L.successiveMinima i + \epsilon$ and a set $S$ of $i+1$ linearly independent lattice vectors with norms $\le r$.
-        have h_eps : ∀ ε > 0, ∃ r, 0 < r ∧ r < L.successiveMinima i + ε ∧ ∃ S : Finset (𝔼 n),
+        have h_eps : ∀ ε > 0, ∃ r, 0 < r ∧ r < L.successiveMinima i + ε ∧ ∃ S : Finset (𝓔 n),
               S.card = i.val + 1 ∧
                   (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r) ∧
-                  LinearIndependent ℝ (fun v : S => (v : 𝔼 n)) := by
+                  LinearIndependent ℝ (fun v : S => (v : 𝓔 n)) := by
                     intro ε ε_pos;
                     have := exists_lt_of_csInf_lt ( show { r : ℝ | 0 < r ∧ ( ∃ ( S : Finset ( EuclideanSpace ℝ ( Fin n ) ) ), S.card = ( i : ℕ ) + 1 ∧ ( ∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r ) ∧ LinearIndependent ℝ ( fun v : S => ( v : EuclideanSpace ℝ ( Fin n ) ) ) ) }.Nonempty from ?_ ) ( lt_add_of_pos_right _ ε_pos );
                     · exact ⟨ this.choose, this.choose_spec.1.1, this.choose_spec.2, this.choose_spec.1.2 ⟩;
@@ -817,12 +817,12 @@ theorem successiveMinima_attained_set (L : GeometricLattice n n) (i : Fin n) :
         choose! f hf1 hf2 hf3 using fun n : ℕ => h_eps ( 1 / ( n + 1 ) ) ( by positivity );
         choose S hS1 hS2 hS3 using hf3;
         -- Since the lattice is discrete, the set of norms of lattice vectors is discrete. In particular, in the ball of radius $L.successiveMinima i + 1$, there are finitely many lattice vectors.
-        have h_finite : Set.Finite {v : 𝔼 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ L.successiveMinima i + 1} := by
+        have h_finite : Set.Finite {v : 𝓔 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ L.successiveMinima i + 1} := by
           exact Set.Finite.subset ( L.finite_intersection_closedBall ( L.successiveMinima i + 1 ) ) fun x hx => ⟨ hx.1, hx.2.2 ⟩;
         -- Since $S_n$ is a subset of the finite set of lattice vectors in the ball of radius $L.successiveMinima i + 1$, there must be some $S$ that appears infinitely often in the sequence $S_n$.
-        obtain ⟨S_inf, hS_inf⟩ : ∃ S_inf : Finset (𝔼 n), Set.Infinite {n : ℕ | S n = S_inf} := by
+        obtain ⟨S_inf, hS_inf⟩ : ∃ S_inf : Finset (𝓔 n), Set.Infinite {n : ℕ | S n = S_inf} := by
           by_contra h_contra;
-          have h_finite_S : Set.Finite {S_inf : Finset (𝔼 n) | ∃ n, S n = S_inf ∧ S_inf ⊆ h_finite.toFinset} := by
+          have h_finite_S : Set.Finite {S_inf : Finset (𝓔 n) | ∃ n, S n = S_inf ∧ S_inf ⊆ h_finite.toFinset} := by
             exact Set.Finite.subset ( Set.toFinite ( Finset.powerset h_finite.toFinset ) ) fun x hx => by aesop;
           have h_finite_S : Set.Finite {n : ℕ | S n ⊆ h_finite.toFinset} := by
             exact Set.Finite.subset ( h_finite_S.biUnion fun x hx => Set.not_infinite.mp fun hi => h_contra ⟨ x, hi ⟩ ) fun n hn => by aesop;
@@ -839,16 +839,16 @@ theorem successiveMinima_attained_set (L : GeometricLattice n n) (i : Fin n) :
 /-
 If a set of k+1 linearly independent lattice vectors exists, at least one must have norm >= lambda_k.
 -/
-theorem norm_ge_successiveMinima (L : GeometricLattice n n) (k : Fin n) (s : Finset (𝔼 n))
+theorem norm_ge_successiveMinima (L : GeometricLattice n n) (k : Fin n) (s : Finset (𝓔 n))
     (h_card : s.card = k.val + 1)
-    (h_li : LinearIndependent ℝ (fun v : s => (v : 𝔼 n)))
+    (h_li : LinearIndependent ℝ (fun v : s => (v : 𝓔 n)))
     (h_mem : ∀ v ∈ s, v ∈ L.nonzeroVectors) :
     ∃ v ∈ s, L.successiveMinima k ≤ ‖v‖ := by
       by_contra h_contra;
       -- Let $r = \max_{v \in s} \|v\|$.
       obtain ⟨r, hr⟩ : ∃ r : ℝ, ∀ v ∈ s, ‖v‖ ≤ r ∧ r < L.successiveMinima k := by
         by_cases hs : s.Nonempty;
-        · obtain ⟨r, hr⟩ : ∃ r : ℝ, r ∈ Set.image (fun v : 𝔼 n => ‖v‖) s ∧ ∀ v ∈ Set.image (fun v : 𝔼 n => ‖v‖) s, v ≤ r := by
+        · obtain ⟨r, hr⟩ : ∃ r : ℝ, r ∈ Set.image (fun v : 𝓔 n => ‖v‖) s ∧ ∀ v ∈ Set.image (fun v : 𝓔 n => ‖v‖) s, v ≤ r := by
             exact ⟨ Finset.max' ( s.image fun v => ‖v‖ ) ⟨ _, Finset.mem_image_of_mem _ hs.choose_spec ⟩, by simpa using Finset.max'_mem ( s.image fun v => ‖v‖ ) ⟨ _, Finset.mem_image_of_mem _ hs.choose_spec ⟩, fun v hv => Finset.le_max' _ _ <| by simpa using hv ⟩;
           aesop;
         · aesop;
@@ -861,7 +861,7 @@ theorem norm_ge_successiveMinima (L : GeometricLattice n n) (k : Fin n) (s : Fin
 Helper lemma: A specific configuration of vectors with small norms leads to a contradiction.
 -/
 lemma contradiction_of_small_norm (L : GeometricLattice n n) (j : Fin n) (hj : j.val + 1 < n)
-    (x : Fin (j.val + 1) → 𝔼 n) (v : 𝔼 n)
+    (x : Fin (j.val + 1) → 𝓔 n) (v : 𝓔 n)
     (h_li : LinearIndependent ℝ (Fin.snoc x v))
     (h_mem_x : ∀ i, x i ∈ L.nonzeroVectors)
     (h_mem_v : v ∈ L.nonzeroVectors)
@@ -886,7 +886,7 @@ lemma contradiction_of_small_norm (L : GeometricLattice n n) (j : Fin n) (hj : j
 Given a vector with norm strictly between lambda_0 and lambda_k, there exists an index j < k such that lambda_j <= norm < lambda_{j+1}.
 -/
 lemma exists_index_between_norms (L : GeometricLattice n n) (k : ℕ) (hk : k < n)
-    (v : 𝔼 n) (hv_mem : v ∈ L.nonzeroVectors) (hv_lt : ‖v‖ < L.successiveMinima ⟨k, hk⟩) :
+    (v : 𝓔 n) (hv_mem : v ∈ L.nonzeroVectors) (hv_lt : ‖v‖ < L.successiveMinima ⟨k, hk⟩) :
     ∃ j : Fin k,
       L.successiveMinima (Fin.castLE (le_of_lt hk) j) ≤ ‖v‖ ∧
       ‖v‖ < L.successiveMinima ⟨j.val + 1, lt_of_le_of_lt (Nat.succ_le_of_lt j.is_lt) hk⟩ := by
@@ -904,11 +904,11 @@ lemma exists_index_between_norms (L : GeometricLattice n n) (k : ℕ) (hk : k < 
 Helper lemma: If we find a vector with norm strictly less than lambda_k that is linearly independent of the first k vectors, we get a contradiction.
 -/
 lemma inductive_step_contradiction (L : GeometricLattice n n) (k : ℕ) (hk : k < n)
-  (x : Fin k → 𝔼 n)
+  (x : Fin k → 𝓔 n)
   (h_li : LinearIndependent ℝ x)
   (h_x_mem : ∀ i, x i ∈ L.nonzeroVectors)
   (h_norm : ∀ i : Fin k, ‖x i‖ = L.successiveMinima (Fin.castLE (le_of_lt hk) i))
-  (v : 𝔼 n)
+  (v : 𝓔 n)
   (hv_mem : v ∈ L.nonzeroVectors)
   (hv_li : LinearIndependent ℝ (Fin.snoc x v))
   (hv_lt : ‖v‖ < L.successiveMinima ⟨k, hk⟩) : False := by
@@ -950,7 +950,7 @@ lemma inductive_step_contradiction (L : GeometricLattice n n) (k : ℕ) (hk : k 
 Inductive step: given k linearly independent vectors with correct norms, we can find a (k+1)-th vector.
 -/
 lemma inductive_step_successiveMinima (L : GeometricLattice n n) (k : ℕ) (hk : k < n)
-  (x : Fin k → 𝔼 n)
+  (x : Fin k → 𝓔 n)
   (h_li : LinearIndependent ℝ x)
   (h_x_mem : ∀ i, x i ∈ L.nonzeroVectors)
   (h_norm : ∀ i : Fin k, ‖x i‖ = L.successiveMinima (Fin.castLE (le_of_lt hk) i)) :
@@ -960,7 +960,7 @@ lemma inductive_step_successiveMinima (L : GeometricLattice n n) (k : ℕ) (hk :
       -- Since $\dim(\text{span}(x)) = k$, there is $v \in S$ not in $\text{span}(x)$.
       obtain ⟨ v, hvS, hv_not_span ⟩ : ∃ v ∈ S, v ∉ Submodule.span ℝ (Set.range x) := by
         by_contra! h_contra;
-        have h_span : Submodule.span ℝ (Set.range (fun v : S => (v : 𝔼 n))) ≤ Submodule.span ℝ (Set.range x) := by
+        have h_span : Submodule.span ℝ (Set.range (fun v : S => (v : 𝓔 n))) ≤ Submodule.span ℝ (Set.range x) := by
           exact Submodule.span_le.mpr ( Set.range_subset_iff.mpr fun v => h_contra _ v.2 );
         have := Submodule.finrank_mono h_span; simp_all +decide [ finrank_span_eq_card ] ;
       -- Then $\{x_0, \dots, x_{k-1}, v\}$ is linearly independent.
@@ -976,7 +976,7 @@ lemma inductive_step_successiveMinima (L : GeometricLattice n n) (k : ℕ) (hk :
 There exists a partial basis of size k satisfying the successive minima conditions.
 -/
 lemma exists_partial_basis (L : GeometricLattice n n) (k : ℕ) (hk : k ≤ n) :
-  ∃ x : Fin k → 𝔼 n,
+  ∃ x : Fin k → 𝓔 n,
     LinearIndependent ℝ x ∧
     ∀ i : Fin k, x i ∈ L.nonzeroVectors ∧ ‖x i‖ = L.successiveMinima (Fin.castLE hk i) := by
       induction k <;> aesop;
@@ -992,11 +992,11 @@ end Aristotle_lemmas
 /-! There are n linearly independent vectors in the lattice attaining the successive minima. -/
 theorem GeometricLattice.linearIndependent_successiveMinima_attained
     (L : GeometricLattice n n) :
-  ∃ (x : Fin n → 𝔼 n),
+  ∃ (x : Fin n → 𝓔 n),
     (∀ i : Fin n, x i ∈ L.nonzeroVectors ∧ ‖x i‖ = L.successiveMinima i) ∧
     LinearIndependent ℝ x := by
   classical
-  have h : ∃ x : Fin n → 𝔼 n, LinearIndependent ℝ x ∧ ∀ i : Fin n, x i ∈ L.nonzeroVectors ∧ ‖x i‖ = L.successiveMinima i := by
+  have h : ∃ x : Fin n → 𝓔 n, LinearIndependent ℝ x ∧ ∀ i : Fin n, x i ∈ L.nonzeroVectors ∧ ‖x i‖ = L.successiveMinima i := by
     convert exists_partial_basis L n le_rfl;
   tauto
 

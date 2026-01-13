@@ -46,20 +46,20 @@ noncomputable section membership
 -/
 
 /-- Membership in a geometric lattice. -/
-instance : Membership (𝔼 n) (GeometricLattice n k) where
+instance : Membership (𝓔 n) (GeometricLattice n k) where
   mem L v := v ∈ L.carrier
 
 /-- A vector is in the lattice iff it is in the carrier. -/
-theorem GeometricLattice.mem_def (L : GeometricLattice n k) (v : 𝔼 n) :
+theorem GeometricLattice.mem_def (L : GeometricLattice n k) (v : 𝓔 n) :
     v ∈ L ↔ v ∈ L.carrier := Iff.rfl
 
 /-- A vector is in the lattice iff it can be expressed as an integer linear combination of basis vectors. -/
-theorem GeometricLattice.mem_iff_zspan (L : GeometricLattice n k) (v : 𝔼 n) :
+theorem GeometricLattice.mem_iff_zspan (L : GeometricLattice n k) (v : 𝓔 n) :
     v ∈ L ↔ v ∈ Submodule.span ℤ (Set.range L.basis.cols) := by
   rw [mem_def, L.carrier_eq]
 
 /-- A vector is in the lattice iff there exist integer coefficients such that v = ∑ cᵢ bᵢ. -/
-theorem GeometricLattice.mem_iff_exists_coeffs (L : GeometricLattice n k) (v : 𝔼 n) :
+theorem GeometricLattice.mem_iff_exists_coeffs (L : GeometricLattice n k) (v : 𝓔 n) :
     v ∈ L ↔ ∃ c : Fin k → ℤ, v = ∑ i, c i • L.basis.cols i := by
   rw [mem_iff_zspan]
   constructor
@@ -75,30 +75,30 @@ theorem GeometricLattice.mem_iff_exists_coeffs (L : GeometricLattice n k) (v : �
     exact Submodule.smul_mem _ _ (Submodule.subset_span (Set.mem_range_self i))
 
 /-- Zero is always in the lattice. -/
-theorem GeometricLattice.zero_mem (L : GeometricLattice n k) : (0 : 𝔼 n) ∈ L := by
+theorem GeometricLattice.zero_mem (L : GeometricLattice n k) : (0 : 𝓔 n) ∈ L := by
   rw [mem_def]
   exact L.carrier.zero_mem
 
 /-- The lattice is closed under addition. -/
-theorem GeometricLattice.add_mem (L : GeometricLattice n k) {v w : 𝔼 n}
+theorem GeometricLattice.add_mem (L : GeometricLattice n k) {v w : 𝓔 n}
     (hv : v ∈ L) (hw : w ∈ L) : v + w ∈ L := by
   rw [mem_def] at *
   exact L.carrier.add_mem hv hw
 
 /-- The lattice is closed under negation. -/
-theorem GeometricLattice.neg_mem (L : GeometricLattice n k) {v : 𝔼 n}
+theorem GeometricLattice.neg_mem (L : GeometricLattice n k) {v : 𝓔 n}
     (hv : v ∈ L) : -v ∈ L := by
   rw [mem_def] at *
   exact L.carrier.neg_mem hv
 
 /-- The lattice is closed under subtraction. -/
-theorem GeometricLattice.sub_mem (L : GeometricLattice n k) {v w : 𝔼 n}
+theorem GeometricLattice.sub_mem (L : GeometricLattice n k) {v w : 𝓔 n}
     (hv : v ∈ L) (hw : w ∈ L) : v - w ∈ L := by
   rw [mem_def] at *
   exact L.carrier.sub_mem hv hw
 
 /-- The lattice is closed under integer scalar multiplication. -/
-theorem GeometricLattice.zsmul_mem (L : GeometricLattice n k) {v : 𝔼 n}
+theorem GeometricLattice.zsmul_mem (L : GeometricLattice n k) {v : 𝓔 n}
     (hv : v ∈ L) (m : ℤ) : m • v ∈ L := by
   rw [mem_def] at *
   bound
@@ -114,12 +114,12 @@ theorem GeometricLattice.basis_mem (L : GeometricLattice n k) (i : Fin k) :
 -/
 
 /-- The representation of a lattice vector as integer coordinates with respect to the basis. -/
-noncomputable def LatticeBasis.repr (B : LatticeBasis n k) (v : 𝔼 n)
+noncomputable def LatticeBasis.repr (B : LatticeBasis n k) (v : 𝓔 n)
     (hv : v ∈ B.toLattice) : Fin k → ℤ :=
   B.asZSpanBasis.repr ⟨v, B.toLattice.carrier_eq ▸ hv⟩
 
 /-- The representation gives the correct coefficients. -/
-theorem LatticeBasis.repr_spec (B : LatticeBasis n k) (v : 𝔼 n)
+theorem LatticeBasis.repr_spec (B : LatticeBasis n k) (v : 𝓔 n)
     (hv : v ∈ B.toLattice) : v = ∑ i, (B.repr v hv i) • B.basis i := by
   rw [GeometricLattice.mem_def] at hv
   have hv' : v ∈ Submodule.span ℤ (Set.range B.basis) := B.toLattice.carrier_eq ▸ hv
@@ -133,7 +133,7 @@ theorem LatticeBasis.repr_spec (B : LatticeBasis n k) (v : 𝔼 n)
 
 /-- Constructing a lattice vector from coefficients. -/
 noncomputable def LatticeBasis.ofCoeffs (B : LatticeBasis n k)
-    (c : Fin k → ℤ) : 𝔼 n :=
+    (c : Fin k → ℤ) : 𝓔 n :=
   ∑ i, c i • B.basis i
 
 /-- A vector constructed from coefficients is in the lattice. -/
@@ -164,7 +164,7 @@ theorem LatticeBasis.repr_ofCoeffs (B : LatticeBasis n k)
   exact congr_fun (h_unique _ _ h_eq.symm) i
 
 /-- ofCoeffs is a left inverse of repr. -/
-theorem LatticeBasis.ofCoeffs_repr (B : LatticeBasis n k) (v : 𝔼 n)
+theorem LatticeBasis.ofCoeffs_repr (B : LatticeBasis n k) (v : 𝓔 n)
     (hv : v ∈ B.toLattice) : B.ofCoeffs (B.repr v hv) = v := by
   rw [ofCoeffs, ← repr_spec B v hv]
 
@@ -178,7 +178,7 @@ end membership
 noncomputable section coset
 
 /-- The coset of a vector v with respect to lattice L: v + L -/
-def GeometricLattice.coset (L : GeometricLattice n k) (v : 𝔼 n) : Set (𝔼 n) :=
+def GeometricLattice.coset (L : GeometricLattice n k) (v : 𝓔 n) : Set (𝓔 n) :=
   { x | ∃ l ∈ L.carrier, x = v + l }
 
 -- Notation for cosets: v +ᶜ L
@@ -186,14 +186,14 @@ notation:65 v " +ᶜ " L:65 => GeometricLattice.coset L v
 
 /-- The quotient space ℝⁿ / L -/
 def GeometricLattice.Quotient (L : GeometricLattice n k) : Type _ :=
-  (𝔼 n) ⧸ L.carrier
+  (𝓔 n) ⧸ L.carrier
 
 /-- The canonical projection map π : ℝⁿ → ℝⁿ/L -/
-def GeometricLattice.mk_quotient (L : GeometricLattice n k) (v : 𝔼 n) : L.Quotient :=
+def GeometricLattice.mk_quotient (L : GeometricLattice n k) (v : 𝓔 n) : L.Quotient :=
   QuotientAddGroup.mk v
 
 /-- Two vectors are in the same coset iff their difference is in the lattice -/
-theorem GeometricLattice.coset_eq_iff (L : GeometricLattice n k) (v w : 𝔼 n) :
+theorem GeometricLattice.coset_eq_iff (L : GeometricLattice n k) (v w : 𝓔 n) :
     (v +ᶜ L) = (w +ᶜ L) ↔ (v - w) ∈ L.carrier := by
   constructor
   · intro h
@@ -249,7 +249,7 @@ def GeometricLattice.smul (L : GeometricLattice n k) (c : ℝ) (hc : c ≠ 0) : 
 
 /-- Scaling preserves carrier equivalence (basically the theorem ZSpan.smul) -/
 theorem GeometricLattice.smul_carrier (L : GeometricLattice n k) (c : ℝ) (hc : c ≠ 0) :
-    (L.smul c hc).carrier = L.carrier.map (DistribMulAction.toLinearMap ℤ (𝔼 n) c) := by
+    (L.smul c hc).carrier = L.carrier.map (DistribMulAction.toLinearMap ℤ (𝓔 n) c) := by
   simp only [GeometricLattice.smul, LatticeBasis.toLattice, LatticeBasis.smul]
   simp only [LatticeBasis.cols]
   ext x
@@ -277,7 +277,7 @@ theorem GeometricLattice.smul_carrier (L : GeometricLattice n k) (c : ℝ) (hc :
     intro p hp
     -- Need to show x ∈ p where p contains all scaled basis vectors
     -- Since $y$ is in the submodule spanned by the range of $L.basis.cols$, and the scaled basis is in $p$, then multiplying $y$ by $c$ should keep it in $p$ because $p$ is closed under scalar multiplication by integers.
-    have h_mul : ∀ (m : ℤ) (v : 𝔼 n), v ∈ p → m • v ∈ p := by
+    have h_mul : ∀ (m : ℤ) (v : 𝓔 n), v ∈ p → m • v ∈ p := by
       exact fun m v hv => p.smul_mem m hv;
     -- Since $y$ is in the submodule spanned by the range of $L.basis.cols$, we can write $y$ as a finite sum of integer multiples of the basis vectors.
     obtain ⟨m, hm⟩ : ∃ m : Fin k → ℤ, y = ∑ i, m i • L.basis.basis i := by
@@ -427,7 +427,7 @@ def GeometricLattice.dual (L : GeometricLattice n n) : GeometricLattice n n :=
 /--
   The set of vectors with integral inner product against all lattice vectors.
 -/
-def integralDualSet (L : GeometricLattice n n) : Set (𝔼 n) :=
+def integralDualSet (L : GeometricLattice n n) : Set (𝓔 n) :=
   { y | ∀ x ∈ L.carrier, ∃ m : ℤ, ⟪x, y⟫ = (m : ℝ) }
 
 /--
@@ -435,7 +435,7 @@ def integralDualSet (L : GeometricLattice n n) : Set (𝔼 n) :=
   This is the key characterization: L* = { y ∈ ℝⁿ | ∀ x ∈ L, ⟨x, y⟩ ∈ ℤ }
 -/
 theorem GeometricLattice.dual_carrier_eq_integralDual (L : GeometricLattice n n) :
-    (L.dual.carrier : Set (𝔼 n)) = integralDualSet L := by
+    (L.dual.carrier : Set (𝓔 n)) = integralDualSet L := by
   ext y
   simp only [integralDualSet, Set.mem_setOf_eq]
   constructor
@@ -478,7 +478,7 @@ theorem GeometricLattice.dual_carrier_eq_integralDual (L : GeometricLattice n n)
     -- Let's express y as a linear combination of the dual basis vectors.
     obtain ⟨a, ha⟩ : ∃ a : Fin n → ℝ, y = ∑ i, a i • L.dual.basis.cols i := by
       -- By definition of dual basis, we know that every element in ℝⁿ can be expressed as a linear combination of the dual basis vectors.
-      have h_dual_basis : ∀ v : 𝔼 n, ∃ a : Fin n → ℝ, v = ∑ i, a i • L.dual.basis.cols i := by
+      have h_dual_basis : ∀ v : 𝓔 n, ∃ a : Fin n → ℝ, v = ∑ i, a i • L.dual.basis.cols i := by
         have h_dual_basis : LinearIndependent ℝ (L.dual.basis.cols) := by
           exact L.dual.basis.li;
         have h_dual_basis : Submodule.span ℝ (Set.range L.dual.basis.cols) = ⊤ := by
@@ -507,7 +507,7 @@ theorem GeometricLattice.dual_carrier_eq_integralDual (L : GeometricLattice n n)
 /--
   A vector is in the dual lattice iff it has integral inner product with all basis vectors.
 -/
-theorem GeometricLattice.mem_dual_iff_integral_inner_basis (L : GeometricLattice n n) (y : 𝔼 n) :
+theorem GeometricLattice.mem_dual_iff_integral_inner_basis (L : GeometricLattice n n) (y : 𝓔 n) :
     y ∈ L.dual.carrier ↔ ∀ i : Fin n, ∃ m : ℤ, ⟪L.basis.cols i, y⟫ = (m : ℝ) := by
   constructor
   · intro hy i

@@ -119,7 +119,7 @@ end min_norm
 noncomputable section independence
 
 /-- Notation for n-dimensional Euclidean space over ℝ. -/
-private abbrev 𝔼 (n : ℕ+) := EuclideanSpace ℝ (Fin n)
+-- private abbrev 𝓔 (n : ℕ+) := EuclideanSpace ℝ (Fin n)
 
 lemma Z_linearIndependent_if_R_linearIndependent {v : Fin k → Fin n → ℝ} (li : LinearIndependent ℝ v) : LinearIndependent ℤ v := by
   have h_int_lin_ind : ∀ (c : Fin k → ℤ), (∑ i, c i • v i = 0) → (∀ i, c i = 0) := by
@@ -144,7 +144,7 @@ lemma Q_linearIndependent_if_R_linearIndependent {v : Fin k → Fin n → ℝ} (
 -/
 
 /-- Proof that any linearly independent set of k (k ≤ n) vectors over ℝⁿ has a discrete Z-span -/
-theorem discrete_zspan {v : Fin k → 𝔼 n} (li : LinearIndependent ℝ v) :
+theorem discrete_zspan {v : Fin k → 𝓔 n} (li : LinearIndependent ℝ v) :
     DiscreteTopology (Submodule.span ℤ (Set.range v) : Submodule ℤ (Fin n → ℝ)) := by
   -- 1. Extend v to a basis v' of ℝⁿ
   have hli : LinearIndepOn ℝ id (Set.range v) := LinearIndependent.linearIndepOn_id li
@@ -378,8 +378,8 @@ theorem euc_gramSchmidt_matrix_det_abs {n : ℕ+} (M : Matrix (Fin n) (Fin n) �
   all_goals first | infer_instance | norm_cast;
   cases n using PNat.recOn <;> trivial
 
-noncomputable def Basis_of_gramSchmidtOrthonormalBasis {n : ℕ+} (b : Module.Basis (Fin n) ℝ (𝔼 n)) : Module.Basis (Fin n) ℝ (𝔼 n) := by
-  have h_eq : Module.finrank ℝ (𝔼 n) = Fintype.card (Fin n) := by bound
+noncomputable def Basis_of_gramSchmidtOrthonormalBasis {n : ℕ+} (b : Module.Basis (Fin n) ℝ (𝓔 n)) : Module.Basis (Fin n) ℝ (𝓔 n) := by
+  have h_eq : Module.finrank ℝ (𝓔 n) = Fintype.card (Fin n) := by bound
   exact (InnerProductSpace.gramSchmidtOrthonormalBasis h_eq b).toBasis
 
 

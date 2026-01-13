@@ -59,25 +59,25 @@ noncomputable section blichfeldt
 
   This is a fundamental result in the geometry of numbers.
 -/
-theorem GeometricLattice.blichfeldt (L : GeometricLattice n n) (S : Set (𝔼 n))
+theorem GeometricLattice.blichfeldt (L : GeometricLattice n n) (S : Set (𝓔 n))
     (hS_meas : MeasurableSet S)
     (hS_vol : L.det < (lebesgueMeasure S).toReal) :
-    ∃ x y : 𝔼 n, x ∈ S ∧ y ∈ S ∧ x ≠ y ∧ (x - y) ∈ L := by
+    ∃ x y : 𝓔 n, x ∈ S ∧ y ∈ S ∧ x ≠ y ∧ (x - y) ∈ L := by
   -- Let P be the fundamental parallelepiped of L
   let P := L.basis.fundamentalDomain
 
   -- For each lattice point x ∈ L, define Sₓ = S ∩ (x + P)
-  let S_x := fun (x : L.carrier) => S ∩ ((x : 𝔼 n) +ᵥ P)
+  let S_x := fun (x : L.carrier) => S ∩ ((x : 𝓔 n) +ᵥ P)
   -- Each S_x is measurable
   have h_S_meas : ∀ x : L.carrier, MeasurableSet (S_x x) := by
     intro x
     apply MeasurableSet.inter hS_meas
     -- x + P is measurable
-    exact MeasurableSet.const_vadd L.basis.fundamentalDomain_measurableSet (x : 𝔼 n)
+    exact MeasurableSet.const_vadd L.basis.fundamentalDomain_measurableSet (x : 𝓔 n)
 
 
   -- The sets {x + P : x ∈ L} partition ℝⁿ
-  have h_partition : ∀ v : 𝔼 n, ∃! x : L.carrier, v ∈ ((x : 𝔼 n) +ᵥ P) := by
+  have h_partition : ∀ v : 𝓔 n, ∃! x : L.carrier, v ∈ ((x : 𝓔 n) +ᵥ P) := by
     exact L.partition_by_fundamentalDomain
   -- Implication The Sₓ are pairwise disjoint
   have h_S_disjoint : Pairwise (Function.onFun Disjoint S_x) := by
@@ -104,14 +104,14 @@ theorem GeometricLattice.blichfeldt (L : GeometricLattice n n) (S : Set (𝔼 n)
       exact hv
 
   -- Define S̃ₓ = Sₓ - x (translate back to P)
-  let S_tilde := fun (x : L.carrier) => (fun v => v - (x : 𝔼 n)) '' (S_x x)
+  let S_tilde := fun (x : L.carrier) => (fun v => v - (x : 𝓔 n)) '' (S_x x)
 
   -- Then S̃ₓ ⊆ P and each S̃ₓ is measurable
   have h_S_tilde_meas : ∀ x : L.carrier, MeasurableSet (S_tilde x) := by
     intro x
     apply MeasurableSet.image_of_continuousOn_injOn
     · exact h_S_meas x
-    · exact continuous_sub_right (x : 𝔼 n) |>.continuousOn
+    · exact continuous_sub_right (x : 𝓔 n) |>.continuousOn
     · intro a _ b _ hab
       simpa using hab
 
@@ -129,10 +129,10 @@ theorem GeometricLattice.blichfeldt (L : GeometricLattice n n) (S : Set (𝔼 n)
   have h_vol_eq : ∀ x : L.carrier, lebesgueMeasure (S_tilde x) = lebesgueMeasure (S_x x) := by
     intro x
     simp only [S_tilde]
-    have : lebesgueMeasure ((fun v => v - (x : 𝔼 n)) '' (S_x x)) =
+    have : lebesgueMeasure ((fun v => v - (x : 𝓔 n)) '' (S_x x)) =
            lebesgueMeasure (S_x x) := by
       -- Subtracting x is the same as adding -x
-      have h_eq : (fun v => v - (x : 𝔼 n)) '' (S_x x) = (fun v => v + (-(x : 𝔼 n))) '' (S_x x) := by
+      have h_eq : (fun v => v - (x : 𝓔 n)) '' (S_x x) = (fun v => v + (-(x : 𝓔 n))) '' (S_x x) := by
         simp only [sub_eq_add_neg]
       rw [h_eq]
       -- Use translation invariance: μ(A + c) = μ(A)
@@ -270,16 +270,16 @@ theorem GeometricLattice.blichfeldt (L : GeometricLattice n n) (S : Set (𝔼 n)
   obtain ⟨w_y, ⟨hw_y_S, _⟩, hw_y_eq⟩ := hz_y
 
   -- So z + x and z + y are both in S
-  have h_zx_in_S : z + (x : 𝔼 n) ∈ S := by
+  have h_zx_in_S : z + (x : 𝓔 n) ∈ S := by
     convert hw_x_S using 1
     exact add_eq_of_eq_sub (id (Eq.symm hw_x_eq))
 
-  have h_zy_in_S : z + (y : 𝔼 n) ∈ S := by
+  have h_zy_in_S : z + (y : 𝓔 n) ∈ S := by
     convert hw_y_S using 1
     exact add_eq_of_eq_sub (id (Eq.symm hw_y_eq))
 
   -- Their difference is (z + x) - (z + y) = x - y ∈ L
-  use z + (x : 𝔼 n), z + (y : 𝔼 n)
+  use z + (x : 𝓔 n), z + (y : 𝓔 n)
   refine ⟨h_zx_in_S, h_zy_in_S, ?_, ?_⟩
   · -- z + x ≠ z + y since x ≠ y
     intro h
@@ -293,7 +293,7 @@ theorem GeometricLattice.blichfeldt (L : GeometricLattice n n) (S : Set (𝔼 n)
     exact L.sub_mem x.property y.property
 
 /-- Corollary: If vol(S) > det(L), then S - S contains a non-zero lattice point. -/
-theorem GeometricLattice.blichfeldt_diff (L : GeometricLattice n n) (S : Set (𝔼 n))
+theorem GeometricLattice.blichfeldt_diff (L : GeometricLattice n n) (S : Set (𝓔 n))
     (hS_meas : MeasurableSet S)
     (hS_vol : L.det < (lebesgueMeasure S).toReal) :
     ∃ v ∈ L.nonzeroVectors, v ∈ S - S := by
@@ -318,7 +318,7 @@ theorem GeometricLattice.blichfeldt_diff (L : GeometricLattice n n) (S : Set (�
   This is one of the most important results in the geometry of numbers.
 -/
 theorem GeometricLattice.minkowski_convex_body (L : GeometricLattice n n)
-    (S : Set (𝔼 n))
+    (S : Set (𝓔 n))
     (hS_convex : Convex ℝ S)
     (hS_symm : IsCentrallySymmetric S)
     (hS_meas : MeasurableSet S)
@@ -397,7 +397,7 @@ theorem GeometricLattice.minkowski_first (L : GeometricLattice n n) :
     exact unitBallVolume_pos -- The unit ball has positive measure
 
   -- Step 1: The open ball B(0, λ₁) contains no non-zero lattice points
-  have h_empty : ∀ v ∈ L.nonzeroVectors, v ∉ Metric.ball (0 : 𝔼 n) L.shortestVectorLength := by
+  have h_empty : ∀ v ∈ L.nonzeroVectors, v ∉ Metric.ball (0 : 𝓔 n) L.shortestVectorLength := by
     intro v ⟨hv_mem, hv_ne⟩ hv_ball
     simp only [Metric.mem_ball, dist_zero_right] at hv_ball
     -- ‖v‖ < λ₁ contradicts the definition of λ₁ as the infimum
@@ -411,12 +411,12 @@ theorem GeometricLattice.minkowski_first (L : GeometricLattice n n) :
 
   -- Step 2: By contrapositive of Minkowski's convex body theorem:
   -- If B(0, r) contains no non-zero lattice points, then vol(B(0, r)) ≤ 2^n * det(L)
-  have h_vol_bound : (lebesgueMeasure (Metric.ball (0 : 𝔼 n) L.shortestVectorLength)).toReal ≤
+  have h_vol_bound : (lebesgueMeasure (Metric.ball (0 : 𝓔 n) L.shortestVectorLength)).toReal ≤
                      (2 : ℝ) ^ (n : ℕ) * L.det := by
     by_contra h_contra
     push_neg at h_contra
     -- If vol(B(0, λ₁)) > 2^n * det(L), then by Minkowski there exists a non-zero lattice point in B(0, λ₁)
-    have h_meas : MeasurableSet (Metric.ball (0 : 𝔼 n) L.shortestVectorLength) :=
+    have h_meas : MeasurableSet (Metric.ball (0 : 𝓔 n) L.shortestVectorLength) :=
       Metric.isOpen_ball.measurableSet
     obtain ⟨v, hv, hv_in_ball⟩ := L.minkowski_convex_body
       (Metric.ball 0 L.shortestVectorLength)
@@ -427,7 +427,7 @@ theorem GeometricLattice.minkowski_first (L : GeometricLattice n n) :
     exact h_empty v hv hv_in_ball
 
   -- Step 3: Use ball_volume_eq: vol(B(0, λ₁)) = λ₁^n * vol(Bⁿ)
-  have h_vol_eq : (lebesgueMeasure (Metric.ball (0 : 𝔼 n) L.shortestVectorLength)).toReal =
+  have h_vol_eq : (lebesgueMeasure (Metric.ball (0 : 𝓔 n) L.shortestVectorLength)).toReal =
                   L.shortestVectorLength ^ (n : ℕ) * unitBallVolume n := by
     exact ball_volume_eq L.shortestVectorLength (le_of_lt hlambda_pos)
 
@@ -558,14 +558,14 @@ lemma exists_min_index_eq_successiveMinima (L : GeometricLattice n n) (k : Fin n
 
 
 /-- The ellipsoid T defined in the proof of Minkowski's Second Theorem. -/
-def minkowski_ellipsoid (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) : Set (𝔼 n) :=
+def minkowski_ellipsoid (b : Basis (Fin n) ℝ (𝓔 n)) (lambdas : Fin n → ℝ) : Set (𝓔 n) :=
   let b' := gramSchmidt ℝ b
   { y | ∑ i, (inner ℝ y (b' i) / (‖b' i‖ * lambdas i)) ^ 2 < 1 }
 
 /-
 The Minkowski ellipsoid is convex.
 -/
-theorem minkowski_ellipsoid_convex (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) (hlambdas : ∀ i, 0 < lambdas i) :
+theorem minkowski_ellipsoid_convex (b : Basis (Fin n) ℝ (𝓔 n)) (lambdas : Fin n → ℝ) :
     Convex ℝ (minkowski_ellipsoid b lambdas) := by
       let b_GS := gramSchmidt ℝ b
       intro x hx y hy a b ha hb hab;
@@ -586,7 +586,7 @@ theorem minkowski_ellipsoid_convex (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : F
 /-
 The Minkowski ellipsoid is centrally symmetric.
 -/
-theorem minkowski_ellipsoid_symmetric (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) :
+theorem minkowski_ellipsoid_symmetric (b : Basis (Fin n) ℝ (𝓔 n)) (lambdas : Fin n → ℝ) :
     IsCentrallySymmetric (minkowski_ellipsoid b lambdas) := by
       intro y hy; simp_all +decide [ minkowski_ellipsoid ];
       simpa only [ neg_div, neg_sq ] using hy
@@ -596,7 +596,7 @@ Definition of the scaling linear equivalence for the Minkowski ellipsoid.
 -/
 
 /-- The linear equivalence that scales the orthonormal basis vectors by lambdas. -/
-noncomputable def minkowski_scaling (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) (hlambdas : ∀ i, lambdas i ≠ 0) : (𝔼 n) ≃ₗ[ℝ] (𝔼 n) :=
+noncomputable def minkowski_scaling (b : Basis (Fin n) ℝ (𝓔 n)) (lambdas : Fin n → ℝ) (hlambdas : ∀ i, lambdas i ≠ 0) : (𝓔 n) ≃ₗ[ℝ] (𝓔 n) :=
   let u := Basis_of_gramSchmidtOrthonormalBasis b
   let f := Basis.constr u ℝ (fun i => lambdas i • u i)
   have h_inv : Function.Bijective f := by
@@ -612,7 +612,7 @@ noncomputable def minkowski_scaling (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : 
 The determinant of the scaling map is the product of the scaling factors.
 -/
 
-theorem minkowski_scaling_det (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) (hlambdas : ∀ i, lambdas i ≠ 0) :
+theorem minkowski_scaling_det (b : Basis (Fin n) ℝ (𝓔 n)) (lambdas : Fin n → ℝ) (hlambdas : ∀ i, lambdas i ≠ 0) :
     LinearMap.det (minkowski_scaling b lambdas hlambdas).toLinearMap = ∏ i, lambdas i := by
       -- The determinant of a diagonal matrix is the product of its diagonal entries.
       have h_det_diag : (LinearMap.toMatrix (Basis_of_gramSchmidtOrthonormalBasis b) (Basis_of_gramSchmidtOrthonormalBasis b) (minkowski_scaling b lambdas hlambdas)).det = ∏ i, lambdas i := by
@@ -624,7 +624,7 @@ theorem minkowski_scaling_det (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n 
           simp +decide [ LinearMap.toMatrix_apply, hij.ne' ];
       rw [ ← h_det_diag, LinearMap.det_toMatrix ]
 
-theorem minkowski_ellipsoid_mem_iff (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) (y : 𝔼 n) :
+theorem minkowski_ellipsoid_mem_iff (b : Basis (Fin n) ℝ (𝓔 n)) (lambdas : Fin n → ℝ) (y : 𝓔 n) :
     y ∈ minkowski_ellipsoid b lambdas ↔ ∑ i, (inner ℝ y (Basis_of_gramSchmidtOrthonormalBasis b i) / lambdas i) ^ 2 < 1 := by
       unfold LatticeCrypto.Foundations.Lattice.minkowski_ellipsoid; aesop;
       · convert a using 3 ; norm_num [ div_mul_eq_div_div ];
@@ -646,11 +646,11 @@ theorem minkowski_ellipsoid_mem_iff (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : 
 The Minkowski ellipsoid is the image of the unit ball under the scaling map.
 -/
 
-theorem minkowski_ellipsoid_eq_image_ball (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) (hlambdas : ∀ i, lambdas i ≠ 0) :
+theorem minkowski_ellipsoid_eq_image_ball (b : Basis (Fin n) ℝ (𝓔 n)) (lambdas : Fin n → ℝ) (hlambdas : ∀ i, lambdas i ≠ 0) :
     minkowski_ellipsoid b lambdas = (minkowski_scaling b lambdas hlambdas).toLinearMap '' (Metric.ball 0 1) := by
     by_contra h_contra;
-    have h_eq : ∀ x : LatticeCrypto.Utils.Vec.𝔼 n, x ∈ minkowski_ellipsoid b lambdas ↔ ‖(minkowski_scaling b lambdas hlambdas).symm x‖ < 1 := by
-      have h_eq : ∀ x : LatticeCrypto.Utils.Vec.𝔼 n, ‖(minkowski_scaling b lambdas hlambdas).symm x‖ ^ 2 = ∑ i, (inner ℝ x (Basis_of_gramSchmidtOrthonormalBasis b i) / lambdas i) ^ 2 := by
+    have h_eq : ∀ x : LatticeCrypto.Utils.Vec.𝓔 n, x ∈ minkowski_ellipsoid b lambdas ↔ ‖(minkowski_scaling b lambdas hlambdas).symm x‖ < 1 := by
+      have h_eq : ∀ x : LatticeCrypto.Utils.Vec.𝓔 n, ‖(minkowski_scaling b lambdas hlambdas).symm x‖ ^ 2 = ∑ i, (inner ℝ x (Basis_of_gramSchmidtOrthonormalBasis b i) / lambdas i) ^ 2 := by
         intro x
         have h_expand : (minkowski_scaling b lambdas hlambdas).symm x = ∑ i, (inner ℝ x (Basis_of_gramSchmidtOrthonormalBasis b i) / lambdas i) • Basis_of_gramSchmidtOrthonormalBasis b i := by
           have hT_inv : ∀ i, (minkowski_scaling b lambdas hlambdas).symm (Basis_of_gramSchmidtOrthonormalBasis b i) = (1 / lambdas i) • Basis_of_gramSchmidtOrthonormalBasis b i := by
@@ -676,7 +676,7 @@ theorem minkowski_ellipsoid_eq_image_ball (b : Basis (Fin n) ℝ (𝔼 n)) (lamb
       aesop;
       · rw [ ← Real.sqrt_sq ( norm_nonneg _ ) ];
         rw [ Real.sqrt_lt' ] <;> aesop;
-        exact?;
+        exact (minkowski_ellipsoid_mem_iff b lambdas x).mp a;
       · exact minkowski_ellipsoid_mem_iff b lambdas x |>.2 ( by nlinarith [ h_eq x, norm_nonneg ( ( minkowski_scaling b lambdas hlambdas ).symm x ) ] );
     refine' h_contra _;
     ext x; specialize h_eq x; aesop;
@@ -685,7 +685,7 @@ theorem minkowski_ellipsoid_eq_image_ball (b : Basis (Fin n) ℝ (𝔼 n)) (lamb
 The volume of the Minkowski ellipsoid is the product of the scaling factors times the volume of the unit ball.
 -/
 
-theorem minkowski_ellipsoid_volume (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) (hlambdas : ∀ i, 0 < lambdas i) :
+theorem minkowski_ellipsoid_volume (b : Basis (Fin n) ℝ (𝓔 n)) (lambdas : Fin n → ℝ) (hlambdas : ∀ i, 0 < lambdas i) :
     (lebesgueMeasure (minkowski_ellipsoid b lambdas)).toReal = (∏ i, lambdas i) * unitBallVolume n := by
       -- By the properties of the scaling map and the unit ball, we can rewrite the volume expression.
       have h_eq : minkowski_ellipsoid b lambdas = (minkowski_scaling b lambdas (fun i => ne_of_gt (hlambdas i))).toLinearMap '' Metric.ball 0 1 := by
@@ -699,7 +699,7 @@ Definition of the extremal basis for a geometric lattice.
 -/
 
 /-- The basis of vectors attaining the successive minima. -/
-noncomputable def GeometricLattice.extremalBasis (L : GeometricLattice n n) : Basis (Fin n) ℝ (𝔼 n) :=
+noncomputable def GeometricLattice.extremalBasis (L : GeometricLattice n n) : Basis (Fin n) ℝ (𝓔 n) :=
   let x := Classical.choose L.linearIndependent_successiveMinima_attained
   let h := Classical.choose_spec L.linearIndependent_successiveMinima_attained
   basisOfLinearIndependentOfCardEqFinrank h.2 (by simp [finrank_euclideanSpace])
@@ -708,7 +708,7 @@ noncomputable def GeometricLattice.extremalBasis (L : GeometricLattice n n) : Ba
 Inequality for the Minkowski ellipsoid sum for vectors in a subspace.
 -/
 
-lemma minkowski_ellipsoid_disjoint_ineq (b : Basis (Fin n) ℝ (𝔼 n)) (lambdas : Fin n → ℝ) (k : Fin n) (v : 𝔼 n)
+lemma minkowski_ellipsoid_disjoint_ineq (b : Basis (Fin n) ℝ (𝓔 n)) (lambdas : Fin n → ℝ) (k : Fin n) (v : 𝓔 n)
     (hv_span : v ∈ Submodule.span ℝ (Set.image b (Finset.univ.filter (fun i => i ≤ k))))
     (hlambdas_pos : ∀ i, 0 < lambdas i)
     (hlambdas_mono : ∀ i j, i ≤ j → j ≤ k → lambdas i ≤ lambdas j) :
@@ -783,7 +783,7 @@ lemma minkowski_ellipsoid_disjoint_ineq (b : Basis (Fin n) ℝ (𝔼 n)) (lambda
 If a lattice vector has norm less than the k-th successive minimum, it is in the span of the first k extremal basis vectors.
 -/
 
-lemma mem_span_of_norm_lt (L : GeometricLattice n n) (v : 𝔼 n) (hv : v ∈ L.nonzeroVectors) (k : Fin n)
+lemma mem_span_of_norm_lt (L : GeometricLattice n n) (v : 𝓔 n) (hv : v ∈ L.nonzeroVectors) (k : Fin n)
     (h_lt : ‖v‖ < L.successiveMinima k) :
     v ∈ Submodule.span ℝ (Set.image (GeometricLattice.extremalBasis L) (Finset.Iio k)) := by
       norm_num +zetaDelta at *;
@@ -848,7 +848,12 @@ theorem minkowski_ellipsoid_disjoint (L : GeometricLattice n n) :
           · exact fun i j a a_1 => GeometricLattice.successiveMinima_mono L a;
         -- Since ‖v‖ ≥ L.successiveMinima (Fin.castLE (Nat.le_of_lt ‹_›) k), we have ‖v‖^2 / (L.successiveMinima (Fin.castLE (Nat.le_of_lt ‹_›) k))^2 ≥ 1.
         have h_norm_ge_one : ‖v‖ ^ 2 / (L.successiveMinima (Fin.castLE (Nat.le_of_lt ‹_›) k)) ^ 2 ≥ 1 := by
-          rw [ ge_iff_le, le_div_iff₀ ] <;> nlinarith [ show 0 < L.successiveMinima ( Fin.castLE ( Nat.le_of_lt ‹_› ) k ) from by exact? ];
+          rw [ ge_iff_le, le_div_iff₀ ] <;>
+            nlinarith [
+              show 0 < L.successiveMinima ( Fin.castLE ( Nat.le_of_lt ‹_› ) k ) from by
+                (expose_names;
+                  exact GeometricLattice.successiveMinima_pos L (Fin.castLE (Nat.le_of_lt pf) k))
+              ];
         exact fun h => h_norm_ge_one.not_gt <| h_sum_ge_one.trans_lt <| by simpa using h;
 
 /-
@@ -858,16 +863,15 @@ Minkowski's Second Theorem: The product of successive minima times the unit ball
 theorem GeometricLattice.minkowski_second (L : GeometricLattice n n) :
     (∏ i : Fin n, L.successiveMinima i) * unitBallVolume n ≤ (2 : ℝ) ^ (n : ℕ) * L.det := by
       -- By Minkowski's Convex Body Theorem, if the volume of the ellipsoid is greater than $(2^n) \cdot \text{det}(L)$, then it would contain a non-zero lattice point.
-      have h_minkowski : ∀ S : Set (𝔼 n), Convex ℝ S → IsCentrallySymmetric S → MeasurableSet S → (2 ^ (n : ℕ) * L.det < (lebesgueMeasure S).toReal) → ∃ v ∈ L.nonzeroVectors, v ∈ S := by
+      have h_minkowski : ∀ S : Set (𝓔 n), Convex ℝ S → IsCentrallySymmetric S → MeasurableSet S → (2 ^ (n : ℕ) * L.det < (lebesgueMeasure S).toReal) → ∃ v ∈ L.nonzeroVectors, v ∈ S := by
         exact fun S a a_1 a_2 a_3 => minkowski_convex_body L S a a_1 a_2 a_3;
       contrapose! h_minkowski;
-      refine' ⟨ minkowski_ellipsoid ( GeometricLattice.extremalBasis L ) ( L.successiveMinima ), minkowski_ellipsoid_convex _ _ _, minkowski_ellipsoid_symmetric _ _, _, _, _ ⟩;
-      · exact fun i => successiveMinima_pos L i;
+      refine' ⟨ minkowski_ellipsoid ( GeometricLattice.extremalBasis L ) ( L.successiveMinima ), minkowski_ellipsoid_convex _ _, minkowski_ellipsoid_symmetric _ _, _, _, _ ⟩;
       · exact measurableSet_lt ( by measurability ) ( by measurability );
       · refine' lt_of_lt_of_le h_minkowski _;
         rw [ minkowski_ellipsoid_volume ];
         exact fun i => successiveMinima_pos L i;
-      · exact?
+      · exact fun x hx => minkowski_ellipsoid_disjoint L x hx
 
 /-
 Minkowski's Second Theorem (sqrt form): The geometric mean of successive minima is bounded by sqrt(n) times the n-th root of the determinant.

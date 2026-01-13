@@ -29,9 +29,9 @@ namespace LatticeCrypto.Foundations.Gaussian
   * Corollary `rhoMass_with_long_sv` : weaker similar bound but with 2^{-n} instead of (0.2)^n
 
   The tail bounds also have some uniformity implications for discrete Gaussians over lattices with long shortest vector.
-  * `rhoMass_ub_on_dual_with_long_sv`: lattices with long shortest vector have upperbounded rhoMass on the dual cosets: `L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝔼 n)` →
+  * `rhoMass_ub_on_dual_with_long_sv`: lattices with long shortest vector have upperbounded rhoMass on the dual cosets: `L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝓔 n)` →
     `rhoMass u L.dual ≤ (1 + 2 * (2 : ℝ)^(-n : ℝ)) * L.det`
-  * `rhoMass_lb_on_dual_with_long_sv`: lattices with long shortest vector have lowerbounded rhoMass on the dual cosets: `L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝔼 n)` →
+  * `rhoMass_lb_on_dual_with_long_sv`: lattices with long shortest vector have lowerbounded rhoMass on the dual cosets: `L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝓔 n)` →
     `rhoMass u L.dual ≥ (1 - 2 * (2 : ℝ)^(-n : ℝ)) * L.det`
 --/
 section concentration
@@ -46,7 +46,7 @@ open scoped FourierTransform
 variable {n : ℕ+} (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s)
 
 /-- The open Euclidean ball centered at c with radius r -/
-abbrev 𝔅 {n : ℕ+} (c : 𝔼 n) (r : ℝ) := Metric.ball c r
+abbrev 𝔅 {n : ℕ+} (c : 𝓔 n) (r : ℝ) := Metric.ball c r
 
 
 /-!
@@ -158,7 +158,7 @@ lemma numeric_bound_weaker (n : ℕ+) :
     norm_num [ ← inv_pow ]
 
 
-/-- The upper bound of `rhoMassOn (0 : 𝔼 n) L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ` -/
+/-- The upper bound of `rhoMassOn (0 : 𝓔 n) L (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ` -/
 noncomputable abbrev rhoMassTailBoundConst (n : ℕ+) : ℝ :=
   0.2 ^ (n : ℝ) / (1 - 0.2 ^ (n : ℝ))
 
@@ -179,7 +179,7 @@ end numeric_bounds
 /-
   Handy bound relating ρ₁ and ρ₂.
 -/
-lemma rho_le_rhoS_mul_factor {n : ℕ+} (v : 𝔼 n) (hv : ‖v‖ ≥ Real.sqrt n) :
+lemma rho_le_rhoS_mul_factor {n : ℕ+} (v : 𝓔 n) (hv : ‖v‖ ≥ Real.sqrt n) :
   rho v ≤ Real.exp (-3 * Real.pi * n / 4) * rhoS 2 v := by
     unfold rhoS at *;
     unfold rho;
@@ -190,13 +190,13 @@ lemma rho_le_rhoS_mul_factor {n : ℕ+} (v : 𝔼 n) (hv : ‖v‖ ≥ Real.sqrt
 /-
 Bound the mass of the Gaussian on a set by a factor times the mass of the scaled Gaussian on the same set.
 -/
-lemma rhoMassOn_le_factor_mul_rhoSMassOn (c : 𝔼 n) (L : GeometricLattice n n) :
-  rhoMassOn c L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ ≤
-  Real.exp (-3 * Real.pi * n / 4) * rhoSMassOn 2 c L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ := by
+lemma rhoMassOn_le_factor_mul_rhoSMassOn (c : 𝓔 n) (L : GeometricLattice n n) :
+  rhoMassOn c L (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ ≤
+  Real.exp (-3 * Real.pi * n / 4) * rhoSMassOn 2 c L (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ := by
     -- Apply the pointwise inequality to each term in the sum.
     rw [←rhoSMassOn_one_eq_rhoMassOn]
-    have h_term_le : ∀ v : L.carrier, (Set.indicator (𝔅 0 (Real.sqrt n))ᶜ (rhoS 1)) ((v : 𝔼 n) + c) ≤ (Real.exp (-3 * Real.pi * n / 4)) * (Set.indicator (𝔅 0 (Real.sqrt n))ᶜ (rhoS 2)) ((v : 𝔼 n) + c) := by
-      intro v; by_cases hv : ( v : 𝔼 n ) + c ∈ 𝔅 0 ( Real.sqrt n ) <;> simp_all +decide [ Set.indicator ] ;
+    have h_term_le : ∀ v : L.carrier, (Set.indicator (𝔅 0 (Real.sqrt n))ᶜ (rhoS 1)) ((v : 𝓔 n) + c) ≤ (Real.exp (-3 * Real.pi * n / 4)) * (Set.indicator (𝔅 0 (Real.sqrt n))ᶜ (rhoS 2)) ((v : 𝓔 n) + c) := by
+      intro v; by_cases hv : ( v : 𝓔 n ) + c ∈ 𝔅 0 ( Real.sqrt n ) <;> simp_all +decide [ Set.indicator ] ;
       convert rho_le_rhoS_mul_factor _ hv using 1 ; ring_nf;
     convert Summable.tsum_le_tsum h_term_le _ _ using 1;
     · rw [ tsum_mul_left, rhoSMassOn ];
@@ -211,18 +211,18 @@ lemma rhoMassOn_le_factor_mul_rhoSMassOn (c : 𝔼 n) (L : GeometricLattice n n)
     rho(c + L \setminus \sqrt{n} B_n)  < 2^{−n} rho(L),
   where L \setminus \sqrt{n} B_n is the set of lattice points of norm no-shorter than √{n}.
 -/
-lemma rhoMass_outside_ball_stronger (c : 𝔼 n) (L : GeometricLattice n n) :
-  rhoMassOn c L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ < (0.2 : ℝ)^(n : ℝ) * (rhoMass 0 L) := by
+lemma rhoMass_outside_ball_stronger (c : 𝓔 n) (L : GeometricLattice n n) :
+  rhoMassOn c L (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ < (0.2 : ℝ)^(n : ℝ) * (rhoMass 0 L) := by
     have := rhoMassOn_le_factor_mul_rhoSMassOn c L;
     -- Apply Lemma 2 to bound the mass outside the ball.
     have h_bound : rhoMassOn c L (𝔅 0 (Real.sqrt (n : ℝ)))ᶜ ≤ Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ) * rhoSMass 1 0 L := by
       have h_bound : rhoMassOn c L (𝔅 0 (Real.sqrt (n : ℝ)))ᶜ ≤ Real.exp (-3 * Real.pi * n / 4) * rhoSMass 2 c L := by
         have h_bound : rhoSMassOn 2 c L (𝔅 0 (Real.sqrt (n : ℝ)))ᶜ ≤ rhoSMass 2 c L := by
-          have h_nonneg : ∀ v : L.carrier, 0 ≤ (𝔅 0 (Real.sqrt (n : ℝ)))ᶜ.indicator (rhoS 2) ((v : 𝔼 n) + c) := by
-            intro v; by_cases hv : ( v : 𝔼 n ) + c ∈ ( 𝔅 0 ( Real.sqrt n ) )ᶜ <;> simp +decide [ hv, rhoS ] ;
+          have h_nonneg : ∀ v : L.carrier, 0 ≤ (𝔅 0 (Real.sqrt (n : ℝ)))ᶜ.indicator (rhoS 2) ((v : 𝓔 n) + c) := by
+            intro v; by_cases hv : ( v : 𝓔 n ) + c ∈ ( 𝔅 0 ( Real.sqrt n ) )ᶜ <;> simp +decide [ hv, rhoS ] ;
             exact Real.exp_nonneg _
           apply Summable.tsum_le_tsum ;
-          · intro v; by_cases hv : ( v : 𝔼 n ) + c ∈ 𝔅 0 ( Real.sqrt n ) <;> simp_all +decide  ;
+          · intro v; by_cases hv : ( v : 𝓔 n ) + c ∈ 𝔅 0 ( Real.sqrt n ) <;> simp_all +decide  ;
             exact Real.exp_nonneg _;
           · convert summable_rhoSMassOn 2 ( by norm_num ) c L ( 𝔅 0 ( Real.sqrt ( n : ℝ ) ) ) ᶜ using 1;
           · convert summable_rhoSMassOn 2 ( by norm_num ) c L Set.univ using 1 ; aesop;
@@ -242,8 +242,8 @@ lemma rhoMass_outside_ball_stronger (c : 𝔼 n) (L : GeometricLattice n n) :
     rw [ rhoSMass_one_eq_rhoMass ]
 
 /-- Handy bound 2^{-n} on rhoMass on lattice points outside ball of radius √n -/
-theorem rhoMass_outside_ball (c : 𝔼 n) (L : GeometricLattice n n) :
-  rhoMassOn c L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ < (2 : ℝ)^(-n : ℝ) * (rhoMass 0 L) := by
+theorem rhoMass_outside_ball (c : 𝓔 n) (L : GeometricLattice n n) :
+  rhoMassOn c L (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ < (2 : ℝ)^(-n : ℝ) * (rhoMass 0 L) := by
   have : (0.2 : ℝ)^(n : ℝ) < (2 : ℝ)^(-(n : ℝ)) := by
     norm_num [ Real.rpow_def_of_pos ];
     simp +zetaDelta at *;
@@ -259,12 +259,12 @@ theorem rhoMass_outside_ball (c : 𝔼 n) (L : GeometricLattice n n) :
 /-- Corollary : lattices with long shortest vector have exponentially small Gaussian mass outside the origin -/
 theorem rhoMass_with_long_sv_stronger (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) :
   rhoMassOn 0 L {0}ᶜ < 0.2 ^ (n : ℝ) / (1 - 0.2 ^ (n : ℝ)) := by
-  have h_eq : (L.carrier : Set (𝔼 n)) ∩ {0}ᶜ = (L.carrier : Set (𝔼 n)) ∩ (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ := by
-    have h_len : ∀ v : L.carrier, v ≠ 0 → ‖(v : 𝔼 n)‖ ≥ Real.sqrt (n : ℝ) := by
+  have h_eq : (L.carrier : Set (𝓔 n)) ∩ {0}ᶜ = (L.carrier : Set (𝓔 n)) ∩ (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ := by
+    have h_len : ∀ v : L.carrier, v ≠ 0 → ‖(v : 𝓔 n)‖ ≥ Real.sqrt (n : ℝ) := by
       intro v hv;
-      have h_vlen : ‖(v : 𝔼 n)‖ ≥ L.shortestVectorLength := by
+      have h_vlen : ‖(v : 𝓔 n)‖ ≥ L.shortestVectorLength := by
         -- Since $v$ is a non-zero lattice point, its norm is in the set of non-zero norms, so the infimum (which is the shortest vector length) must be less than or equal to any element in that set.
-        have h_norm_ge_svl : ∀ v : L.carrier, v ≠ 0 → L.shortestVectorLength ≤ ‖(v : LatticeCrypto.Utils.Vec.𝔼 n)‖ := by
+        have h_norm_ge_svl : ∀ v : L.carrier, v ≠ 0 → L.shortestVectorLength ≤ ‖(v : LatticeCrypto.Utils.Vec.𝓔 n)‖ := by
           intros v hv_nonzero
           apply ciInf_le_of_le;
           exact ⟨ 0, Set.forall_mem_range.mpr fun _ => norm_nonneg _ ⟩;
@@ -280,7 +280,7 @@ theorem rhoMass_with_long_sv_stronger (L : GeometricLattice n n) (h_svl : L.shor
     simp +zetaDelta at *;
     exact fun x hx => ⟨ fun hx' => ( h_len x hx hx' ), fun hx' => by contrapose! hx'; aesop ⟩
 
-  have h_eq' : rhoMassOn 0 L {0}ᶜ = rhoMassOn 0 L (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ := by
+  have h_eq' : rhoMassOn 0 L {0}ᶜ = rhoMassOn 0 L (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ := by
     unfold rhoMassOn
     simp +decide [ Set.ext_iff ] at h_eq;
     apply tsum_congr; intro v; simp [Set.indicator];
@@ -321,7 +321,7 @@ theorem rhoMass_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVecto
   exact lt_of_lt_of_le h_bound h_num_le
 
 /-- Corollary : lattices with long shortest vector have almost uniform rhoMass on the dual cosets -/
-theorem rhoMass_ub_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝔼 n) :
+theorem rhoMass_ub_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝓔 n) :
   rhoMass u L.dual ≤ (1 + 2 * (2 : ℝ)^(-n : ℝ)) * L.det := by
   have h_poisson := poisson_summation_rhoS_coset L.dual 1 (by positivity) u
   unfold GeometricLattice.latticeSum at h_poisson
@@ -345,7 +345,7 @@ theorem rhoMass_ub_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.sh
       rw [ Summable.tsum_eq_add_tsum_ite ];
       congr! 1;
       · unfold Gaussian.rho; norm_num;
-      · convert summable_rhoSMassOn 1 zero_lt_one 0 L ( Set.univ : Set ( 𝔼 n ) ) using 1;
+      · convert summable_rhoSMassOn 1 zero_lt_one 0 L ( Set.univ : Set ( 𝓔 n ) ) using 1;
         ext; simp [LatticeCrypto.Foundations.Gaussian.rho];
     have h_sum_abs : ∑' v : L.carrier, (if v = 0 then 0 else rho v) ≤ 2 * 2 ^ (-(n : ℝ)) := by
       have h_sum_abs : ∑' v : L.carrier, (if v = 0 then 0 else rho v) ≤ rhoMassOn 0 L {0}ᶜ := by
@@ -364,7 +364,7 @@ theorem rhoMass_ub_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.sh
     exact rfl
 
 /-- Corollary : lattices with long shortest vector have almost uniform rhoMass on the dual cosets -/
-theorem rhoMass_lb_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝔼 n) :
+theorem rhoMass_lb_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝓔 n) :
   rhoMass u L.dual ≥ (1 - 2 * (2 : ℝ)^(-n : ℝ)) * L.det := by
   have h_poisson := poisson_summation_rhoS_coset L.dual 1 (by positivity) u
   unfold GeometricLattice.latticeSum at h_poisson
@@ -377,10 +377,10 @@ theorem rhoMass_lb_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.sh
   -- The term for `v = 0` is `exp(0) * rho(0) = 1`.
   have h_v_zero : (rhoMass u (L.dual) : ℝ) ≥ (L.det : ℝ) * (1 - rhoMassOn 0 L {0}ᶜ) := by
     -- The sum is L.det * ∑_{v ∈ L} exp(-2πi ⟨u, v⟩) * rho(v).
-    have h_sum : (rhoMass u (L.dual) : ℝ) = (L.det : ℝ) * (∑' v : ↥L.carrier, cexp (-2 * Real.pi * Complex.I * inner ℝ u v) * rho (v : 𝔼 n)) := by
+    have h_sum : (rhoMass u (L.dual) : ℝ) = (L.det : ℝ) * (∑' v : ↥L.carrier, cexp (-2 * Real.pi * Complex.I * inner ℝ u v) * rho (v : 𝓔 n)) := by
       aesop;
     -- The sum is L.det * ∑_{v ∈ L} exp(-2πi ⟨u, v⟩) * rho(v). We separate the v=0 term from the sum.
-    have h_sum_separated : (rhoMass u (L.dual) : ℝ) = (L.det : ℝ) * (1 + ∑' v : ↥L.carrier, if v = 0 then 0 else cexp (-2 * Real.pi * Complex.I * inner ℝ u v) * rho (v : 𝔼 n)) := by
+    have h_sum_separated : (rhoMass u (L.dual) : ℝ) = (L.det : ℝ) * (1 + ∑' v : ↥L.carrier, if v = 0 then 0 else cexp (-2 * Real.pi * Complex.I * inner ℝ u v) * rho (v : 𝓔 n)) := by
       rw [ h_sum, Summable.tsum_eq_add_tsum_ite ];
       field_simp;
       · norm_num [ Gaussian.rho ];
@@ -396,22 +396,22 @@ theorem rhoMass_lb_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.sh
           · exact Real.exp_pos _;
         rw [ tsum_eq_zero_of_not_summable h_sum ] ; norm_num [ h_gauss_mass_pos.ne' ];
     -- The magnitude of the sum is bounded by the sum of the magnitudes.
-    have h_sum_abs : ‖∑' v : ↥L.carrier, if v = 0 then 0 else cexp (-2 * Real.pi * Complex.I * inner ℝ u v) * rho (v : 𝔼 n)‖ ≤ ∑' v : ↥L.carrier, if v = 0 then 0 else rho (v : 𝔼 n) := by
+    have h_sum_abs : ‖∑' v : ↥L.carrier, if v = 0 then 0 else cexp (-2 * Real.pi * Complex.I * inner ℝ u v) * rho (v : 𝓔 n)‖ ≤ ∑' v : ↥L.carrier, if v = 0 then 0 else rho (v : 𝓔 n) := by
       convert norm_tsum_le_tsum_norm _ <;> norm_num [ Complex.norm_exp ];
       · split_ifs <;> norm_num [ Complex.norm_exp ];
         exact Eq.symm ( abs_of_nonneg ( Real.exp_nonneg _ ) );
-      · refine' Summable.of_nonneg_of_le ( fun v => norm_nonneg _ ) ( fun v => _ ) ( show Summable fun v : L.carrier => ( rho ( v : 𝔼 n ) : ℝ ) from _ );
+      · refine' Summable.of_nonneg_of_le ( fun v => norm_nonneg _ ) ( fun v => _ ) ( show Summable fun v : L.carrier => ( rho ( v : 𝓔 n ) : ℝ ) from _ );
         · split_ifs <;> simp_all +decide [ Complex.norm_exp ];
           · exact Real.exp_nonneg _;
           · rw [ abs_of_nonneg ( by exact Real.exp_pos _ |> le_of_lt ) ];
         · convert summable_rhoSMassOn 1 zero_lt_one 0 L Set.univ using 1 ; norm_num [ rhoMassOn ];
     -- The sum of the magnitudes is bounded by rhoMassOn 0 L {0}ᶜ.
-    have h_sum_abs_le : ∑' v : ↥L.carrier, (if v = 0 then 0 else rho (v : 𝔼 n)) = rhoMassOn 0 L {0}ᶜ := by
+    have h_sum_abs_le : ∑' v : ↥L.carrier, (if v = 0 then 0 else rho (v : 𝓔 n)) = rhoMassOn 0 L {0}ᶜ := by
       simp [rhoMassOn];
       exact tsum_congr fun v => by by_cases hv : v = 0 <;> simp +decide [ hv ] ;
     norm_num [ Complex.ext_iff ] at *;
     rw [ h_sum_separated.1 ];
-    exact mul_le_mul_of_nonneg_left ( by linarith [ abs_le.mp ( Complex.abs_re_le_norm ( ∑' v : L.carrier, if v = 0 then 0 else cexp ( - ( 2 * Real.pi * Complex.I * ⟪u, ( v : 𝔼 n)⟫ ) ) * ( rho ( v : 𝔼 n ) : ℂ ) ) ) ] ) ( show 0 ≤ L.det from by exact le_of_lt L.det_pos );
+    exact mul_le_mul_of_nonneg_left ( by linarith [ abs_le.mp ( Complex.abs_re_le_norm ( ∑' v : L.carrier, if v = 0 then 0 else cexp ( - ( 2 * Real.pi * Complex.I * ⟪u, ( v : 𝓔 n)⟫ ) ) * ( rho ( v : 𝓔 n ) : ℂ ) ) ) ] ) ( show 0 ≤ L.det from by exact le_of_lt L.det_pos );
   -- Use `rhoMass_with_long_sv` to bound `rhoMassOn 0 L {0}ᶜ < 2^{-n} * (1 - 2^{-n}) < 2^{-n}`.
   have h_rhoMassOn_zero : rhoMassOn 0 L {0}ᶜ < (2 : ℝ)^(-n : ℝ) := by
     exact lt_of_lt_of_le ( rhoMass_with_long_sv L h_svl ) ( by norm_num [ Real.rpow_neg ] );
@@ -445,20 +445,20 @@ variable {n : ℕ+} (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s)
   every point in the ambient space is within distance r of some lattice point.
 -/
 noncomputable def GeometricLattice.coveringRadius (L : GeometricLattice n n) : ℝ :=
-  sInf { r : ℝ | ∀ x : 𝔼 n, ∃ v ∈ L.carrier, ‖x - (v : 𝔼 n)‖ ≤ r }
+  sInf { r : ℝ | ∀ x : 𝓔 n, ∃ v ∈ L.carrier, ‖x - (v : 𝓔 n)‖ ≤ r }
 
 /--
   The distance from a point x to the lattice L is defined as the distances
   from x to the nearest lattice point(s).
 -/
-noncomputable def GeometricLattice.distanceToLattice (x : 𝔼 n) (L : GeometricLattice n n) : ℝ :=
-  sInf { ‖x - (v : 𝔼 n)‖ | v ∈ L.carrier }
+noncomputable def GeometricLattice.distanceToLattice (x : 𝓔 n) (L : GeometricLattice n n) : ℝ :=
+  sInf { ‖x - (v : 𝓔 n)‖ | v ∈ L.carrier }
 
 /-
 The distance from any point to the lattice is bounded by some constant M.
 -/
 lemma distanceToLattice_bounded (L : GeometricLattice n n) :
-  ∃ M, ∀ x : 𝔼 n, L.distanceToLattice x ≤ M := by
+  ∃ M, ∀ x : 𝓔 n, L.distanceToLattice x ≤ M := by
     have := LatticeBasis.fundamentalDomain_isBounded L.basis;
     obtain ⟨ M, hM ⟩ := this.exists_pos_norm_le; use M; intro x; exact (by
     obtain ⟨ u, v, hu, hv, rfl ⟩ := LatticeBasis.eq_lattice_add_mod L.basis x;
@@ -470,16 +470,16 @@ lemma distanceToLattice_bounded (L : GeometricLattice n n) :
   Alternative definition of the covering radius as the maximum distance from any point to the lattice
 -/
 noncomputable def GeometricLattice.coveringRadius' (L : GeometricLattice n n) : ℝ :=
-  sSup { L.distanceToLattice x | x : 𝔼 n }
+  sSup { L.distanceToLattice x | x : 𝓔 n }
 
 
 /-- The two definitions are equivalent -/
 theorem GeometricLattice.coveringRadius_eq_alt_def (L : GeometricLattice n n) :
   L.coveringRadius = L.coveringRadius' := by
-  have h_sup : ∀ x : 𝔼 n, ∃ v ∈ L.carrier, ‖x - (v : 𝔼 n)‖ ≤ L.distanceToLattice x := by
+  have h_sup : ∀ x : 𝓔 n, ∃ v ∈ L.carrier, ‖x - (v : 𝓔 n)‖ ≤ L.distanceToLattice x := by
     intro x;
     have h_inf : ∃ v ∈ L.carrier, ∀ w ∈ L.carrier, ‖x - v‖ ≤ ‖x - w‖ := by
-      have h_closed : IsClosed (L.carrier : Set (𝔼 n)) := by
+      have h_closed : IsClosed (L.carrier : Set (𝓔 n)) := by
         exact isClosed L;
       have h_compact : IsCompact {v ∈ L.carrier | ‖x - v‖ ≤ ‖x‖ + 1} := by
         have h_compact : IsCompact {v ∈ L.carrier | ‖v‖ ≤ ‖x‖ + 1 + ‖x‖} := by
@@ -503,7 +503,7 @@ theorem GeometricLattice.coveringRadius_eq_alt_def (L : GeometricLattice n n) :
     exact csSup_le ⟨ _, ⟨ 0, rfl ⟩ ⟩ fun x hx => by rcases hx with ⟨ x, rfl ⟩ ; exact le_trans ( csInf_le ⟨ 0, by rintro x ⟨ y, hy, rfl ⟩ ; positivity ⟩ ⟨ _, hr x |> Classical.choose_spec |> And.left, rfl ⟩ ) ( hr x |> Classical.choose_spec |> And.right ) ;
   · intro w hw;
     refine' ⟨ _, fun x => _, hw ⟩;
-    exact Exists.elim ( h_sup x ) fun v hv => ⟨ v, hv.1, le_csSup ( show BddAbove { GeometricLattice.distanceToLattice x L | x : LatticeCrypto.Utils.Vec.𝔼 n } from by
+    exact Exists.elim ( h_sup x ) fun v hv => ⟨ v, hv.1, le_csSup ( show BddAbove { GeometricLattice.distanceToLattice x L | x : LatticeCrypto.Utils.Vec.𝓔 n } from by
                    obtain ⟨ M, hM ⟩ := distanceToLattice_bounded L; exact ⟨ M, by rintro _ ⟨ y, rfl ⟩ ; exact hM y ⟩ ; ) ( Set.mem_range_self x ) |> le_trans hv.2 ⟩
 
 /-- The covering radius is non-negative -/
@@ -532,7 +532,7 @@ theorem GeometricLattice.coveringRadius_scale (L : GeometricLattice n n) (s : �
   apply Iff.intro;
   · -- By definition of scalar multiplication, if for every x there exists a v in the span of the scaled basis such that ‖x - v‖ ≤ r, then for every x there exists a v in the span of the original basis such that ‖x - v‖ ≤ r / s.
     intro h
-    have h_scaled : ∀ x : 𝔼 n, ∃ v ∈ Submodule.span ℤ (Set.range L.basis.basis), ‖x - v‖ ≤ r / s := by
+    have h_scaled : ∀ x : 𝓔 n, ∃ v ∈ Submodule.span ℤ (Set.range L.basis.basis), ‖x - v‖ ≤ r / s := by
       intro x
       obtain ⟨v, hv⟩ := h (s • x);
       -- Since $v$ is in the span of the scaled basis, we can write $v = s * w$ for some $w$ in the span of the original basis.
@@ -579,24 +579,24 @@ theorem GeometricLattice.coveringRadius_scale_dual (L : GeometricLattice n n) (s
 
 /-- The dimension of all lattice vectors shorter than L.succMinₙ is less than n -/
 lemma span_lt_succMin_dim_lt_n (L : GeometricLattice n n) :
-  Module.rank ℝ (Submodule.span ℝ { v : 𝔼 n | v ∈ L ∧ ‖v‖ < L.succMinₙ }) < n := by
+  Module.rank ℝ (Submodule.span ℝ { v : 𝓔 n | v ∈ L ∧ ‖v‖ < L.succMinₙ }) < n := by
     -- Consider the set of lattice vectors with length strictly smaller than the n-th successive minimum.
-    set S := {v : L.carrier | ‖(v : 𝔼 n)‖ < L.succMinₙ};
+    set S := {v : L.carrier | ‖(v : 𝓔 n)‖ < L.succMinₙ};
     -- We show that if these vectors are linearly independent and their number is $n$, they form a basis for $\mathbb{R}^n$, then there must be one vector longer than L.succMinₙ.
-    have h_basis : ∀ (v : Fin n → L.carrier), LinearIndependent ℝ (fun i => (v i : 𝔼 n)) → ∃ i, ‖(v i : 𝔼 n)‖ ≥ L.succMinₙ := by
+    have h_basis : ∀ (v : Fin n → L.carrier), LinearIndependent ℝ (fun i => (v i : 𝓔 n)) → ∃ i, ‖(v i : 𝓔 n)‖ ≥ L.succMinₙ := by
       intro v hv_linear_indep
       by_contra h_contra
       push_neg at h_contra
-      have h_span : Submodule.span ℝ (Set.range (fun i => (v i : 𝔼 n))) = ⊤ := by
+      have h_span : Submodule.span ℝ (Set.range (fun i => (v i : 𝓔 n))) = ⊤ := by
         refine' Submodule.eq_top_of_finrank_eq _;
         rw [ finrank_span_eq_card ] <;> aesop;
       -- By definition of $L.succMinₙ$, we know that $L.succMinₙ \leq \sup_{x \in \mathbb{R}^n \setminus \{0\}} \frac{\|x\|}{\min_{v \in L \setminus \{0\}} \|x - v\|}$.
-      have h_succ_min : L.succMinₙ ≤ sInf {r : ℝ | ∃ (v : Fin n → L.carrier), LinearIndependent ℝ (fun i => (v i : 𝔼 n)) ∧ ∀ i, ‖(v i : 𝔼 n)‖ ≤ r} := by
+      have h_succ_min : L.succMinₙ ≤ sInf {r : ℝ | ∃ (v : Fin n → L.carrier), LinearIndependent ℝ (fun i => (v i : 𝓔 n)) ∧ ∀ i, ‖(v i : 𝓔 n)‖ ≤ r} := by
         exact le_csInf ⟨ L.succMinₙ, ⟨ v, hv_linear_indep, fun i => le_of_lt ( h_contra i ) ⟩ ⟩ fun r hr => by rcases hr with ⟨ v, hv_linear_indep, hv_bound ⟩ ; exact (by
         apply_rules [ csInf_le ];
         · exact ⟨ 0, fun r hr => hr.1.le ⟩;
-        · refine' ⟨ _, Finset.image ( fun i => ( v i : 𝔼 n ) ) Finset.univ, _, _, _ ⟩ <;> simp_all +decide ;
-          · exact lt_of_lt_of_le ( norm_pos_iff.mpr <| show ( v 0 : 𝔼 n ) ≠ 0 from by intro h; simpa [ h ] using hv_linear_indep.ne_zero 0 ) ( hv_bound 0 );
+        · refine' ⟨ _, Finset.image ( fun i => ( v i : 𝓔 n ) ) Finset.univ, _, _, _ ⟩ <;> simp_all +decide ;
+          · exact lt_of_lt_of_le ( norm_pos_iff.mpr <| show ( v 0 : 𝓔 n ) ≠ 0 from by intro h; simpa [ h ] using hv_linear_indep.ne_zero 0 ) ( hv_bound 0 );
           · rw [ Finset.card_image_of_injective _ fun i j hij => by simpa [ hv_linear_indep.ne_zero ] using hv_linear_indep.injective <| by simpa using hij, Finset.card_fin ] ; rw [ Nat.sub_add_cancel n.pos ];
           · exact fun i => ⟨ v i |>.2, by intro hi; simpa [ hi ] using hv_linear_indep.ne_zero i ⟩;
           · convert hv_linear_indep.comp _ _;
@@ -605,13 +605,13 @@ lemma span_lt_succMin_dim_lt_n (L : GeometricLattice n n) :
             · intro x y hxy; have := Classical.choose_spec ( Finset.mem_image.mp x.2 ) ; have := Classical.choose_spec ( Finset.mem_image.mp y.2 ) ; aesop;
             · ext ⟨ x, hx ⟩ ; have := Classical.choose_spec ( Finset.mem_image.mp hx ) ; aesop;);
       -- Since $v$ is a basis for $\mathbb{R}^n$, we can choose $r = \max_{i} \|v_i\|$.
-      obtain ⟨r, hr⟩ : ∃ r, ∀ i, ‖(v i : 𝔼 n)‖ ≤ r ∧ r < L.succMinₙ := by
-        have h_max : ∃ i, ∀ j, ‖(v j : 𝔼 n)‖ ≤ ‖(v i : 𝔼 n)‖ := by
-          simpa using Finset.exists_max_image Finset.univ ( fun i => ‖ ( v i : 𝔼 n )‖ ) ⟨ 0, Finset.mem_univ 0 ⟩;
-        exact ⟨ ‖ ( v h_max.choose : 𝔼 n )‖, fun i => ⟨ h_max.choose_spec i, h_contra _ ⟩ ⟩;
+      obtain ⟨r, hr⟩ : ∃ r, ∀ i, ‖(v i : 𝓔 n)‖ ≤ r ∧ r < L.succMinₙ := by
+        have h_max : ∃ i, ∀ j, ‖(v j : 𝓔 n)‖ ≤ ‖(v i : 𝓔 n)‖ := by
+          simpa using Finset.exists_max_image Finset.univ ( fun i => ‖ ( v i : 𝓔 n )‖ ) ⟨ 0, Finset.mem_univ 0 ⟩;
+        exact ⟨ ‖ ( v h_max.choose : 𝓔 n )‖, fun i => ⟨ h_max.choose_spec i, h_contra _ ⟩ ⟩;
       exact not_le_of_gt ( hr 0 |>.2 ) ( h_succ_min.trans <| csInf_le ⟨ 0, by rintro x ⟨ v, hv_linear_indep, hv ⟩ ; exact le_trans ( norm_nonneg _ ) ( hv 0 ) ⟩ ⟨ v, hv_linear_indep, fun i => hr i |>.1 ⟩ );
     contrapose! h_basis;
-    have := exists_linearIndependent ℝ ( { v : 𝔼 n | ∃ w : L.carrier, w ∈ S ∧ v = w } : Set ( 𝔼 n ) );
+    have := exists_linearIndependent ℝ ( { v : 𝓔 n | ∃ w : L.carrier, w ∈ S ∧ v = w } : Set ( 𝓔 n ) );
     obtain ⟨ b, hb₁, hb₂, hb₃ ⟩ := this;
     have h_card : Cardinal.mk b ≥ n := by
       have h_card : Module.rank ℝ (Submodule.span ℝ b) ≥ n := by
@@ -634,17 +634,17 @@ lemma span_lt_succMin_dim_lt_n (L : GeometricLattice n n) :
 /-
 If a subspace has dimension less than n, there exists a vector of any given norm orthogonal to it.
 -/
-lemma exists_norm_eq_orth_of_dim_lt (W : Submodule ℝ (𝔼 n)) (hW : Module.rank ℝ W < n) (r : ℝ) (hr : 0 ≤ r) :
-  ∃ x : 𝔼 n, ‖x‖ = r ∧ ∀ w ∈ W, ⟪x, w⟫ = 0 := by
+lemma exists_norm_eq_orth_of_dim_lt (W : Submodule ℝ (𝓔 n)) (hW : Module.rank ℝ W < n) (r : ℝ) (hr : 0 ≤ r) :
+  ∃ x : 𝓔 n, ‖x‖ = r ∧ ∀ w ∈ W, ⟪x, w⟫ = 0 := by
     -- Since W is a proper subspace, there exists a non-zero vector u orthogonal to W.
-    obtain ⟨u, hu⟩ : ∃ u : 𝔼 n, u ≠ 0 ∧ ∀ w ∈ W, ⟪u, w⟫ = 0 := by
+    obtain ⟨u, hu⟩ : ∃ u : 𝓔 n, u ≠ 0 ∧ ∀ w ∈ W, ⟪u, w⟫ = 0 := by
       -- Since W is a proper subspace, its orthogonal complement is non-trivial.
-      have h_orthogonal_complement_nontrivial : ∃ u : 𝔼 n, u ≠ 0 ∧ ∀ w ∈ W, ⟪u, w⟫ = 0 := by
+      have h_orthogonal_complement_nontrivial : ∃ u : 𝓔 n, u ≠ 0 ∧ ∀ w ∈ W, ⟪u, w⟫ = 0 := by
         have hW_lt_n : Module.finrank ℝ W < n := by
           exact Module.finrank_lt_of_rank_lt hW
         have h_orthogonal_complement_nontrivial : W ≠ ⊤ := by
           aesop;
-        have h_orthogonal_complement_nontrivial : ∃ u : 𝔼 n, u ≠ 0 ∧ u ∈ Wᗮ := by
+        have h_orthogonal_complement_nontrivial : ∃ u : 𝓔 n, u ≠ 0 ∧ u ∈ Wᗮ := by
           exact ( Submodule.ne_bot_iff _ ).mp ( show Wᗮ ≠ ⊥ from fun h => h_orthogonal_complement_nontrivial <| by rw [ Submodule.orthogonal_eq_bot_iff ] at *; aesop ) |> fun ⟨ u, hu ⟩ => ⟨ u, by aesop ⟩;
         exact ⟨ h_orthogonal_complement_nontrivial.choose, h_orthogonal_complement_nontrivial.choose_spec.1, fun w hw => by simpa [ real_inner_comm ] using h_orthogonal_complement_nontrivial.choose_spec.2 w hw ⟩;
       exact h_orthogonal_complement_nontrivial;
@@ -658,17 +658,17 @@ The covering radius of a lattice is at least half the length of its n-th success
 theorem GeometricLattice.coveringRadius_ge_half_succMinₙ (L : GeometricLattice n n) :
   L.μ ≥ L.succMinₙ / 2 := by
     -- Let $S = \{ v \in L \mid \|v\| < L.succMinₙ \}$. By `span_lt_succMin_dim_lt_n`, $W = \text{span}(S)$ has rank $< n$.
-    set S := {v : 𝔼 n | v ∈ L.carrier ∧ ‖v‖ < L.succMinₙ} with hS_def
+    set S := {v : 𝓔 n | v ∈ L.carrier ∧ ‖v‖ < L.succMinₙ} with hS_def
     set W := Submodule.span ℝ S with hW_def
     have hW_rank : Module.rank ℝ W < n := by
       have := span_lt_succMin_dim_lt_n L; aesop;
     -- By `exists_norm_eq_orth_of_dim_lt` with $r = L.succMinₙ / 2$, there exists $x$ with $\|x\| = r$ and $x \perp W$.
-    obtain ⟨x, hx_norm, hx_orth⟩ : ∃ x : 𝔼 n, ‖x‖ = L.succMinₙ / 2 ∧ ∀ w ∈ W, ⟪x, w⟫ = 0 := by
+    obtain ⟨x, hx_norm, hx_orth⟩ : ∃ x : 𝓔 n, ‖x‖ = L.succMinₙ / 2 ∧ ∀ w ∈ W, ⟪x, w⟫ = 0 := by
       have := exists_norm_eq_orth_of_dim_lt W hW_rank ( L.succMinₙ / 2 ) ( by linarith [ show 0 ≤ L.succMinₙ by exact le_of_lt ( show 0 < L.succMinₙ from by exact
         (successiveMinima_pos L ⟨↑n - 1, succMinₙ._proof_1⟩) ) ] );
       exact this;
     -- We claim $dist(x, L) \ge r$.
-    have h_dist_ge_r : ∀ v ∈ L.carrier, ‖x - (v : 𝔼 n)‖ ≥ L.succMinₙ / 2 := by
+    have h_dist_ge_r : ∀ v ∈ L.carrier, ‖x - (v : 𝓔 n)‖ ≥ L.succMinₙ / 2 := by
       intro v hv_mem; by_cases hv : v ∈ S <;> simp_all +decide ;
       · -- Since $x \perp v$, we have $\|x - v\|^2 = \|x\|^2 + \|v\|^2$.
         have h_norm_sq : ‖x - v‖^2 = ‖x‖^2 + ‖v‖^2 := by
@@ -678,7 +678,7 @@ theorem GeometricLattice.coveringRadius_ge_half_succMinₙ (L : GeometricLattice
     have h_dist_ge_r_all : L.distanceToLattice x ≥ L.succMinₙ / 2 := by
       exact le_csInf ⟨ _, ⟨ 0, L.zero_mem, rfl ⟩ ⟩ fun y hy => by rcases hy with ⟨ v, hv, rfl ⟩ ; exact h_dist_ge_r v hv;
     -- Since the covering radius is the supremum of the distances from any point to the lattice, and we have a point x where the distance is at least L.succMinₙ / 2, the supremum must be at least that value.
-    have h_sup_ge : sSup {L.distanceToLattice x | x : 𝔼 n} ≥ L.succMinₙ / 2 := by
+    have h_sup_ge : sSup {L.distanceToLattice x | x : 𝓔 n} ≥ L.succMinₙ / 2 := by
       refine' le_trans h_dist_ge_r_all ( le_csSup _ ⟨ x, rfl ⟩ );
       have := distanceToLattice_bounded L;
       exact ⟨ this.choose, fun x hx => hx.choose_spec ▸ this.choose_spec _ ⟩;
@@ -745,17 +745,17 @@ If a lattice has first successive minimum greater than sqrt(n) and its dual has 
 lemma transference_contradiction (hn : n ≥ Banaszczyk_transference_threshold_constant) (L : GeometricLattice n n)
   (h1 : L.succMin₁ > Real.sqrt n) (h2 : L.dual.μ > Real.sqrt n) : False := by
     -- By `rhoMass_outside_ball`, `rhoMass (-v) L.dual < 2^{-n} * rhoMass 0 L.dual`.
-    obtain ⟨v, hv⟩ : ∃ v : 𝔼 n, L.dual.distanceToLattice v > Real.sqrt n := by
+    obtain ⟨v, hv⟩ : ∃ v : 𝓔 n, L.dual.distanceToLattice v > Real.sqrt n := by
       field_simp;
-      have h_inf : ∀ M < L.dual.μ, ∃ v : 𝔼 n, L.dual.distanceToLattice v > M := by
+      have h_inf : ∀ M < L.dual.μ, ∃ v : 𝓔 n, L.dual.distanceToLattice v > M := by
         intros M hM
-        have h_inf : M < sSup {L.dual.distanceToLattice x | x : 𝔼 n} := by
+        have h_inf : M < sSup {L.dual.distanceToLattice x | x : 𝓔 n} := by
           convert hM using 1;
           convert L.dual.coveringRadius_eq_alt_def.symm using 1;
-        exact by rcases exists_lt_of_lt_csSup ( show { x : ℝ | ∃ x_1 : 𝔼 n, GeometricLattice.distanceToLattice x_1 L.dual = x }.Nonempty from ⟨ _, ⟨ 0, rfl ⟩ ⟩ ) h_inf with ⟨ x, ⟨ v, rfl ⟩, hx ⟩ ; exact ⟨ v, hx ⟩ ;
+        exact by rcases exists_lt_of_lt_csSup ( show { x : ℝ | ∃ x_1 : 𝓔 n, GeometricLattice.distanceToLattice x_1 L.dual = x }.Nonempty from ⟨ _, ⟨ 0, rfl ⟩ ⟩ ) h_inf with ⟨ x, ⟨ v, rfl ⟩, hx ⟩ ; exact ⟨ v, hx ⟩ ;
       exact Exists.elim ( h_inf _ h2 ) fun v hv => ⟨ v, hv ⟩;
     have h_contradiction : rhoMass (-v) L.dual < (2 : ℝ)^(-n : ℝ) * rhoMass 0 L.dual := by
-      have h_contradiction : rhoMass (-v) L.dual = rhoMassOn (-v) L.dual (𝔅 (0 : 𝔼 n) (Real.sqrt (n : ℝ)))ᶜ := by
+      have h_contradiction : rhoMass (-v) L.dual = rhoMassOn (-v) L.dual (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ := by
         refine' tsum_congr fun w => _;
         simp_all +decide [ Set.indicator ];
         contrapose! hv;
@@ -807,7 +807,7 @@ theorem transference_ub {n : ℕ+} (L : GeometricLattice n n) (hn : n ≥ Banasz
 There exists a basis of the dual lattice consisting of vectors with length at most the n-th successive minimum of the dual lattice.
 -/
 lemma exists_dual_basis_bounded {n : ℕ+} (L : GeometricLattice n n) :
-  ∃ b : Fin n → 𝔼 n, LinearIndependent ℝ b ∧ (∀ i, b i ∈ L.dual.carrier) ∧ (∀ i, ‖b i‖ ≤ L.dual.succMinₙ) := by
+  ∃ b : Fin n → 𝓔 n, LinearIndependent ℝ b ∧ (∀ i, b i ∈ L.dual.carrier) ∧ (∀ i, ‖b i‖ ≤ L.dual.succMinₙ) := by
     have := L.dual.linearIndependent_successiveMinima_attained;
     obtain ⟨ x, hx₁, hx₂ ⟩ := this;
     refine' ⟨ x, hx₂, _, _ ⟩;
@@ -823,7 +823,7 @@ lemma exists_dual_basis_bounded {n : ℕ+} (L : GeometricLattice n n) :
 /-
 The inner product of a vector in the lattice and a vector in the dual lattice is an integer.
 -/
-lemma inner_lattice_dual_int {n : ℕ+} (L : GeometricLattice n n) (v : 𝔼 n) (w : 𝔼 n)
+lemma inner_lattice_dual_int {n : ℕ+} (L : GeometricLattice n n) (v : 𝓔 n) (w : 𝓔 n)
   (hv : v ∈ L.carrier) (hw : w ∈ L.dual.carrier) : ∃ k : ℤ, inner ℝ v w = k := by
     -- Since $w \in L.dual.carrier$, we have $\langle v, w \rangle \in \mathbb{Z}$ for all $v \in L.carrier$.
     have h_inner_int : ∀ v ∈ L.carrier, ∃ k : ℤ, ⟪v, w⟫ = k := by
@@ -844,8 +844,8 @@ theorem transference_lb {n : ℕ+} (L : GeometricLattice n n) :
       have := L.successiveMinima_attained 0;
       exact ⟨ this.choose, this.choose_spec.1.1, this.choose_spec.2 ⟩;
     -- Since `b` is a basis, `v` cannot be orthogonal to all `b i`. There exists `k` such that `⟪v, b k⟫ ≠ 0`.
-    obtain ⟨b, hb⟩ : ∃ b : Fin n → 𝔼 n, LinearIndependent ℝ b ∧ (∀ i, b i ∈ L.dual.carrier) ∧ (∀ i, ‖b i‖ ≤ L.dual.succMinₙ) ∧ ∃ k, inner ℝ v (b k) ≠ 0 := by
-      obtain ⟨b, hb⟩ : ∃ b : Fin n → 𝔼 n, LinearIndependent ℝ b ∧ (∀ i, b i ∈ L.dual.carrier) ∧ (∀ i, ‖b i‖ ≤ L.dual.succMinₙ) := by
+    obtain ⟨b, hb⟩ : ∃ b : Fin n → 𝓔 n, LinearIndependent ℝ b ∧ (∀ i, b i ∈ L.dual.carrier) ∧ (∀ i, ‖b i‖ ≤ L.dual.succMinₙ) ∧ ∃ k, inner ℝ v (b k) ≠ 0 := by
+      obtain ⟨b, hb⟩ : ∃ b : Fin n → 𝓔 n, LinearIndependent ℝ b ∧ (∀ i, b i ∈ L.dual.carrier) ∧ (∀ i, ‖b i‖ ≤ L.dual.succMinₙ) := by
         exact exists_dual_basis_bounded L;
       refine' ⟨ b, hb.1, hb.2.1, hb.2.2, _ ⟩;
       have h_not_orthogonal : ¬(∀ i, ⟪v, b i⟫ = 0) := by

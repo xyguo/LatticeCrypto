@@ -5,14 +5,14 @@ namespace LatticeCrypto.Utils.Vec
 variable {n : ℕ+}
 
 /-- Notation for n-dimensional Euclidean space over ℝ. -/
-abbrev 𝔼 (n : ℕ+) := EuclideanSpace ℝ (Fin n)  -- Note this symbol conflict with expectation defined in Mathlib.BigOperators
+abbrev 𝓔 (n : ℕ+) := EuclideanSpace ℝ (Fin n)
 
 noncomputable section
 
-def stdBasis : Module.Basis (Fin n) ℝ (𝔼 n) :=
+def stdBasis : Module.Basis (Fin n) ℝ (𝓔 n) :=
   (EuclideanSpace.basisFun (Fin n) ℝ).toBasis
 
-lemma toMatrix_on_stdBasis_eq_self (mb: Module.Basis (Fin n) ℝ (𝔼 n)) :
+lemma toMatrix_on_stdBasis_eq_self (mb: Module.Basis (Fin n) ℝ (𝓔 n)) :
   stdBasis.toMatrix mb = Matrix.of (fun i j => mb j i) := by
  rfl
 

@@ -35,11 +35,11 @@ variable {n k : ℕ+}
 noncomputable section fundamental_domain
 
 /-- The fundamental parallelepiped of a lattice basis. -/
-def LatticeBasis.fundamentalDomain (B : SquareLatticeBasis n) : Set (𝔼 n) :=
+def LatticeBasis.fundamentalDomain (B : SquareLatticeBasis n) : Set (𝓔 n) :=
   ZSpan.fundamentalDomain B.asTopBasis
 
 /-- We define the closure of the fundamental parallelepiped as generated with coefficents from [0, 1] -/
-def LatticeBasis.fundamentalDomain_closure (B : SquareLatticeBasis n) : Set (𝔼 n) :=
+def LatticeBasis.fundamentalDomain_closure (B : SquareLatticeBasis n) : Set (𝓔 n) :=
   {m | ∀ i, B.asTopBasis.repr m i ∈ Set.Icc (0 : ℝ) 1}
 
 /-- The closure defined as above is indeed a topological closure -/
@@ -55,12 +55,14 @@ theorem LatticeBasis.fundamentalDomain.closure_apply (B : SquareLatticeBasis n) 
   · -- Since the coordinate function is continuous, the limit of the coordinates of $w_n$ is the coordinate of $x$.
     have h_coord_cont : Filter.Tendsto (fun n => (B.asTopBasis.repr (w n)) i) Filter.atTop (nhds ((B.asTopBasis.repr x) i)) := by
       have h_coord_cont : Continuous (fun x => (B.asTopBasis.repr x) i) := by
-        exact Continuous.comp ( continuous_apply i ) ( by exact? );
+        exact Continuous.comp ( continuous_apply i ) ( by exact
+          (Module.Basis.continuous_coe_repr (asTopBasis B)) );
       exact h_coord_cont.continuousAt.tendsto.comp right;
     exact le_of_tendsto_of_tendsto' tendsto_const_nhds h_coord_cont fun n => left n i |>.1;
   · have h_closure : Filter.Tendsto (fun n => (B.asTopBasis.repr (w n)) i) Filter.atTop (nhds ((B.asTopBasis.repr x) i)) := by
       have h_coord_cont : Continuous (fun x => (B.asTopBasis.repr x) i) := by
-        exact Continuous.comp ( continuous_apply i ) ( by exact? );
+        exact Continuous.comp ( continuous_apply i ) ( by exact
+          (Module.Basis.continuous_coe_repr (asTopBasis B)) );
       exact h_coord_cont.continuousAt.tendsto.comp right;
     exact le_of_tendsto_of_tendsto' h_closure tendsto_const_nhds fun n => left n i |>.2.le
 
@@ -163,7 +165,7 @@ theorem GeometricLattice.dual_det_eq_inv (L : GeometricLattice n n) :
 /-- Theorem proving that `LatticeBasis.fundamentalDomain` is indeed a fundamental domain.
   over its ZSpan
  -/
-theorem GeometricLattice.fundamentalDomain_isAddFundamentalDomain (L : GeometricLattice n n) (μ : MeasureTheory.Measure (𝔼 n)) :
+theorem GeometricLattice.fundamentalDomain_isAddFundamentalDomain (L : GeometricLattice n n) (μ : MeasureTheory.Measure (𝓔 n)) :
 MeasureTheory.IsAddFundamentalDomain (↥L.carrier)
     (L.basis.fundamentalDomain) μ := by
   rw [L.full_rank_eq_module_span]
@@ -183,16 +185,16 @@ theorem GeometricLattice.det_eq_measure_fundamentalDomain (L : GeometricLattice 
   bound
 
 /-- Reduce a vector modulo the fundamental domain. -/
-noncomputable def LatticeBasis.mod (B : SquareLatticeBasis n) (v : 𝔼 n) : 𝔼 n :=
+noncomputable def LatticeBasis.mod (B : SquareLatticeBasis n) (v : 𝓔 n) : 𝓔 n :=
   ZSpan.fract B.asTopBasis v
 
 /-- The reduction of a vector modulo the fundamental domain lies within the fundamental domain. -/
-theorem LatticeBasis.mod_mem_fundamentalDomain (B : SquareLatticeBasis n) (v : 𝔼 n) :
+theorem LatticeBasis.mod_mem_fundamentalDomain (B : SquareLatticeBasis n) (v : 𝓔 n) :
     B.mod v ∈ B.fundamentalDomain := by
   exact ZSpan.fract_mem_fundamentalDomain B.asTopBasis v
 
 /-- Any vector minus its module will lie in the lattice. -/
-theorem LatticeBasis.sub_mod_mem_lattice (B : SquareLatticeBasis n) (v : 𝔼 n) :
+theorem LatticeBasis.sub_mod_mem_lattice (B : SquareLatticeBasis n) (v : 𝓔 n) :
     v - B.mod v ∈ B.toLattice.carrier := by
   rw [toLattice, mod]
   -- v - B.mod v = B * c - B * {c} = B * (c - {c}) = B * floor(c)
@@ -211,28 +213,28 @@ theorem LatticeBasis.sub_mod_mem_lattice (B : SquareLatticeBasis n) (v : 𝔼 n)
   unfold ZSpan.floor; aesop;
 
 /-- Corollary: Any vector v can be decomposed into a lattice point and a point in the fundamental domain. -/
-theorem GeometricLattice.sub_mod_mem_lattice (L : GeometricLattice n n) (v : 𝔼 n) :
+theorem GeometricLattice.sub_mod_mem_lattice (L : GeometricLattice n n) (v : 𝓔 n) :
     v - L.basis.mod v ∈ L.carrier := by
   rw [L.carrier_eq]
   exact L.basis.sub_mod_mem_lattice v
 
 /-- Any vector v can be decomposed into a lattice point and a point in the fundamental domain. -/
-theorem LatticeBasis.eq_lattice_add_mod (B : SquareLatticeBasis n) (v : 𝔼 n) :
-    ∃ (u : 𝔼 n) (w : 𝔼 n), u ∈ B.toLattice.carrier ∧ w ∈ B.fundamentalDomain ∧ v = u + w := by
+theorem LatticeBasis.eq_lattice_add_mod (B : SquareLatticeBasis n) (v : 𝓔 n) :
+    ∃ (u : 𝓔 n) (w : 𝓔 n), u ∈ B.toLattice.carrier ∧ w ∈ B.fundamentalDomain ∧ v = u + w := by
   use v - B.mod v, B.mod v
   refine ⟨B.sub_mod_mem_lattice v, B.mod_mem_fundamentalDomain v, by abel⟩
 
 /-- The fundamental domain partitions the space into disjoint translates by lattice points. -/
 theorem GeometricLattice.partition_by_fundamentalDomain (L : GeometricLattice n n) :
-    ∀ v : 𝔼 n, ∃! x : L.carrier, v ∈ ((x : 𝔼 n) +ᵥ L.basis.fundamentalDomain) := by
+    ∀ v : 𝓔 n, ∃! x : L.carrier, v ∈ ((x : 𝓔 n) +ᵥ L.basis.fundamentalDomain) := by
   intro v
 
   -- Step 1: Existence - every vector can be written as lattice point + fundamental domain point
-  have h_exists : ∃ x : L.carrier, v ∈ ((x : 𝔼 n) +ᵥ L.basis.fundamentalDomain) := by
+  have h_exists : ∃ x : L.carrier, v ∈ ((x : 𝓔 n) +ᵥ L.basis.fundamentalDomain) := by
     -- By the decomposition theorem, v = u + w where u ∈ L and w ∈ fundamentalDomain
     obtain ⟨u, w, hu_L, hw_fd, h_eq⟩ := L.basis.eq_lattice_add_mod v
     -- u is a lattice point, so it corresponds to some x ∈ L.carrier
-    have hu_carrier : ∃ x : L.carrier, (x : 𝔼 n) = u := by
+    have hu_carrier : ∃ x : L.carrier, (x : 𝓔 n) = u := by
       -- u ∈ L.carrier by hu_L
       rw [← L.eq_basis_toLattice] at hu_L
       use ⟨u, hu_L⟩
@@ -244,43 +246,43 @@ theorem GeometricLattice.partition_by_fundamentalDomain (L : GeometricLattice n 
 
   -- Step 2: Uniqueness - the lattice point is unique
   have h_unique : ∀ x y : L.carrier,
-      v ∈ ((x : 𝔼 n) +ᵥ L.basis.fundamentalDomain) →
-      v ∈ ((y : 𝔼 n) +ᵥ L.basis.fundamentalDomain) →
+      v ∈ ((x : 𝓔 n) +ᵥ L.basis.fundamentalDomain) →
+      v ∈ ((y : 𝓔 n) +ᵥ L.basis.fundamentalDomain) →
       x = y := by
     intro x y hx_fd hy_fd
     -- If v ∈ x + P and v ∈ y + P, then v - x ∈ P and v - y ∈ P
-    have hx_in_fd : v - (x : 𝔼 n) ∈ L.basis.fundamentalDomain := by
+    have hx_in_fd : v - (x : 𝓔 n) ∈ L.basis.fundamentalDomain := by
       rw [Set.mem_vadd_set_iff_neg_vadd_mem, vadd_eq_add] at hx_fd
       convert hx_fd using 1
       simp +decide [ sub_eq_add_neg, add_comm ]
 
-    have hy_in_fd : v - (y : 𝔼 n) ∈ L.basis.fundamentalDomain := by
+    have hy_in_fd : v - (y : 𝓔 n) ∈ L.basis.fundamentalDomain := by
       rw [Set.mem_vadd_set_iff_neg_vadd_mem, vadd_eq_add] at hy_fd
       convert hy_fd using 1
       simp [add_comm, sub_eq_add_neg]
 
     -- Then x - y = (v - y) - (v - x) ∈ L ∩ (P - P)
-    have h_diff : (x : 𝔼 n) - (y : 𝔼 n) = (v - (y : 𝔼 n)) - (v - (x : 𝔼 n)) := by
+    have h_diff : (x : 𝓔 n) - (y : 𝓔 n) = (v - (y : 𝓔 n)) - (v - (x : 𝓔 n)) := by
       bound
 
     -- But the only lattice point in P - P is 0 (fundamental domain has bounded measure)
-    have h_diff_mem_L : (x : 𝔼 n) - (y : 𝔼 n) ∈ L.carrier := by
+    have h_diff_mem_L : (x : 𝓔 n) - (y : 𝓔 n) ∈ L.carrier := by
       apply L.carrier.sub_mem; exact x.2; exact y.2
 
-    have h_diff_in_fd_sub : (x : 𝔼 n) - (y : 𝔼 n) ∈ L.basis.fundamentalDomain - L.basis.fundamentalDomain := by
+    have h_diff_in_fd_sub : (x : 𝓔 n) - (y : 𝓔 n) ∈ L.basis.fundamentalDomain - L.basis.fundamentalDomain := by
       rw [h_diff]
       apply Set.sub_mem_sub
       · exact hy_in_fd
       · exact hx_in_fd
 
     -- The only lattice point in the fundamental domain difference is 0
-    have h_zero : (x : 𝔼 n) - (y : 𝔼 n) = 0 := by
+    have h_zero : (x : 𝓔 n) - (y : 𝓔 n) = 0 := by
       -- This follows from the fact that the fundamental domain is a fundamental domain
       -- i.e., each lattice point appears exactly once in the translates
       -- The intersection of a translate and the fundamental domain with another translate
       -- is empty unless they're the same translate
       -- If there's a non-zero element in the fundamental domain, then the fundamental domain isn't unique, which contradicts the definition of a fundamental domain.
-      have h_unique : ∀ x y : 𝔼 n, x ∈ L.basis.fundamentalDomain → y ∈ L.basis.fundamentalDomain → x - y ∈ L.carrier → x = y := by
+      have h_unique : ∀ x y : 𝓔 n, x ∈ L.basis.fundamentalDomain → y ∈ L.basis.fundamentalDomain → x - y ∈ L.carrier → x = y := by
         intros x y hx hy hxy;
         -- Since $x$ and $y$ are in the fundamental domain, their coordinates are between 0 and 1. The difference $x - y$ must have integer coordinates because it's in the lattice. The only way for the difference to have integer coordinates is if each coordinate is 0.
         have h_coords : ∀ i, (L.basis.asTopBasis.repr (x - y) i) = 0 := by
@@ -304,7 +306,7 @@ theorem GeometricLattice.partition_by_fundamentalDomain (L : GeometricLattice n 
 
 
     -- Therefore x = y
-    have : (x : 𝔼 n) = (y : 𝔼 n) := by
+    have : (x : 𝓔 n) = (y : 𝓔 n) := by
       apply eq_of_sub_eq_zero h_zero
     exact Subtype.ext this
 
@@ -315,12 +317,12 @@ theorem GeometricLattice.partition_by_fundamentalDomain (L : GeometricLattice n 
 
 
 /-- The fundamental parallelepiped of a lattice basis whose center is shifted to the origin. -/
-def LatticeBasis.centeredFundamentalDomain (B : SquareLatticeBasis n) : Set (𝔼 n) :=
+def LatticeBasis.centeredFundamentalDomain (B : SquareLatticeBasis n) : Set (𝓔 n) :=
   {m | ∀ i, B.asTopBasis.repr m i ∈ Set.Ico (-0.5 : ℝ) 0.5}
 
 /-- We define the closure of the centered fundamental parallelepiped as generated with coefficents
     from [-0.5, 0.5] -/
-def LatticeBasis.centeredFundamentalDomain_closure (B : SquareLatticeBasis n) : Set (𝔼 n) :=
+def LatticeBasis.centeredFundamentalDomain_closure (B : SquareLatticeBasis n) : Set (𝓔 n) :=
   {m | ∀ i, B.asTopBasis.repr m i ∈ Set.Icc (-0.5 : ℝ) 0.5}
 
 /-- The closure defined as above is indeed a topological closure -/
@@ -335,9 +337,9 @@ theorem LatticeBasis.centeredFundamentalDomain.closure_apply (B : SquareLatticeB
     aesop;
     · intro i; specialize hx i; norm_num at *;
       -- Since the sum is over the basis vectors, each term in the sum is (B.basis x_1) i. But the basis vectors are orthogonal, so the sum should simplify to x i. Therefore, the sum is equal to x i.
-      have h_sum : ∑ x_1 : Fin n, (((LatticeBasis.asTopBasis B).repr : 𝔼 n → Fin (↑n : ℕ) →₀ ℝ) x : Fin (↑n : ℕ) → ℝ) x_1 * (((LatticeBasis.asTopBasis B).repr : 𝔼 n → Fin (↑n : ℕ) →₀ ℝ) (B.basis x_1) : Fin (↑n : ℕ) → ℝ) i = (((LatticeBasis.asTopBasis B).repr : 𝔼 n → Fin (↑n : ℕ) →₀ ℝ) x : Fin (↑n : ℕ) → ℝ) i := by
+      have h_sum : ∑ x_1 : Fin n, (((LatticeBasis.asTopBasis B).repr : 𝓔 n → Fin (↑n : ℕ) →₀ ℝ) x : Fin (↑n : ℕ) → ℝ) x_1 * (((LatticeBasis.asTopBasis B).repr : 𝓔 n → Fin (↑n : ℕ) →₀ ℝ) (B.basis x_1) : Fin (↑n : ℕ) → ℝ) i = (((LatticeBasis.asTopBasis B).repr : 𝓔 n → Fin (↑n : ℕ) →₀ ℝ) x : Fin (↑n : ℕ) → ℝ) i := by
         -- Since the basis vectors are orthogonal, the sum simplifies to x i.
-        have h_sum : ∀ j : Fin n, (((LatticeBasis.asTopBasis B).repr : 𝔼 n → Fin (↑n : ℕ) →₀ ℝ) (B.basis j) : Fin (↑n : ℕ) → ℝ) i = if j = i then 1 else 0 := by
+        have h_sum : ∀ j : Fin n, (((LatticeBasis.asTopBasis B).repr : 𝓔 n → Fin (↑n : ℕ) →₀ ℝ) (B.basis j) : Fin (↑n : ℕ) → ℝ) i = if j = i then 1 else 0 := by
           have := B.asTopBasis.repr_self; aesop;
         aesop;
       constructor <;> nlinarith [ inv_mul_cancel₀ ( by linarith : ( n_1 : ℝ ) + 1 ≠ 0 ) ]
@@ -346,13 +348,13 @@ theorem LatticeBasis.centeredFundamentalDomain.closure_apply (B : SquareLatticeB
     -- Since the coordinates of $m$ are the limits of the coordinates of $w$, and each coordinate of $w$ is in $[-0.5, 0.5]$, it follows that each coordinate of $m$ is also in $[-0.5, 0.5]$.
     have h_coords : ∀ i, Filter.Tendsto (fun n => (B.asTopBasis.repr (w n) i)) Filter.atTop (nhds (B.asTopBasis.repr m i)) := by
       -- The basis representation is a continuous linear map, so if w converges to m, then the basis representation of w converges to the basis representation of m.
-      have h_cont : Continuous (fun v : 𝔼 n => (B.asTopBasis.repr v : Fin n → ℝ)) := by
+      have h_cont : Continuous (fun v : 𝓔 n => (B.asTopBasis.repr v : Fin n → ℝ)) := by
         exact Module.Basis.continuous_coe_repr (asTopBasis B);
       exact fun i => Filter.Tendsto.comp ( continuous_apply i |> Continuous.tendsto <| _ ) ( h_cont.tendsto m |> Filter.Tendsto.comp <| right );
     exact fun i => ⟨ le_of_tendsto_of_tendsto' tendsto_const_nhds ( h_coords i ) fun n => left n i |>.1, le_of_tendsto_of_tendsto' ( h_coords i ) tendsto_const_nhds fun n => left n i |>.2.le ⟩
 
 /-- The shift vector: sum of half of each basis vector -/
-noncomputable def LatticeBasis.halfBasisSum (B : SquareLatticeBasis n) : 𝔼 n :=
+noncomputable def LatticeBasis.halfBasisSum (B : SquareLatticeBasis n) : 𝓔 n :=
   ∑ i, (0.5 : ℝ) • B.cols i
 
 /-- The centered fundamental domain equals the fundamental domain shifted by -½ ∑ bᵢ -/
@@ -394,11 +396,11 @@ theorem LatticeBasis.centeredFundamentalDomain_eq_shifted (B : SquareLatticeBasi
         have h_basis_rep : ∀ j : Fin n, (B.asTopBasis.repr (B.basis j)) = Finsupp.single j 1 := by
           intro j; exact (by
           convert B.asTopBasis.repr_self j;
-          exact?);
+          exact Eq.symm coe_topBasis);
         aesop;
       rw [ Finset.sum_congr rfl fun j _ => by rw [ h_coeff j ] ] ; aesop
     · unfold LatticeBasis.halfBasisSum; norm_num;
-      have h_sum : ∑ x : Fin n, (1 / 2 : ℝ) * (((LatticeBasis.asTopBasis B).repr : 𝔼 n → Fin (↑n : ℕ) →₀ ℝ) (LatticeBasis.cols B x) : Fin (↑n : ℕ) → ℝ) i = (1 / 2 : ℝ) := by
+      have h_sum : ∑ x : Fin n, (1 / 2 : ℝ) * (((LatticeBasis.asTopBasis B).repr : 𝓔 n → Fin (↑n : ℕ) →₀ ℝ) (LatticeBasis.cols B x) : Fin (↑n : ℕ) → ℝ) i = (1 / 2 : ℝ) := by
         -- Since the basis vectors are linearly independent, their representations in the basis are the standard basis vectors.
         have h_basis_rep : ∀ i : Fin n, (B.asTopBasis.repr (B.cols i)) = Finsupp.single i 1 := by
           aesop;
@@ -408,7 +410,7 @@ theorem LatticeBasis.centeredFundamentalDomain_eq_shifted (B : SquareLatticeBasi
       linarith [ left i ]
 
 /-- The fundamental parallelepiped of a lattice basis whose center is shifted to the origin is symmetric. -/
-theorem LatticeBasis.centeredFundamentalDomain_closureIsSymmetric {x : 𝔼 n} (B: SquareLatticeBasis n) : x ∈ B.centeredFundamentalDomain_closure ↔ -x ∈ B.centeredFundamentalDomain_closure := by
+theorem LatticeBasis.centeredFundamentalDomain_closureIsSymmetric {x : 𝓔 n} (B: SquareLatticeBasis n) : x ∈ B.centeredFundamentalDomain_closure ↔ -x ∈ B.centeredFundamentalDomain_closure := by
   unfold LatticeBasis.centeredFundamentalDomain_closure; aesop;
   · linarith [ a i ];
   · linarith [ a i ]
@@ -418,7 +420,7 @@ theorem LatticeBasis.centeredFundamentalDomain_isBounded (B : SquareLatticeBasis
   -- The centered fundamental domain is contained within a ball of radius 0.5 times the sum of the norms of the basis vectors.
   have h_bounded : ∃ C : ℝ, ∀ m ∈ B.centeredFundamentalDomain, ‖m‖ ≤ C := by
     -- The norm of a sum is less than or equal to the sum of the norms.
-    have h_norm_sum : ∀ m : 𝔼 n, ‖m‖ ≤ ∑ i, |B.asTopBasis.repr m i| * ‖B.cols i‖ := by
+    have h_norm_sum : ∀ m : 𝓔 n, ‖m‖ ≤ ∑ i, |B.asTopBasis.repr m i| * ‖B.cols i‖ := by
       intros m
       have h_norm_sum : ‖m‖ ≤ ‖∑ i, (B.asTopBasis.repr m i) • B.cols i‖ := by
         rw [ ← B.asTopBasis.sum_repr m ];
@@ -451,7 +453,7 @@ theorem LatticeBasis.centeredFundamentalDomain_isConvex (B : SquareLatticeBasis 
     apply And.intro;
     · nlinarith [ hx i, hy i ];
     · cases lt_or_eq_of_le ht_nonneg <;> cases lt_or_eq_of_le ht_nonneg' <;> nlinarith [ hx i, hy i ];
-  convert h_coord using 1 <;> rw [ ← ht_sum ] ; ring;
+  convert h_coord using 1 <;> rw [ ← ht_sum ] ; ring_nf;
   rw [ add_sub_cancel_left ]
 
 
