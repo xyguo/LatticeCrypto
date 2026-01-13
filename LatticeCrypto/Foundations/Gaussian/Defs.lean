@@ -13,10 +13,7 @@ import Mathlib.Probability.Distributions.Gaussian.Real
 import Mathlib.Probability.ProbabilityMassFunction.Basic
 import Mathlib.Probability.HasLaw
 
-open Real
-open Complex
-open MeasureTheory
-open ProbabilityTheory
+open scoped Real Complex MeasureTheory ProbabilityTheory
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Foundations.Lattice
 
@@ -32,8 +29,14 @@ variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
 /-- The standard Gaussian function ρ(x) = exp(-π ‖x‖^2) -/
 def rho (x : E) : ℝ := Real.exp (-π * ‖x‖^2)
 
+scoped notation "ρ" => rho
+#check ρ (1 : ℝ) = rho (1 : ℝ)
+
 /-- The scaled Gaussian ρ_s(x) = ρ(x/s) = exp(-π ‖x‖^2 / s^2) -/
 def rhoS (s : ℝ) (x : E) : ℝ := Real.exp (-π * ‖s⁻¹ • x‖^2)
+
+scoped notation "ρ[" s "]" => rhoS s
+#check ρ[2] (1 : ℝ) = rhoS 2 (1 : ℝ)
 
 theorem rhoS_eq_rho_s_inv_mul_x {s : ℝ} {x : E} :
   rhoS s x = rho (s⁻¹ • x) := by
@@ -118,7 +121,7 @@ theorem rho_eq_Pi_gaussianPDF (x : 𝔼 n) :
 
 /-- The Gaussian function ρ_s is integrable -/
 lemma rhoS.integrable {n : ℕ+} (s : ℝ) (hs : s ≠ 0) :
-    Integrable (fun v : 𝔼 n => (rhoS s v : ℂ)) := by
+    MeasureTheory.Integrable (fun v : 𝔼 n => (rhoS s v : ℂ)) := by
   -- We'll use the fact that the Gaussian function is integrable.
   have h_gauss_integrable : MeasureTheory.Integrable (fun v : 𝔼 n => Real.exp (-Real.pi * ‖v‖^2 / s^2)) MeasureTheory.volume := by
     have h_gauss_integrable : ∫ v : 𝔼 n, Real.exp (-Real.pi * ‖v‖^2 / s^2) = (Real.sqrt (s^2)) ^ (n : ℕ) := by
@@ -126,7 +129,7 @@ lemma rhoS.integrable {n : ℕ+} (s : ℝ) (hs : s ≠ 0) :
         have h_gauss_integral : ∫ v : Fin n → ℝ, Real.exp (-Real.pi * (∑ i, v i ^ 2) / s ^ 2) = (∏ i : Fin n, ∫ v : ℝ, Real.exp (-Real.pi * v ^ 2 / s ^ 2)) := by
           have h_gauss_integral : ∫ v : Fin n → ℝ, Real.exp (-Real.pi * (∑ i, v i ^ 2) / s ^ 2) = (∏ i : Fin n, ∫ v : ℝ, Real.exp (-Real.pi * v ^ 2 / s ^ 2)) := by
             have h_prod : ∀ (f : Fin n → ℝ → ℝ), (∫ v : Fin n → ℝ, ∏ i, f i (v i)) = ∏ i, ∫ v : ℝ, f i v := by
-              exact fun f => integral_fin_nat_prod_volume_eq_prod f
+              exact fun f => MeasureTheory.integral_fin_nat_prod_volume_eq_prod f
             convert h_prod ( fun i v => Real.exp ( -Real.pi * v ^ 2 / s ^ 2 ) ) using 3 ; ring_nf;
             rw [ ← Real.exp_sum ] ; simp +decide [ mul_assoc, mul_comm, mul_left_comm, Finset.mul_sum _ _ _ ];
           convert h_gauss_integral using 1;
@@ -147,9 +150,9 @@ open MeasureTheory.Measure
 lemma integrable_comp_continuousLinearEquiv
     {E F : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E] [BorelSpace E] [FiniteDimensional ℝ E]
     [NormedAddCommGroup F] [MeasurableSpace F]
-    (μ : Measure E) [IsAddHaarMeasure μ]
-    (f : E → F) (T : E ≃L[ℝ] E) (hf : Integrable f μ) :
-    Integrable (f ∘ T) μ := by
+    (μ : MeasureTheory.Measure E) [IsAddHaarMeasure μ]
+    (f : E → F) (T : E ≃L[ℝ] E) (hf : MeasureTheory.Integrable f μ) :
+    MeasureTheory.Integrable (f ∘ T) μ := by
       have h_map : MeasureTheory.Integrable f (MeasureTheory.Measure.map T μ) := by
         have h_map : MeasureTheory.Measure.map T μ = ENNReal.ofReal |(LinearMap.det T.toLinearMap)⁻¹| • μ := by
           convert MeasureTheory.Measure.map_linearMap_addHaar_eq_smul_addHaar _ _;
@@ -163,7 +166,7 @@ lemma integrable_comp_continuousLinearEquiv
       convert h_map.comp_measurable T.continuous.measurable
 
 lemma rhoST.integrable {n : ℕ+} (s : ℝ) (hs : s ≠ 0) (T : (𝔼 n) ≃L[ℝ] (𝔼 n)) :
-    Integrable (fun v : 𝔼 n => (rhoST s T v : ℂ)) := by
+    MeasureTheory.Integrable (fun v : 𝔼 n => (rhoST s T v : ℂ)) := by
       convert integrable_comp_continuousLinearEquiv MeasureTheory.MeasureSpace.volume _ T _;
       rotate_left;
       exact inferInstance;
@@ -215,6 +218,14 @@ noncomputable def rhoSMassOn
   (S : Set (𝔼 n)) : ℝ :=
   L.latticeSum (fun v => (S.indicator (rhoS s)) (v + c))
 
+scoped notation "ρMass["s"]" => rhoSMass s
+scoped notation "ρMassOn["s"]" => rhoSMassOn s
+
+theorem rhoSMassOn_univ (s : ℝ) (c : 𝔼 n) (L : GeometricLattice n n) :
+  rhoSMassOn s c L Set.univ = rhoSMass s c L := by
+  classical
+  simp [rhoSMassOn, rhoSMass]
+
 theorem rhoSTMass_Id_eq_rhoSMass (s c L) :
   rhoSTMass s (ContinuousLinearEquiv.refl ℝ (𝔼 n)) c L = rhoSMass s c L :=
   rfl
@@ -229,6 +240,15 @@ noncomputable def rhoMassOn
   (L : GeometricLattice n n)
   (S : Set (𝔼 n)) : ℝ :=
   L.latticeSum (fun v => (S.indicator rho) (v + c))
+
+scoped notation "ρMass" => rhoMass
+scoped notation "ρMassOn" => rhoMass
+
+theorem rhoMassOn_univ (c : 𝔼 n) (L : GeometricLattice n n) :
+  rhoMassOn c L Set.univ = rhoMass c L := by
+  classical
+  simp [rhoMassOn, rhoMass]
+
 
 theorem rhoSMass_one_eq_rhoMass (c : 𝔼 n) L :
    rhoSMass 1 c L = rhoMass c L := by
@@ -575,7 +595,7 @@ theorem rhoST_periodize.continuous :
 
 theorem rhoST_periodize.integrableOn_fundamentalDomain :
     ∀ (s : ℝ) (T : (𝔼 n) ≃L[ℝ] (𝔼 n)) (L : GeometricLattice n n),
-    IntegrableOn (rhoST_periodize s T L) L.basis.fundamentalDomain := by
+    MeasureTheory.IntegrableOn (rhoST_periodize s T L) L.basis.fundamentalDomain := by
   intro s T L;
   have h_cont : Continuous (rhoST_periodize s T L) := by
     by_cases hs : 0 = s;
@@ -597,7 +617,7 @@ noncomputable def rhoST_periodizeQuotient (s : ℝ) (T : (𝔼 n) ≃L[ℝ] (�
 
 /-! The Gaussian periodization function: g_s(x) = ρ_s(x + L) -/
 def rhoS_periodize (s : ℝ) (L : GeometricLattice n n) : 𝔼 n → ℝ :=
-  periodize (fun v => rhoS s v) L
+  periodize (fun v => ρ[s] v) L
 
 /-! The Gaussian periodization on the quotient. -/
 noncomputable def rhoS_periodizeQuotient (s : ℝ) (L : GeometricLattice n n) : L.Quotient → ℝ :=

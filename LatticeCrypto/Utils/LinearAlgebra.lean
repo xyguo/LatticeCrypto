@@ -23,12 +23,11 @@ import Mathlib.Analysis.Normed.Module.Convex
 import LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Vec
 
-open scoped ENNReal NNReal Pointwise
-open MeasureTheory
-open RealInnerProductSpace
-open Classical
-open Module
-open FiniteDimensional
+open scoped ENNReal NNReal Pointwise MeasureTheory
+open scoped RealInnerProductSpace
+open scoped Classical
+open scoped Module
+open scoped FiniteDimensional
 
 
 variable {n k : ℕ+}
@@ -149,7 +148,7 @@ theorem discrete_zspan {v : Fin k → 𝔼 n} (li : LinearIndependent ℝ v) :
     DiscreteTopology (Submodule.span ℤ (Set.range v) : Submodule ℤ (Fin n → ℝ)) := by
   -- 1. Extend v to a basis v' of ℝⁿ
   have hli : LinearIndepOn ℝ id (Set.range v) := LinearIndependent.linearIndepOn_id li
-  let v' := Basis.extend hli
+  let v' := Module.Basis.extend hli
 
   -- 2. Use the previous lemma to show that the z-span of v' is discrete
   have discrete_v' : DiscreteTopology ↥(Submodule.span ℤ (Set.range v')) := inferInstance
@@ -232,7 +231,7 @@ end independence
 
 noncomputable section gram_schmidt
 
-open InnerProductSpace
+open scoped InnerProductSpace
 open scoped Matrix
 
 variable {n : Type*} [Fintype n] [DecidableEq n] [LinearOrder n] [LocallyFiniteOrder n] [OrderBot n] [WellFoundedLT n]
@@ -379,7 +378,7 @@ theorem euc_gramSchmidt_matrix_det_abs {n : ℕ+} (M : Matrix (Fin n) (Fin n) �
   all_goals first | infer_instance | norm_cast;
   cases n using PNat.recOn <;> trivial
 
-noncomputable def Basis_of_gramSchmidtOrthonormalBasis {n : ℕ+} (b : Basis (Fin n) ℝ (𝔼 n)) : Basis (Fin n) ℝ (𝔼 n) := by
+noncomputable def Basis_of_gramSchmidtOrthonormalBasis {n : ℕ+} (b : Module.Basis (Fin n) ℝ (𝔼 n)) : Module.Basis (Fin n) ℝ (𝔼 n) := by
   have h_eq : Module.finrank ℝ (𝔼 n) = Fintype.card (Fin n) := by bound
   exact (InnerProductSpace.gramSchmidtOrthonormalBasis h_eq b).toBasis
 

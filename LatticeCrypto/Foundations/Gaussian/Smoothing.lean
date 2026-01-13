@@ -21,7 +21,7 @@ namespace LatticeCrypto.Foundations.Gaussian
 -/
 noncomputable section defs
 
-open Real Complex MeasureTheory
+open scoped Real Complex MeasureTheory
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Foundations.Lattice
@@ -352,7 +352,7 @@ namespace LatticeCrypto.Foundations.Gaussian
 
 noncomputable section smoothing_properties
 
-open Real Complex MeasureTheory
+open scoped Real Complex MeasureTheory
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Foundations.Gaussian
@@ -790,8 +790,8 @@ end smoothing_properties
 -/
 noncomputable section tight_upperbound
 
-open Real Complex MeasureTheory
-open RealInnerProductSpace
+open scoped Real Complex MeasureTheory
+open scoped RealInnerProductSpace
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Foundations.Gaussian

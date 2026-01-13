@@ -16,8 +16,7 @@ import LatticeCrypto.Utils.Geometry
 import LatticeCrypto.Utils.Vec
 
 
-open Real
-open RealInnerProductSpace
+open scoped Real RealInnerProductSpace
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Foundations.Lattice
@@ -30,13 +29,13 @@ namespace LatticeCrypto.Foundations.Gaussian
 -/
 noncomputable section poisson_summation
 
-open Real Complex MeasureTheory
+open scoped Real Complex MeasureTheory
 variable {n : ℕ+}
 
 
 /-- Poisson Summation Formula on Z^n -/
 theorem poisson_summation_Zn (f : 𝔼 n → ℂ)
-  (h_int : Integrable f)
+  (h_int : MeasureTheory.Integrable f)
   (h_cont : Continuous (periodize f Zn) )
   (h_sum : Summable (fourierCoefficient Zn (periodize f Zn))) :
   Zn.latticeSum (fun v => f v) = Zn.latticeSum (fun w => 𝓕 f w) := by
@@ -56,8 +55,8 @@ theorem poisson_summation_Zn (f : 𝔼 n → ℂ)
 /-
 Composition of an integrable function with the lattice basis linear map is integrable.
 -/
-lemma integrable_comp_basis (L : GeometricLattice n n) (f : 𝔼 n → ℂ) (h : Integrable f) :
-  Integrable (f ∘ L.basis.asLinearEquiv.toContinuousLinearEquiv) := by
+lemma integrable_comp_basis (L : GeometricLattice n n) (f : 𝔼 n → ℂ) (h : MeasureTheory.Integrable f) :
+  MeasureTheory.Integrable (f ∘ L.basis.asLinearEquiv.toContinuousLinearEquiv) := by
     have := @integrable_comp_continuousLinearEquiv;
     exact this _ _ _ h
 
@@ -308,7 +307,7 @@ lemma poisson_rhs_eq (L : GeometricLattice n n) (f : 𝔼 n → ℂ) :
 Poisson Summation Formula for a general lattice L. The sum of f over L equals (1/det L) times the sum of the Fourier transform of f over the dual lattice L*.
 -/
 theorem poisson_summation (L : GeometricLattice n n) (f : 𝔼 n → ℂ)
-  (h_int : Integrable f)
+  (h_int : MeasureTheory.Integrable f)
   (h_cont: Continuous (periodize f L))
   (h_sum : Summable (fourierCoefficient L (periodize f L))) :
   L.latticeSum (fun v => f v) = (1 / L.det : ℂ) * L.dual.latticeSum (fun w => 𝓕 f w) := by
@@ -358,7 +357,7 @@ end poisson_summation
 -/
 noncomputable section poisson_summation_corollaries
 
-open Real Complex MeasureTheory
+open scoped Real Complex MeasureTheory
 variable {n : ℕ+}
 
 /-
@@ -418,14 +417,14 @@ theorem poisson_summation_rhoS (L : GeometricLattice n n) (s : ℝ) (h_s : 0 < s
 The Fourier transform of the shifted Gaussian `rhoS(· - u)` is `e^{-2πi <u, w>} * rhoS_FT(w)`.
 -/
 lemma rhoS_shift_FT (s : ℝ) (u : 𝔼 n) (w : 𝔼 n) :
-    𝓕 (fun v => (rhoS s (v - u) : ℂ)) w = cexp (-2 * π * I * (inner ℝ u w : ℂ)) * rhoS_FT s w := by
+    𝓕 (fun v => (rhoS s (v - u) : ℂ)) w = cexp (-2 * π * Complex.I * (inner ℝ u w : ℂ)) * rhoS_FT s w := by
       -- Apply the translation property of the Fourier transform.
       have h_translation : ∀ (f : 𝔼 n → ℂ), 𝓕 (fun v => f (v - u)) w = cexp (-2 * Real.pi * Complex.I * ⟪u, w⟫) * 𝓕 f w := by
         intro f;
-        simp +decide [ fourierIntegral, mul_comm ];
+        simp +decide [ Real.fourierIntegral, mul_comm ];
         rw [ VectorFourier.fourierIntegral, VectorFourier.fourierIntegral ];
         rw [ ← MeasureTheory.integral_const_mul ] ; rw [ ← MeasureTheory.integral_add_right_eq_self _ u ] ; congr; ext; simp +decide [ ← mul_assoc ] ; ring_nf;
-        simp +decide [ sub_eq_add_neg, mul_assoc, mul_comm, mul_left_comm, fourierChar ];
+        simp +decide [ sub_eq_add_neg, mul_assoc, mul_comm, mul_left_comm, Real.fourierChar ];
         simp +decide [ mul_comm, mul_left_comm, ← Complex.exp_neg, ← Complex.exp_add, Circle.smul_def ] ; ring_nf;
         norm_num;
       convert h_translation ( fun v => ( rhoS s v : ℂ ) ) using 1
@@ -450,7 +449,7 @@ lemma rhoSMass_on_coset_eq_latticeSum_sub (s : ℝ) (L : GeometricLattice n n) (
 /-- handy lemmas for the shifted rhoS' Fourier transforms -/
 lemma rhoS_sub_FT (s : ℝ) (u : 𝔼 n) (w : 𝔼 n) (hs : 0 < s) :
   𝓕 (fun v => (rhoS s (v - u) : ℂ)) w =
-  (s ^ (n : ℕ) : ℂ) * cexp (-2 * π * I * (inner ℝ u w : ℂ)) * (rhoS (1 / s) w : ℂ) := by
+  (s ^ (n : ℕ) : ℂ) * cexp (-2 * π * Complex.I * (inner ℝ u w : ℂ)) * (rhoS (1 / s) w : ℂ) := by
   rw [rhoS_shift_FT, rhoS_FT_eq s hs]
   ring
 
@@ -464,7 +463,7 @@ lemma summable_fourier_rhoS_sub (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s
         exact MeasureTheory.Integrable.comp_sub_right ( by simpa using Complex.reCLM.integrable_comp ( this s hs.ne' ) ) u;
       exact h_integrable.ofReal;
     have h_fourier_coeff_summable : Summable (fun w : L.dual.carrier => ‖𝓕 (fun v => (rhoS s (v - u) : ℂ)) (w : 𝔼 n)‖) := by
-      have h_fourier_coeff_summable : Summable (fun w : L.dual.carrier => ‖(s ^ (n : ℕ) : ℂ) * cexp (-2 * Real.pi * I * (inner ℝ u (w : 𝔼 n) : ℂ)) * (rhoS (1 / s) (w : 𝔼 n))‖) := by
+      have h_fourier_coeff_summable : Summable (fun w : L.dual.carrier => ‖(s ^ (n : ℕ) : ℂ) * cexp (-2 * Real.pi * Complex.I * (inner ℝ u (w : 𝔼 n) : ℂ)) * (rhoS (1 / s) (w : 𝔼 n))‖) := by
         have h_fourier_coeff_summable : Summable (fun w : L.dual.carrier => ‖(rhoS (1 / s) (w : 𝔼 n))‖) := by
           have h_fourier_coeff_summable : Summable (fun w : L.dual.carrier => (rhoS (1 / s) (w : 𝔼 n))) := by
             have := @summable_rhoS;
@@ -479,7 +478,7 @@ lemma summable_fourier_rhoS_sub (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s
 The shifted Gaussian function is integrable.
 -/
 lemma rhoS_shifted_integrable (s : ℝ) (hs : s ≠ 0) (u : 𝔼 n) :
-  Integrable (fun v => (rhoS s (v - u) : ℂ)) volume := by
+  MeasureTheory.Integrable (fun v => (rhoS s (v - u) : ℂ)) MeasureTheory.volume := by
     have h_shift : MeasureTheory.Integrable (fun v : 𝔼 n => (rhoS s v : ℂ)) MeasureTheory.MeasureSpace.volume := by
       convert rhoS.integrable s hs using 1;
     exact h_shift.comp_sub_right u
@@ -489,11 +488,11 @@ lemma rhoS_shifted_integrable (s : ℝ) (hs : s ≠ 0) (u : 𝔼 n) :
   Poission Summation for rhoS on cosets
 -/
 theorem poisson_summation_rhoS_coset (L : GeometricLattice n n) (s : ℝ) (h_s : 0 < s) (u : 𝔼 n) :
-    (rhoSMass s u L : ℂ) = (1 / L.det) * (s ^ (n : ℕ)) * L.dual.latticeSum (fun v => cexp (-2 * π * I * inner ℝ u (v : 𝔼 n)) * rhoS (1 / s) v) := by
+    (rhoSMass s u L : ℂ) = (1 / L.det) * (s ^ (n : ℕ)) * L.dual.latticeSum (fun v => cexp (-2 * π * Complex.I * inner ℝ u (v : 𝔼 n)) * rhoS (1 / s) v) := by
     -- Apply the Poisson summation formula to the shifted Gaussian function.
     have h_poisson : L.latticeSum (fun v => (rhoS s (v - u) : ℝ)) = (1 / L.det : ℝ) * L.dual.latticeSum (fun w => 𝓕 (fun v => (rhoS s (v - u) : ℂ)) w) := by
       have h_poisson : L.latticeSum (fun v => (rhoS s (v - u) : ℝ)) = (1 / L.det : ℂ) * L.dual.latticeSum (fun w => 𝓕 (fun v => (rhoS s (v - u) : ℂ)) w) := by
-        have h_integrable : Integrable (fun v => (rhoS s (v - u) : ℂ)) := by
+        have h_integrable : MeasureTheory.Integrable (fun v => (rhoS s (v - u) : ℂ)) := by
           convert rhoS_shifted_integrable s ( ne_of_gt h_s ) u using 1
         have h_continuous : Continuous (periodize (fun v => (rhoS s (v - u) : ℂ)) L) := by
           have h_continuous : Continuous (fun v => (rhoST_periodize s (ContinuousLinearEquiv.refl ℝ (𝔼 n)) L (v - u) : ℂ)) := by
@@ -563,10 +562,10 @@ theorem rhoSMass_shift_mono (L : GeometricLattice n n) (s : ℝ) (hs: 0 < s) (u 
     exact_mod_cast abs_of_nonneg h_rhoSCosetMass_nonneg
   rw [ ← h_rhoSCosetMass_eq_complex,  poisson_summation_rhoS_coset L s hs u];
   unfold GeometricLattice.latticeSum;
-  have h_le : ∀ (v : L.dual.carrier) (a : ℝ), ‖cexp (-2 * π * I * inner ℝ u (v : 𝔼 n)) * a‖ = ‖a‖ := by
+  have h_le : ∀ (v : L.dual.carrier) (a : ℝ), ‖cexp (-2 * π * Complex.I * inner ℝ u (v : 𝔼 n)) * a‖ = ‖a‖ := by
     -- The norm of the product of two complex numbers is the product of their norms.
     simp [Complex.norm_exp]
-  have h_abs_tsum_le_tsum_abs : ‖ ∑' (v : L.dual.carrier), (fun v => cexp (-2 * π * I * inner ℝ u (v : 𝔼 n)) * (rhoS (1 / s) v : ℂ)) v‖ ≤ ∑' (v : L.dual.carrier), ‖(rhoS (1 / s) (v : 𝔼 n) : ℂ)‖ := by
+  have h_abs_tsum_le_tsum_abs : ‖ ∑' (v : L.dual.carrier), (fun v => cexp (-2 * π * Complex.I * inner ℝ u (v : 𝔼 n)) * (rhoS (1 / s) v : ℂ)) v‖ ≤ ∑' (v : L.dual.carrier), ‖(rhoS (1 / s) (v : 𝔼 n) : ℂ)‖ := by
     convert norm_tsum_le_tsum_norm _ using 2 ; aesop
     generalize_proofs at *;
     have h_summable : Summable (fun v : L.dual.carrier => rhoS (1 / s) (v : 𝔼 n)) := by
@@ -587,7 +586,7 @@ theorem rhoSMass_shift_mono (L : GeometricLattice n n) (s : ℝ) (hs: 0 < s) (u 
 noncomputable section AristotleLemmas
 
 lemma re_tsum_tail_ge_neg_rhoMassOn (L : GeometricLattice n n) (u : 𝔼 n) :
-  (∑' v : L.dual.carrier, (if v = 0 then 0 else cexp (-2 * π * I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ))).re ≥ -rhoMassOn 0 L.dual {0}ᶜ := by
+  (∑' v : L.dual.carrier, (if v = 0 then 0 else cexp (-2 * π * Complex.I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ))).re ≥ -rhoMassOn 0 L.dual {0}ᶜ := by
     unfold LatticeCrypto.Foundations.Gaussian.rhoMassOn;
     simp +zetaDelta at *;
     refine' neg_le_of_abs_le _;
@@ -606,7 +605,7 @@ lemma re_tsum_tail_ge_neg_rhoMassOn (L : GeometricLattice n n) (u : 𝔼 n) :
       split_ifs <;> norm_num [ Complex.norm_exp ]
 
 lemma summable_rho_exponential (L : GeometricLattice n n) (u : 𝔼 n) :
-  Summable (fun v : L.dual.carrier => cexp (-2 * π * I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ)) := by
+  Summable (fun v : L.dual.carrier => cexp (-2 * π * Complex.I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ)) := by
     -- Since the Gaussian function is non-negative and its sum is finite, it is summable.
     have h_summable : Summable (fun v : L.dual.carrier => (LatticeCrypto.Foundations.Gaussian.rho v : ℝ)) := by
       -- Apply the lemma `summable_rhoS` with `s = 1` and `c = 0`.
@@ -617,11 +616,11 @@ lemma summable_rho_exponential (L : GeometricLattice n n) (u : 𝔼 n) :
 open Real Complex MeasureTheory LatticeCrypto.Foundations.Lattice LatticeCrypto.Utils.Vec LatticeCrypto.Foundations.Gaussian
 
 lemma rhoMass_eq_real_part_poisson (L : GeometricLattice n n) (u : 𝔼 n) :
-  rhoMass u L = (1 / L.det) * (1 + (∑' v : L.dual.carrier, (if v = 0 then 0 else cexp (-2 * π * I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ))).re) := by
+  rhoMass u L = (1 / L.det) * (1 + (∑' v : L.dual.carrier, (if v = 0 then 0 else cexp (-2 * π * Complex.I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ))).re) := by
     have := @LatticeCrypto.Foundations.Gaussian.poisson_summation_rhoS_coset n L 1;
     specialize this zero_lt_one u;
     rw [rhoSMass_one_eq_rhoMass] at this;
-    have h_lattice_sum : L.dual.latticeSum (fun v : 𝔼 n => cexp (-2 * Real.pi * I * (inner ℝ u v : ℂ)) * (rho v : ℂ)) = (∑' v : L.dual.carrier, cexp (-2 * Real.pi * I * (inner ℝ u (v : 𝔼 n) : ℂ)) * (rho (v : 𝔼 n) : ℂ)) := by
+    have h_lattice_sum : L.dual.latticeSum (fun v : 𝔼 n => cexp (-2 * Real.pi * Complex.I * (inner ℝ u v : ℂ)) * (rho v : ℂ)) = (∑' v : L.dual.carrier, cexp (-2 * Real.pi * Complex.I * (inner ℝ u (v : 𝔼 n) : ℂ)) * (rho (v : 𝔼 n) : ℂ)) := by
       exact rfl;
     convert congr_arg Complex.re this using 1;
     rw [ Summable.tsum_eq_add_tsum_ite ] at h_lattice_sum;
@@ -638,13 +637,13 @@ theorem rhoMass_almost_uniform_on_dual_if_small_tail (L : GeometricLattice n n) 
   rhoMass u L ≥ (1 - ε) / (1 + ε) * rhoMass 0 L := by
 
   -- By `rhoMass_eq_real_part_poisson`, `rhoMass u L = (1 / L.det) * (1 + tail.re)` and `rhoMass 0 L = (1 / L.det) * (1 + tail₀.re)`.
-  have h_rho_mass_u_L : rhoMass u L = (1 / L.det) * (1 + (∑' v : L.dual.carrier, (if v = 0 then 0 else cexp (-2 * Real.pi * I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ))).re) := by
+  have h_rho_mass_u_L : rhoMass u L = (1 / L.det) * (1 + (∑' v : L.dual.carrier, (if v = 0 then 0 else cexp (-2 * Real.pi * Complex.I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ))).re) := by
     convert rhoMass_eq_real_part_poisson L u using 1
   have h_rho_mass_0_L : rhoMass 0 L = (1 / L.det) * (1 + (∑' v : L.dual.carrier, (if v = 0 then 0 else (rho v : ℂ))).re) := by
     convert rhoMass_eq_real_part_poisson L 0 using 1;
     norm_num [ inner_zero_left ];
   -- By `re_tsum_tail_ge_neg_rhoMassOn`, `tail.re ≥ -rhoMassOn 0 L.dual {0}ᶜ`.
-  have h_tail_re_ge_neg_rhoMassOn : (∑' v : L.dual.carrier, (if v = 0 then 0 else cexp (-2 * Real.pi * I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ))).re ≥ -rhoMassOn 0 L.dual {0}ᶜ := by
+  have h_tail_re_ge_neg_rhoMassOn : (∑' v : L.dual.carrier, (if v = 0 then 0 else cexp (-2 * Real.pi * Complex.I * inner ℝ u (v : 𝔼 n)) * (rho v : ℂ))).re ≥ -rhoMassOn 0 L.dual {0}ᶜ := by
     exact re_tsum_tail_ge_neg_rhoMassOn L u;
   -- By `rhoMass_eq_real_part_poisson`, `rhoMass 0 L = (1 + tail₀.re) / det(L)`.
   have h_rho_mass_0_L' : rhoMass 0 L = (1 + rhoMassOn 0 L.dual {0}ᶜ) / L.det := by

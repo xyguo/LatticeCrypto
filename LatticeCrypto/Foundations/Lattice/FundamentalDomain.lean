@@ -12,8 +12,8 @@ open LatticeCrypto.Utils.LinearAlgebra
 open LatticeCrypto.Utils.Geometry
 
 open scoped ENNReal NNReal Pointwise
-open RealInnerProductSpace
-open Classical
+open scoped RealInnerProductSpace
+open scoped Classical
 
 
 /-!

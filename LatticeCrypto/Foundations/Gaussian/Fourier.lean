@@ -17,8 +17,8 @@ import LatticeCrypto.Utils.Geometry
 import LatticeCrypto.Utils.Vec
 
 
-open Real
-open RealInnerProductSpace
+open scoped Real
+open scoped RealInnerProductSpace
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Foundations.Lattice
@@ -33,7 +33,8 @@ noncomputable section fourier_transform
 
 variable {n : ℕ+}
 
-open Real Complex MeasureTheory LatticeCrypto.Foundations.Lattice LatticeCrypto.Utils.Vec LatticeCrypto.Foundations.Gaussian
+open scoped Real Complex MeasureTheory
+open LatticeCrypto.Foundations.Lattice LatticeCrypto.Utils.Vec LatticeCrypto.Foundations.Gaussian
 
 /-! Fourier transform of rhoS -/
 noncomputable def rhoS_FT {n : ℕ+} (s : ℝ) (x : 𝔼 n) : ℂ :=
@@ -157,8 +158,8 @@ noncomputable section fourier_series
 
 variable {n : ℕ+}
 
-open Real Complex MeasureTheory
-open RealInnerProductSpace
+open scoped Real Complex MeasureTheory
+open scoped RealInnerProductSpace
 /-
   Define the measure on the quotient space 𝔼 n / L as the pushforward of the Lebesgue measure
   restricted to the fundamental domain.
@@ -166,20 +167,20 @@ open RealInnerProductSpace
 
 /-- The measure on the quotient space 𝔼 n ⧸ L.carrier, defined as the pushforward of
     the Lebesgue measure restricted to the fundamental domain. -/
-noncomputable def quotientMeasure (L : GeometricLattice n n) : Measure (𝔼 n ⧸ L.carrier.toAddSubgroup) :=
-  Measure.map QuotientAddGroup.mk (volume.restrict L.basis.fundamentalDomain)
+noncomputable def quotientMeasure (L : GeometricLattice n n) : MeasureTheory.Measure (𝔼 n ⧸ L.carrier.toAddSubgroup) :=
+  MeasureTheory.Measure.map QuotientAddGroup.mk (MeasureTheory.volume.restrict L.basis.fundamentalDomain)
 
 /-- The measure space instance on the quotient 𝔼 n ⧸ L.carrier -/
-noncomputable def quotientMeasureSpace (L : GeometricLattice n n) : MeasureSpace (𝔼 n ⧸ L.carrier.toAddSubgroup) where
+noncomputable def quotientMeasureSpace (L : GeometricLattice n n) : MeasureTheory.MeasureSpace (𝔼 n ⧸ L.carrier.toAddSubgroup) where
   volume := quotientMeasure L
 
 /-- The total measure of the quotient space equals the determinant of the lattice -/
 lemma quotientMeasure_univ (L : GeometricLattice n n) :
     quotientMeasure L Set.univ = ENNReal.ofReal L.det := by
   unfold quotientMeasure
-  rw [Measure.map_apply QuotientAddGroup.measurable_coe MeasurableSet.univ]
+  rw [MeasureTheory.Measure.map_apply QuotientAddGroup.measurable_coe MeasurableSet.univ]
   simp only [Set.preimage_univ]
-  rw [Measure.restrict_apply MeasurableSet.univ, Set.univ_inter]
+  rw [MeasureTheory.Measure.restrict_apply MeasurableSet.univ, Set.univ_inter]
   simp [lebesgueMeasure, GeometricLattice.det_eq_measure_fundamentalDomain L]
 
 /-- The induced topology on the quotient space -/
@@ -192,7 +193,7 @@ instance (L : GeometricLattice n n) : TopologicalSpace L.Quotient :=
   Note here `g` is not explicitly specified as a periodic function, but this definition makes sense only when `g` is periodic with respect to the lattice `L`.
 -/
 noncomputable def fourierCoefficient (L : GeometricLattice n n) (g : 𝔼 n → ℂ) (w : L.dual.carrier) : ℂ :=
-  (1 / L.det : ℂ) * ∫ x in L.basis.fundamentalDomain, g x * cexp (-2 * π * I * (inner ℝ x (w : 𝔼 n)))
+  (1 / L.det : ℂ) * ∫ x in L.basis.fundamentalDomain, g x * cexp (-2 * π * Complex.I * (inner ℝ x (w : 𝔼 n)))
 
 noncomputable def fourierCoefficientReal
   (L : GeometricLattice n n)
@@ -209,7 +210,7 @@ lemma fourierCoefficientReal_apply
     =
   (1 / L.det : ℂ) *
     ∫ x in L.basis.fundamentalDomain,
-      (g x : ℂ) * cexp (-2 * π * I * (inner ℝ x (w : 𝔼 n))) :=
+      (g x : ℂ) * cexp (-2 * π * Complex.I * (inner ℝ x (w : 𝔼 n))) :=
   rfl
 
 /-
@@ -217,7 +218,7 @@ lemma fourierCoefficientReal_apply
   Note here both `g` and its Fourier coeff will be bundled in `coeffs`.
 -/
 noncomputable def fourierSeries (L : GeometricLattice n n) (coeffs : L.dual.carrier → ℂ) (x : 𝔼 n) : ℂ :=
-  ∑' w : L.dual.carrier, coeffs w * cexp (2 * π * I * (inner ℝ x (w : 𝔼 n)))
+  ∑' w : L.dual.carrier, coeffs w * cexp (2 * π * Complex.I * (inner ℝ x (w : 𝔼 n)))
 
 
 /--
@@ -259,7 +260,7 @@ noncomputable def fourierSeriesOnQuotient (L : GeometricLattice n n)
 The complex exponential term involving the inner product with a dual lattice vector is periodic with respect to the lattice.
 -/
 lemma cexp_inner_dual_periodicity (L : GeometricLattice n n) (v : L.carrier) (w : L.dual.carrier) (x : 𝔼 n) :
-    cexp (-2 * π * I * inner ℝ (x + v) (w : 𝔼 n)) = cexp (-2 * π * I * inner ℝ x (w : 𝔼 n)) := by
+    cexp (-2 * π * Complex.I * inner ℝ (x + v) (w : 𝔼 n)) = cexp (-2 * π * Complex.I * inner ℝ x (w : 𝔼 n)) := by
       -- Since $⟨v, w⟩_ℝ = m$ for some integer $m$, we have $e^{-2π i m} = 1$.
       have h_inner : ∃ m : ℤ, (inner ℝ (v : 𝔼 n) (w : 𝔼 n)) = m := by
         have := LatticeCrypto.Foundations.Lattice.GeometricLattice.dual_carrier_eq_integralDual L;
@@ -281,7 +282,7 @@ lemma integral_shift_eq_integral_domain (f : 𝔼 n → ℝ) (L : GeometricLatti
 /-
 The sum of the integrals of the absolute value of the shifted function over the fundamental domain is summable, assuming the function is integrable.
 -/
-lemma summable_integral_abs_shift (f : 𝔼 n → ℝ) (L : GeometricLattice n n) (hf : Integrable f) :
+lemma summable_integral_abs_shift (f : 𝔼 n → ℝ) (L : GeometricLattice n n) (hf : MeasureTheory.Integrable f) :
     Summable (fun v : L.carrier => ∫ x in L.basis.fundamentalDomain, |f (x + v)|) := by
       have h_partition : ∫ x, |f x| = ∑' v : L.carrier, ∫ x in (Set.image (fun y => (v : 𝔼 n) + y) L.basis.fundamentalDomain), |f x| := by
         have := @MeasureTheory.IsAddFundamentalDomain.integral_eq_tsum L.carrier;
@@ -291,7 +292,7 @@ lemma summable_integral_abs_shift (f : 𝔼 n → ℝ) (L : GeometricLattice n n
         · constructor;
           simp +zetaDelta at *;
           intro a ha s hs; erw [ MeasureTheory.measure_preimage_add ] ;
-        · exact GeometricLattice.fundamentalDomain_isAddFundamentalDomain L volume;
+        · exact GeometricLattice.fundamentalDomain_isAddFundamentalDomain L MeasureTheory.volume;
         · exact hf.norm;
       have h_abs_integrable : Summable (fun v : L.carrier => ∫ x in (Set.image (fun y => (v : 𝔼 n) + y) L.basis.fundamentalDomain), |f x|) := by
         contrapose! h_partition;
@@ -305,7 +306,7 @@ lemma summable_integral_abs_shift (f : 𝔼 n → ℝ) (L : GeometricLattice n n
 /-
 The integral of the periodization of `f` over the fundamental domain is equal to the sum of the integrals of `f(x + v)` over the fundamental domain.
 -/
-lemma integral_periodize_eq_tsum_integral_shifts (f : 𝔼 n → ℝ) (L : GeometricLattice n n) (hf : Integrable f) :
+lemma integral_periodize_eq_tsum_integral_shifts (f : 𝔼 n → ℝ) (L : GeometricLattice n n) (hf : MeasureTheory.Integrable f) :
     ∫ x in L.basis.fundamentalDomain, periodize f L x = ∑' v : L.carrier, ∫ x in L.basis.fundamentalDomain, f (x + v) := by
       rw [ ← MeasureTheory.integral_tsum ];
       · rfl;
@@ -340,14 +341,14 @@ lemma integral_shift_eq_integral_domain_real (f : 𝔼 n → ℝ) (L : Geometric
 /-
 The integral of the periodization of a real-valued function `f` over the fundamental domain of a lattice `L` is equal to the integral of `f` over the entire space, assuming `f` is integrable.
 -/
-lemma integral_periodize_eq_integral_real (f : 𝔼 n → ℝ) (L : GeometricLattice n n) (hf : Integrable f) :
+lemma integral_periodize_eq_integral_real (f : 𝔼 n → ℝ) (L : GeometricLattice n n) (hf : MeasureTheory.Integrable f) :
     ∫ x in L.basis.fundamentalDomain, periodize f L x = ∫ x, f x := by
       -- Using the fact that $f$ is integrable, we can apply the result from the previous steps to rewrite the integral.
       have h_integral : (∫ x in L.basis.fundamentalDomain, periodize f L x) = ∑' v : L.carrier, (∫ x in L.basis.fundamentalDomain, f (x + v)) := by
         exact integral_periodize_eq_tsum_integral_shifts f L hf;
       rw [ h_integral ];
       have h_integral : ∑' v : L.carrier, ∫ x in Set.image (fun y => (v : 𝔼 n) + y) L.basis.fundamentalDomain, f x = ∫ x, f x := by
-        have := L.fundamentalDomain_isAddFundamentalDomain (volume (α := 𝔼 n));
+        have := L.fundamentalDomain_isAddFundamentalDomain (MeasureTheory.volume (α := 𝔼 n));
         convert this.integral_eq_tsum _ using 1;
         any_goals exact ℝ;
         any_goals try infer_instance;
@@ -367,10 +368,10 @@ lemma integral_periodize_eq_integral_real (f : 𝔼 n → ℝ) (L : GeometricLat
       (expose_names; exact integral_shift_eq_integral_domain_real f L x)
 
 /-! The Periodization Lemma: If `g = periodize f L` for some `Integrable f`, then g_FS(w) = f_FT(w) / L.det -/
-theorem fourierCoefficient_of_periodization_eq_fourierTransform (L : GeometricLattice n n) (f : 𝔼 n → ℂ) (hf : Integrable f) (w : L.dual.carrier) :
+theorem fourierCoefficient_of_periodization_eq_fourierTransform (L : GeometricLattice n n) (f : 𝔼 n → ℂ) (hf : MeasureTheory.Integrable f) (w : L.dual.carrier) :
     fourierCoefficient L (fun x => periodize f L x) w = (1 / L.det : ℂ) * 𝓕 (fun v => f v) (w : 𝔼 n) := by
       -- By definition of the Fourier transform, we can rewrite the integral as the sum of the Fourier transforms of the shifted functions.
-      have h_fourier_transform : ∫ x in L.basis.fundamentalDomain, (periodize f L x) * cexp (-2 * Real.pi * I * (inner ℝ x (w : 𝔼 n))) = ∑' v : L.carrier, ∫ x in L.basis.fundamentalDomain, f (x + v) * cexp (-2 * Real.pi * I * (inner ℝ x (w : 𝔼 n))) := by
+      have h_fourier_transform : ∫ x in L.basis.fundamentalDomain, (periodize f L x) * cexp (-2 * Real.pi * Complex.I * (inner ℝ x (w : 𝔼 n))) = ∑' v : L.carrier, ∫ x in L.basis.fundamentalDomain, f (x + v) * cexp (-2 * Real.pi * Complex.I * (inner ℝ x (w : 𝔼 n))) := by
         rw [ ← MeasureTheory.integral_tsum ];
         · simp +decide [ periodize ];
           simp +decide only [GeometricLattice.latticeSum, ← tsum_mul_right];
@@ -392,7 +393,7 @@ theorem fourierCoefficient_of_periodization_eq_fourierTransform (L : GeometricLa
             · exact fun _ => MeasureTheory.integral_nonneg fun _ => norm_nonneg _;
             · simpa using summable_integral_abs_shift ( fun x => ‖f x‖ ) L ( hf.norm );
       -- By definition of the Fourier transform, we can rewrite the integral as the sum of the Fourier transforms of the shifted functions, using the periodicity of the exponential.
-      have h_fourier_transform_shift : ∑' v : L.carrier, ∫ x in L.basis.fundamentalDomain, f (x + v) * cexp (-2 * Real.pi * I * (inner ℝ x (w : 𝔼 n))) = ∑' v : L.carrier, ∫ x in Set.image (fun y => (v : 𝔼 n) + y) L.basis.fundamentalDomain, f x * cexp (-2 * Real.pi * I * (inner ℝ x (w : 𝔼 n))) := by
+      have h_fourier_transform_shift : ∑' v : L.carrier, ∫ x in L.basis.fundamentalDomain, f (x + v) * cexp (-2 * Real.pi * Complex.I * (inner ℝ x (w : 𝔼 n))) = ∑' v : L.carrier, ∫ x in Set.image (fun y => (v : 𝔼 n) + y) L.basis.fundamentalDomain, f x * cexp (-2 * Real.pi * Complex.I * (inner ℝ x (w : 𝔼 n))) := by
         refine' tsum_congr fun v => _;
         rw [ MeasureTheory.integral_image_eq_integral_abs_det_fderiv_smul ];
         rotate_right;
@@ -404,7 +405,7 @@ theorem fourierCoefficient_of_periodization_eq_fourierTransform (L : GeometricLa
         · exact fun x hx => HasFDerivAt.hasFDerivWithinAt ( hasFDerivAt_id x |> HasFDerivAt.const_add _ );
         · exact fun x hx y hy hxy => by simpa using hxy;
       -- Since these shifted fundamental domains are disjoint and cover the entire space, we can apply the linearity of the integral.
-      have h_integral_union : ∫ x, f x * cexp (-2 * Real.pi * I * (inner ℝ x (w : 𝔼 n))) = ∑' v : L.carrier, ∫ x in Set.image (fun y => (v : 𝔼 n) + y) L.basis.fundamentalDomain, f x * cexp (-2 * Real.pi * I * (inner ℝ x (w : 𝔼 n))) := by
+      have h_integral_union : ∫ x, f x * cexp (-2 * Real.pi * Complex.I * (inner ℝ x (w : 𝔼 n))) = ∑' v : L.carrier, ∫ x in Set.image (fun y => (v : 𝔼 n) + y) L.basis.fundamentalDomain, f x * cexp (-2 * Real.pi * Complex.I * (inner ℝ x (w : 𝔼 n))) := by
         rw [ ← MeasureTheory.integral_iUnion ];
         · rw [ MeasureTheory.Measure.restrict_eq_self_of_ae_mem ];
           have := GeometricLattice.partition_by_fundamentalDomain L;
@@ -425,14 +426,14 @@ theorem fourierCoefficient_of_periodization_eq_fourierTransform (L : GeometricLa
           · norm_num [ Complex.norm_exp ];
       convert congr_arg ( fun x : ℂ => ( 1 / L.det : ℂ ) * x ) h_integral_union using 1;
       · unfold fourierCoefficient; aesop;
-      · rw [ ← h_integral_union, fourierIntegral ];
+      · rw [ ← h_integral_union, Real.fourierIntegral ];
         unfold VectorFourier.fourierIntegral; norm_num [ innerₗ ] ;
         simp +decide [ mul_comm, innerₛₗ, Circle.smul_def ];
         norm_num [ Real.fourierChar, mul_assoc, mul_comm, mul_left_comm ];
         exact Or.inl ( by congr; ext; rw [ ← Complex.exp_neg ] )
 
 /-! Specialization of the periodization theorem for real-value `f` -/
-lemma fourierCoefficient_of_periodization_eq_fourierTransform_real (L : GeometricLattice n n) (f : 𝔼 n → ℝ) (hf : Integrable f) (w : L.dual.carrier) :
+lemma fourierCoefficient_of_periodization_eq_fourierTransform_real (L : GeometricLattice n n) (f : 𝔼 n → ℝ) (hf : MeasureTheory.Integrable f) (w : L.dual.carrier) :
     fourierCoefficientReal L (fun x => periodize f L x) w = (1 / L.det : ℂ) * 𝓕 (fun v => (f v : ℂ)) (w : 𝔼 n) := by
   -- Apply the periodization theorem to the real function `f` by converting it to a complex function.
   have h_complex_periodization : fourierCoefficient L (fun x => periodize (fun v => (f v : ℂ)) L x) w = (1 / L.det : ℂ) * 𝓕 (fun v => (f v : ℂ)) (w : 𝔼 n) := by
@@ -467,7 +468,8 @@ section fourier_series_inversion_on_Zn
 -/
 section Zn_def
 
-open Real Complex MeasureTheory LatticeCrypto.Foundations.Lattice LatticeCrypto.Utils.Vec LatticeCrypto.Foundations.Gaussian
+open scoped Real Complex MeasureTheory
+open LatticeCrypto.Foundations.Lattice LatticeCrypto.Utils.Vec LatticeCrypto.Foundations.Gaussian
 open scoped FourierTransform
 
 
@@ -533,7 +535,7 @@ lemma Zn_fundamentalDomain_eq_pi_Ico :
 The volume of the fundamental domain of Zn is 1.
 -/
 lemma volume_Zn_fundamentalDomain_eq_one :
-    volume (Zn.basis.fundamentalDomain : Set (𝔼 n)) = 1 := by
+    MeasureTheory.volume (Zn.basis.fundamentalDomain : Set (𝔼 n)) = 1 := by
       have := @GeometricLattice.det_eq_measure_fundamentalDomain;
       exact this Zn ▸ by norm_num [ Zn_det ] ;
 
@@ -575,7 +577,8 @@ end Zn_def
 -/
 section Zn_equiv_UnitAddTorus
 
-open Real Complex MeasureTheory LatticeCrypto.Foundations.Lattice LatticeCrypto.Utils.Vec LatticeCrypto.Foundations.Gaussian
+open scoped Real Complex MeasureTheory
+open LatticeCrypto.Foundations.Lattice LatticeCrypto.Utils.Vec LatticeCrypto.Foundations.Gaussian
 open scoped FourierTransform
 
 
@@ -642,7 +645,7 @@ noncomputable def periodizeZnToTorus (f : 𝔼 n → ℂ) : UnitAddTorus (Fin n)
 /-- The fourier polynomials from UnitAddTorus is essentially a simple exponential -/
 theorem mFourier_eq_cexp (w : Fin n → ℤ) (x : 𝔼 n) :
   UnitAddTorus.mFourier (-w) (quotientZnIsoUnitAddTorus (QuotientAddGroup.mk x)) =
-  cexp (-2 * π * I * inner ℝ x (piToEuc (fun i => (w i : ℝ)))) := by
+  cexp (-2 * π * Complex.I * inner ℝ x (piToEuc (fun i => (w i : ℝ)))) := by
     unfold UnitAddTorus.mFourier;
     -- By definition of quotientZnIsoUnitAddTorus, we have that quotientZnIsoUnitAddTorus x is the equivalence class of x in the quotient space.
     have h_quot : quotientZnIsoUnitAddTorus (QuotientAddGroup.mk x) = fun i => QuotientAddGroup.mk (x i) := by
@@ -656,8 +659,8 @@ theorem mFourier_eq_cexp (w : Fin n → ℤ) (x : 𝔼 n) :
 The volume measure on the unit circle is the pushforward of the Lebesgue measure restricted to [0,1).
 -/
 lemma volume_unitAddCircle_eq_map :
-    (volume : Measure UnitAddCircle) =
-    Measure.map QuotientAddGroup.mk (volume.restrict (Set.Ico 0 1)) := by
+    (MeasureTheory.volume : MeasureTheory.Measure UnitAddCircle) =
+    MeasureTheory.Measure.map QuotientAddGroup.mk (MeasureTheory.volume.restrict (Set.Ico 0 1)) := by
       have := @AddCircle.measurePreserving_mk ( 1 : ℝ );
       -- Apply the measure-preserving property of the quotient map.
       have := @this (by exact ⟨by norm_num⟩) 0;
@@ -669,18 +672,18 @@ lemma volume_unitAddCircle_eq_map :
 The product of quotient maps is measure preserving from the unit cube to the torus.
 -/
 lemma measurePreserving_pi_quotient :
-    MeasurePreserving (fun (x : Fin n → ℝ) i => QuotientAddGroup.mk (x i))
-      (Measure.pi (fun _ : Fin n => (volume : Measure ℝ).restrict (Set.Ico 0 1)))
-      (volume : Measure (UnitAddTorus (Fin n))) := by
+    MeasureTheory.MeasurePreserving (fun (x : Fin n → ℝ) i => QuotientAddGroup.mk (x i))
+      (MeasureTheory.Measure.pi (fun _ : Fin n => (MeasureTheory.volume : MeasureTheory.Measure ℝ).restrict (Set.Ico 0 1)))
+      (MeasureTheory.volume : MeasureTheory.Measure (UnitAddTorus (Fin n))) := by
         -- The quotient map from ℝ to ℝ/ℤ is measure-preserving.
-        have h_quot : MeasurePreserving (fun x : ℝ => QuotientAddGroup.mk x : ℝ → UnitAddCircle) (Measure.restrict MeasureSpace.volume (Set.Ico 0 1)) MeasureSpace.volume := by
+        have h_quot : MeasureTheory.MeasurePreserving (fun x : ℝ => QuotientAddGroup.mk x : ℝ → UnitAddCircle) (MeasureTheory.Measure.restrict MeasureTheory.MeasureSpace.volume (Set.Ico 0 1)) MeasureTheory.MeasureSpace.volume := by
           refine' ⟨ _, _ ⟩;
           · exact fun ⦃t⦄ a => a;
           · exact Eq.symm volume_unitAddCircle_eq_map;
         -- Apply the fact that the product of measure-preserving maps is measure-preserving.
-        have h_prod : ∀ (f : Fin n → ℝ → UnitAddCircle), (∀ i, MeasurePreserving (f i) (Measure.restrict MeasureSpace.volume (Set.Ico 0 1)) MeasureSpace.volume) → MeasurePreserving (fun x : Fin n → ℝ => fun i => f i (x i)) (Measure.pi fun _ => Measure.restrict MeasureSpace.volume (Set.Ico 0 1)) (Measure.pi fun _ => MeasureSpace.volume) := by
+        have h_prod : ∀ (f : Fin n → ℝ → UnitAddCircle), (∀ i, MeasureTheory.MeasurePreserving (f i) (MeasureTheory.Measure.restrict MeasureTheory.MeasureSpace.volume (Set.Ico 0 1)) MeasureTheory.MeasureSpace.volume) → MeasureTheory.MeasurePreserving (fun x : Fin n → ℝ => fun i => f i (x i)) (MeasureTheory.Measure.pi fun _ => MeasureTheory.Measure.restrict MeasureTheory.MeasureSpace.volume (Set.Ico 0 1)) (MeasureTheory.Measure.pi fun _ => MeasureTheory.MeasureSpace.volume) := by
           exact fun f a =>
-            measurePreserving_pi (fun x => volume.restrict (Set.Ico 0 1)) (fun x => volume) a;
+            MeasureTheory.measurePreserving_pi (fun x => MeasureTheory.volume.restrict (Set.Ico 0 1)) (fun x => MeasureTheory.volume) a;
         convert h_prod ( fun _ => fun x => QuotientAddGroup.mk x ) fun _ => h_quot using 1
 
 
@@ -688,15 +691,15 @@ lemma measurePreserving_pi_quotient :
 The map `mapToTorus` is measure preserving from the fundamental domain of `Zn` to the torus.
 -/
 lemma mapToTorus_measurePreserving :
-    MeasurePreserving (mapToTorus (n := n)) (volume.restrict (Zn.basis.fundamentalDomain)) (volume : Measure (UnitAddTorus (Fin n))) := by
-      have h_map_to_torus : MeasurePreserving (fun (x : Fin n → ℝ) i => QuotientAddGroup.mk (x i)) (Measure.pi (fun _ : Fin n => (volume : Measure ℝ).restrict (Set.Ico 0 1))) (volume : Measure (UnitAddTorus (Fin n))) := by
+    MeasureTheory.MeasurePreserving (mapToTorus (n := n)) (MeasureTheory.volume.restrict (Zn.basis.fundamentalDomain)) (MeasureTheory.volume : MeasureTheory.Measure (UnitAddTorus (Fin n))) := by
+      have h_map_to_torus : MeasureTheory.MeasurePreserving (fun (x : Fin n → ℝ) i => QuotientAddGroup.mk (x i)) (MeasureTheory.Measure.pi (fun _ : Fin n => (MeasureTheory.volume : MeasureTheory.Measure ℝ).restrict (Set.Ico 0 1))) (MeasureTheory.volume : MeasureTheory.Measure (UnitAddTorus (Fin n))) := by
         exact measurePreserving_pi_quotient;
-      have h_comb : MeasurePreserving (fun (x : Fin n → ℝ) i => ↑(x i)) (Measure.pi (fun _ : Fin n => (volume : Measure ℝ).restrict (Set.Ico 0 1))) (volume : Measure (UnitAddTorus (Fin n))) ∧ MeasurePreserving (fun x : (EuclideanSpace ℝ (Fin n)) => eucToPi x) (volume.restrict (Set.pi Set.univ (fun _ : Fin n => Set.Ico (0 : ℝ) 1))) (Measure.pi (fun _ : Fin n => (volume : Measure ℝ).restrict (Set.Ico 0 1))) := by
+      have h_comb : MeasureTheory.MeasurePreserving (fun (x : Fin n → ℝ) i => ↑(x i)) (MeasureTheory.Measure.pi (fun _ : Fin n => (MeasureTheory.volume : MeasureTheory.Measure ℝ).restrict (Set.Ico 0 1))) (MeasureTheory.volume : MeasureTheory.Measure (UnitAddTorus (Fin n))) ∧ MeasureTheory.MeasurePreserving (fun x : (EuclideanSpace ℝ (Fin n)) => eucToPi x) (MeasureTheory.volume.restrict (Set.pi Set.univ (fun _ : Fin n => Set.Ico (0 : ℝ) 1))) (MeasureTheory.Measure.pi (fun _ : Fin n => (MeasureTheory.volume : MeasureTheory.Measure ℝ).restrict (Set.Ico 0 1))) := by
         refine' ⟨ h_map_to_torus, _ ⟩;
         convert eucToPi_measurePreserving.restrict_preimage _;
         any_goals exact Set.pi Set.univ fun _ => Set.Ico 0 1;
         · ext; simp [eucToPi];
-        · erw [ Measure.pi_eq ];
+        · erw [ MeasureTheory.Measure.pi_eq ];
           intro s hs; erw [ MeasureTheory.Measure.restrict_apply ];
           · erw [ show ( Set.univ.pi s ∩ Set.univ.pi fun x => Set.Ico 0 1 : Set ( Fin n → ℝ ) ) = Set.pi Set.univ fun i => s i ∩ Set.Ico 0 1 by ext; aesop ] ; erw [ MeasureTheory.Measure.pi_pi ] ; aesop;
           · exact MeasurableSet.univ_pi hs;
@@ -746,7 +749,7 @@ The Fourier basis function on the torus evaluated at the projection of x is equa
 -/
 lemma mFourier_mapToTorus_eq (w : Fin n → ℤ) (x : 𝔼 n) :
     UnitAddTorus.mFourier (-w) (mapToTorus x) =
-    cexp (-2 * π * I * inner ℝ x (zToE w)) := by
+    cexp (-2 * π * Complex.I * inner ℝ x (zToE w)) := by
       convert mFourier_eq_cexp w x using 1
 
 /-
@@ -765,7 +768,7 @@ The integrand on the torus, pulled back to the fundamental domain, is equal to t
 -/
 lemma integrand_eq (f : 𝔼 n → ℂ) (w : Fin n → ℤ) (x : 𝔼 n) :
     torusIntegrand f w (mapToTorus x) =
-    periodize f Zn x * cexp (-2 * π * I * inner ℝ x (ZVec.toZnDual w : 𝔼 n)) := by
+    periodize f Zn x * cexp (-2 * π * Complex.I * inner ℝ x (ZVec.toZnDual w : 𝔼 n)) := by
       have h_periodize : periodizeZnToTorus f (mapToTorus x) = periodize f Zn x := by
         exact periodizeZnToTorus_eq_periodize f x;
       unfold torusIntegrand;
@@ -839,22 +842,22 @@ lemma torusToFundamentalDomain_mapToTorus (x : 𝔼 n) (hx : x ∈ Zn.basis.fund
 The inverse map is measure preserving.
 -/
 lemma torusToFundamentalDomain_measurePreserving :
-    MeasurePreserving (torusToFundamentalDomain (n := n)) volume (volume.restrict Zn.basis.fundamentalDomain) := by
+    MeasureTheory.MeasurePreserving (torusToFundamentalDomain (n := n)) MeasureTheory.volume (MeasureTheory.volume.restrict Zn.basis.fundamentalDomain) := by
       -- The map `torusToFundamentalDomain` is a right inverse of `mapToTorus` on the fundamental domain.
       have h_right_inv : ∀ x : 𝔼 n, x ∈ Zn.basis.fundamentalDomain → torusToFundamentalDomain (mapToTorus x) = x := by
         exact fun x a => torusToFundamentalDomain_mapToTorus x a;
       -- Since `mapToTorus` is measure preserving and surjective, and `torusToFundamentalDomain` is its right inverse on the fundamental domain, `torusToFundamentalDomain` is also measure preserving.
-      have h_measure_preserving : MeasurePreserving torusToFundamentalDomain (Measure.map (mapToTorus (n := n)) (volume.restrict (Zn.basis.fundamentalDomain))) (volume.restrict (Zn.basis.fundamentalDomain)) := by
+      have h_measure_preserving : MeasureTheory.MeasurePreserving torusToFundamentalDomain (MeasureTheory.Measure.map (mapToTorus (n := n)) (MeasureTheory.volume.restrict (Zn.basis.fundamentalDomain))) (MeasureTheory.volume.restrict (Zn.basis.fundamentalDomain)) := by
         refine' ⟨ _, _ ⟩;
         · exact torusToFundamentalDomain_measurable;
-        · rw [ Measure.map_map ];
-          · rw [ Measure.map_congr, Measure.map_id ];
+        · rw [ MeasureTheory.Measure.map_map ];
+          · rw [ MeasureTheory.Measure.map_congr, MeasureTheory.Measure.map_id ];
             filter_upwards [ MeasureTheory.ae_restrict_mem ( show MeasurableSet ( Zn.basis.fundamentalDomain ) from by exact
               Zn.basis.fundamentalDomain_measurableSet ) ] with x hx using h_right_inv x hx;
           · exact torusToFundamentalDomain_measurable;
           · exact mapToTorus_continuous.measurable;
       -- Since `mapToTorus` is measure preserving and surjective, the pushforward measure is equal to the volume measure on the torus.
-      have h_pushforward : Measure.map (mapToTorus (n := n)) (volume.restrict (Zn.basis.fundamentalDomain)) = volume := by
+      have h_pushforward : MeasureTheory.Measure.map (mapToTorus (n := n)) (MeasureTheory.volume.restrict (Zn.basis.fundamentalDomain)) = MeasureTheory.volume := by
         apply mapToTorus_measurePreserving.map_eq;
       aesop
 
@@ -862,7 +865,7 @@ lemma torusToFundamentalDomain_measurePreserving :
 A function on the torus is AEStronglyMeasurable iff its pullback to the fundamental domain is.
 -/
 lemma aestronglyMeasurable_comp_mapToTorus_iff (g : UnitAddTorus (Fin n) → ℂ) :
-    AEStronglyMeasurable g volume ↔ AEStronglyMeasurable (g ∘ mapToTorus) (volume.restrict Zn.basis.fundamentalDomain) := by
+    MeasureTheory.AEStronglyMeasurable g MeasureTheory.volume ↔ MeasureTheory.AEStronglyMeasurable (g ∘ mapToTorus) (MeasureTheory.volume.restrict Zn.basis.fundamentalDomain) := by
   constructor
   · intro h
     exact h.comp_measurePreserving (LatticeCrypto.Foundations.Gaussian.mapToTorus_measurePreserving (n := n))
@@ -882,7 +885,7 @@ lemma integral_torus_eq_integral_fundamentalDomain_final (g : UnitAddTorus (Fin 
     ∫ x in Zn.basis.fundamentalDomain, g (mapToTorus x) := by
       by_contra h;
       -- By definition of integrals, if the integrals are not equal, then the functions must be equal almost everywhere.
-      have h_eq : AEStronglyMeasurable g (MeasureTheory.MeasureSpace.volume : MeasureTheory.Measure (UnitAddTorus (Fin n))) := by
+      have h_eq : MeasureTheory.AEStronglyMeasurable g (MeasureTheory.MeasureSpace.volume : MeasureTheory.Measure (UnitAddTorus (Fin n))) := by
         contrapose! h;
         -- If $g$ is not almost everywhere strongly measurable, then the integral of $g$ over the torus is zero.
         have h_zero : ∫ t : UnitAddTorus (Fin n), g t = 0 := by
@@ -891,20 +894,20 @@ lemma integral_torus_eq_integral_fundamentalDomain_final (g : UnitAddTorus (Fin 
         rw [ h_zero, MeasureTheory.integral_undef ];
         intro H;
         -- If $g$ is integrable, then it must be almost everywhere strongly measurable.
-        have h_aestronglymeasurable : AEStronglyMeasurable (fun x => g (mapToTorus x)) (volume.restrict (Zn.basis.fundamentalDomain)) := by
+        have h_aestronglymeasurable : MeasureTheory.AEStronglyMeasurable (fun x => g (mapToTorus x)) (MeasureTheory.volume.restrict (Zn.basis.fundamentalDomain)) := by
           exact H.1;
         exact h ( by simpa using aestronglyMeasurable_comp_mapToTorus_iff g |>.2 h_aestronglymeasurable );
       apply h;
       rw [ ← MeasureTheory.integral_map ];
       · -- Apply the measure-preserving property and the equivalence of AEStronglyMeasurable to handle both integrable and non-integrable cases.
-        have h_eq : MeasurePreserving (mapToTorus (n := n)) (volume.restrict (Zn.basis.fundamentalDomain)) (MeasureTheory.MeasureSpace.volume : MeasureTheory.Measure (UnitAddTorus (Fin n))) := by
+        have h_eq : MeasureTheory.MeasurePreserving (mapToTorus (n := n)) (MeasureTheory.volume.restrict (Zn.basis.fundamentalDomain)) (MeasureTheory.MeasureSpace.volume : MeasureTheory.Measure (UnitAddTorus (Fin n))) := by
           exact mapToTorus_measurePreserving;
         rw [ ← h_eq.map_eq ];
         rw [ MeasureTheory.Measure.map_id', MeasureTheory.integral_map ];
         · exact h_eq.aemeasurable;
         · rw [ h_eq.map_eq ] ; assumption;
       · exact aemeasurable_id;
-      · rwa [ Measure.map_id' ]
+      · rwa [ MeasureTheory.Measure.map_id' ]
 
 /-
 The Fourier coefficient on the torus is equal to the Fourier coefficient on the lattice.
@@ -926,7 +929,8 @@ end Zn_equiv_UnitAddTorus
 -/
 section fourier_inverse_Zn_via_UnitAddTorus
 
-open Real Complex MeasureTheory LatticeCrypto.Foundations.Lattice LatticeCrypto.Utils.Vec LatticeCrypto.Foundations.Gaussian
+open scoped Real Complex MeasureTheory
+open LatticeCrypto.Foundations.Lattice LatticeCrypto.Utils.Vec LatticeCrypto.Foundations.Gaussian
 open scoped FourierTransform
 
 
@@ -1011,7 +1015,7 @@ theorem fourierSeries_Zn_eq_torus_sum (f : 𝔼 n → ℂ) (x : 𝔼 n) :
   ∑' w : Fin n → ℤ, UnitAddTorus.mFourierCoeff (periodizeZnToTorus f) w * UnitAddTorus.mFourier w (mapToTorus x) := by
     -- By definition of `fourierSeries`, we can rewrite the left-hand side.
     simp [fourierSeries];
-    -- By definition of `mFourier`, we know that `mFourier w (mapToTorus x) = cexp (2 * π * I * inner ℝ x (zToE w))`.
+    -- By definition of `mFourier`, we know that `mFourier w (mapToTorus x) = cexp (2 * π * Complex.I * inner ℝ x (zToE w))`.
     have h_mFourier : ∀ w : Fin n → ℤ, UnitAddTorus.mFourier w (mapToTorus x) = cexp (2 * Real.pi * Complex.I * inner ℝ x (zToE w)) := by
       simp +decide [ UnitAddTorus.mFourier ];
       unfold zToE mapToTorus; simp +decide [ inner, Finset.mul_sum _ _ _, mul_assoc, mul_comm, mul_left_comm, Complex.exp_sum ] ;

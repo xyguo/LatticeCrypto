@@ -16,9 +16,9 @@ import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
 import Mathlib.Algebra.Order.Field.Basic
 
 open scoped ENNReal NNReal Pointwise
-open MeasureTheory
-open RealInnerProductSpace
-open Classical
+open scoped MeasureTheory
+open scoped RealInnerProductSpace
+open scoped Classical
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Utils.LinearAlgebra
@@ -184,7 +184,7 @@ theorem GeometricLattice.blichfeldt (L : GeometricLattice n n) (S : Set (𝔼 n)
     have h_each_finite : ∀ x : L.carrier, lebesgueMeasure (S_x x) ≠ ⊤ := by
       intro x
       apply ne_top_of_le_ne_top h_finite
-      exact measure_mono (Set.inter_subset_left)
+      exact MeasureTheory.measure_mono (Set.inter_subset_left)
 
     exact (ENNReal.tsum_toReal_eq h_each_finite).symm
 
@@ -222,7 +222,7 @@ theorem GeometricLattice.blichfeldt (L : GeometricLattice n n) (S : Set (𝔼 n)
         · exact h_S_tilde_meas
       -- vol(⋃ S̃ₓ) ≤ vol(P) since ⋃ S̃ₓ ⊆ P
       have h_le_P : lebesgueMeasure (⋃ x : L.carrier, S_tilde x) ≤ lebesgueMeasure P := by
-        exact measure_mono h_union_subset
+        exact MeasureTheory.measure_mono h_union_subset
       -- vol(P) = det(L)
       have h_vol_P : (lebesgueMeasure P).toReal = L.det := by
         have h_L_basis_vol_eq := L.det_eq_real_measure_fundamentalDomain
@@ -243,7 +243,7 @@ theorem GeometricLattice.blichfeldt (L : GeometricLattice n n) (S : Set (𝔼 n)
         intro x
         apply ne_top_of_le_ne_top h_P_finite
         calc lebesgueMeasure (S_tilde x)
-            ≤ lebesgueMeasure (⋃ y : L.carrier, S_tilde y) := measure_mono (Set.subset_iUnion S_tilde x)
+            ≤ lebesgueMeasure (⋃ y : L.carrier, S_tilde y) := MeasureTheory.measure_mono (Set.subset_iUnion S_tilde x)
           _ ≤ lebesgueMeasure P := h_le_P
 
       calc ∑' (x : L.carrier), (lebesgueMeasure (S_tilde x)).toReal

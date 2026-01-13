@@ -19,9 +19,9 @@ import LatticeCrypto.Utils.Geometry
 import LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Vec
 
-open RealInnerProductSpace
-open Module
-open FiniteDimensional
+open scoped RealInnerProductSpace
+open scoped Module
+open scoped FiniteDimensional
 open LatticeCrypto.Utils.LinearAlgebra
 open LatticeCrypto.Utils.Geometry
 
@@ -100,7 +100,7 @@ def LatticeBasis.asLinearEquiv (B : SquareLatticeBasis n) : (𝔼 n) ≃ₗ[ℝ]
 /-- Convert a SquareLatticeBasis to a Basis of the ambient space -/
 def LatticeBasis.asTopBasis (B : SquareLatticeBasis n) : Module.Basis (Fin n) ℝ (𝔼 n) :=
   let h_span : Submodule.span ℝ (Set.range B.cols) = ⊤ := by
-    have h_dim : Fintype.card (Fin n) = finrank ℝ (EuclideanSpace ℝ (Fin n)) := by
+    have h_dim : Fintype.card (Fin n) = Module.finrank ℝ (EuclideanSpace ℝ (Fin n)) := by
       simp [finrank_euclideanSpace]
     apply LinearIndependent.span_eq_top_of_card_eq_finrank B.li h_dim
   Module.Basis.mk B.li h_span.ge
@@ -108,7 +108,7 @@ def LatticeBasis.asTopBasis (B : SquareLatticeBasis n) : Module.Basis (Fin n) �
 @[simp]
 theorem LatticeBasis.coe_topBasis {B : SquareLatticeBasis n} : ⇑(LatticeBasis.asTopBasis B) = B.basis := by
   let h_span : Submodule.span ℝ (Set.range B.cols) = ⊤ := by
-    have h_dim : Fintype.card (Fin n) = finrank ℝ (EuclideanSpace ℝ (Fin n)) := by
+    have h_dim : Fintype.card (Fin n) = Module.finrank ℝ (EuclideanSpace ℝ (Fin n)) := by
       simp [finrank_euclideanSpace]
     apply LinearIndependent.span_eq_top_of_card_eq_finrank B.li h_dim
   exact Module.Basis.coe_mk B.li h_span.ge
@@ -122,13 +122,13 @@ lemma LatticeBasis.from_topBasis_to_matrix  (B : SquareLatticeBasis n) : stdBasi
 /-- Convert a LatticeBasis to a real-span Basis of the k-dimensional subspace -/
 def LatticeBasis.asRealSpanBasis (B : LatticeBasis n k) :
     Module.Basis (Fin k) ℝ (Submodule.span ℝ (Set.range B.basis)) :=
-  Basis.span B.li
+  Module.Basis.span B.li
 
 /-- Convert a LatticeBasis to a ZSpan Basis of the lattice -/
 def LatticeBasis.asZSpanBasis (B : LatticeBasis n k) :
     Module.Basis (Fin k) ℤ (Submodule.span ℤ (Set.range B.basis)) :=
   have li_z : LinearIndependent ℤ B.basis := Z_linearIndependent_if_R_linearIndependent B.li
-  Basis.span li_z
+  Module.Basis.span li_z
 
 /-!
 ## Geometric Lattice
@@ -277,7 +277,7 @@ theorem FullRank.iff_span_top {L : GeometricLattice n k} :
   · intro h_span_top
     constructor
     -- If the span is top, then the basis must have n vectors
-    have h_finrank : finrank ℝ (Submodule.span ℝ (L.carrier : Set (𝔼 n))) = n := by
+    have h_finrank : Module.finrank ℝ (Submodule.span ℝ (L.carrier : Set (𝔼 n))) = n := by
       rw [h_span_top]
       bound
     have h_le : (k : ℕ) ≤ n := L.basis.le_dim
@@ -294,7 +294,7 @@ theorem FullRank.iff_span_top {L : GeometricLattice n k} :
         bound
       exact le_antisymm h1 h2
     have h_k_eq_n : (k : ℕ) = n := by
-      have h_finrank_k : finrank ℝ (Submodule.span ℝ (Set.range L.basis.cols)) = k := by
+      have h_finrank_k : Module.finrank ℝ (Submodule.span ℝ (Set.range L.basis.cols)) = k := by
         unfold LatticeBasis.cols
         rw [finrank_span_eq_card L.basis.li]
         exact Fintype.card_fin k
@@ -439,7 +439,7 @@ noncomputable def get_integer_coeffs {v : 𝔼 n} {B : LatticeBasis n k}
         ext; simp
       exact fun i => by have := Fintype.linearIndependent_iff.mp B.li (c ·) h_real i; aesop
     rw [Fintype.linearIndependent_iff]; aesop
-  let module_basis := Basis.span h_li_z
+  let module_basis := Module.Basis.span h_li_z
   let v_in_span : Submodule.span ℤ (Set.range B.cols) := ⟨v, h_mem⟩
   exact (module_basis.repr v_in_span : Fin k → ℤ)
 

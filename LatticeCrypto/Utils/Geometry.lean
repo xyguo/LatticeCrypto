@@ -22,10 +22,10 @@ import LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Vec
 
 open scoped ENNReal NNReal Pointwise
-open MeasureTheory
-open RealInnerProductSpace
-open Classical
-open FiniteDimensional
+open scoped MeasureTheory
+open scoped RealInnerProductSpace
+open scoped Classical
+open scoped FiniteDimensional
 
 
 variable {n : ℕ+}
@@ -50,26 +50,26 @@ namespace LatticeCrypto.Utils.Geometry
 noncomputable section
 
 /-- The Lebesgue measure on ℝⁿ. -/
-def lebesgueMeasure : Measure (𝔼 n) := volume
+def lebesgueMeasure : MeasureTheory.Measure (𝔼 n) := MeasureTheory.volume
 
 /-- The Lebesgue measure on ℝⁿ is left-invariant under addition. -/
 instance : (lebesgueMeasure (n := n)).IsAddLeftInvariant :=
   -- Need `inferInstanceAs` because (𝔼 n) is a type synonym for EuclideanSpace ℝ (Fin n)
   -- Can also use `unfold legesgueMeasure`.
-  inferInstanceAs (volume : Measure (𝔼 n)).IsAddLeftInvariant
+  inferInstanceAs (MeasureTheory.volume : MeasureTheory.Measure (𝔼 n)).IsAddLeftInvariant
 
 instance : (lebesgueMeasure (n := n)).IsAddHaarMeasure :=
-  inferInstanceAs (volume : Measure (𝔼 n)).IsAddHaarMeasure
+  inferInstanceAs (MeasureTheory.volume : MeasureTheory.Measure (𝔼 n)).IsAddHaarMeasure
 
 -- This is measure-preserving for Lebesgue measure
 lemma eucToPi_measurePreserving {n : ℕ+}:
-  MeasurePreserving eucToPi lebesgueMeasure (volume (α := (Fin n → ℝ))):= by
+  MeasureTheory.MeasurePreserving eucToPi lebesgueMeasure (MeasureTheory.volume (α := (Fin n → ℝ))):= by
   -- Note the following theorem will soon be deprecated for a more general
   -- `EuclideanSpace.volume_preserving_symm_measurableEquiv_toLp`
   exact EuclideanSpace.volume_preserving_measurableEquiv (Fin n)
 
 theorem volume_euclideanSpace_eq_pi {S : Set (𝔼 n)}:
-  volume S = volume (eucToPi '' S) := by
+  MeasureTheory.volume S = MeasureTheory.volume (eucToPi '' S) := by
   have h_volume_eq : (MeasureTheory.Measure.map eucToPi lebesgueMeasure) (eucToPi '' S) = lebesgueMeasure S := by
     have h_volume_eq : ∀ s : Set (𝔼 n), (MeasureTheory.Measure.map (⇑eucToPi) lebesgueMeasure) (eucToPi '' s) = (MeasureTheory.MeasureSpace.volume : Set (Fin n → ℝ) → ℝ≥0∞) (eucToPi '' s) := by
       exact fun s => congr_arg ( fun f => f ( eucToPi '' s ) ) ( eucToPi_measurePreserving.map_eq );
@@ -85,7 +85,7 @@ theorem volume_euclideanSpace_eq_pi {S : Set (𝔼 n)}:
   exact h_volume_eq ▸ by erw [ eucToPi_measurePreserving.map_eq ] ;
 
 theorem volume_pi_eq_euclideanSpace {S : Set (Fin n → ℝ)}:
-  volume S = volume (piToEuc '' S) := by
+  MeasureTheory.volume S = MeasureTheory.volume (piToEuc '' S) := by
   -- By definition of $eucIdent$, we know that it is a linear isomorphism.
   have h_linear_isomorphism : (eucToPi : EuclideanSpace ℝ (Fin n) ≃ₗ[ℝ] (Fin n → ℝ)) '' S = S := by
     aesop_cat;
@@ -197,11 +197,11 @@ theorem unitBallVolume_pos : 0 < unitBallVolume n := by
       -- The volume of the unit ball in ℝ^n is positive.
       have h_volume_pos : 0 < MeasureTheory.volume (Metric.ball (0 : EuclideanSpace ℝ (Fin n)) 1) := by
         have h_ball_pos : ∀ {r : ℝ}, 0 < r → 0 < MeasureTheory.volume (Metric.ball (0 : EuclideanSpace ℝ (Fin n)) r) := by
-          exact fun {r} a => Metric.measure_ball_pos volume 0 a
+          exact fun {r} a => Metric.measure_ball_pos MeasureTheory.volume 0 a
         exact h_ball_pos zero_lt_one;
       exact h_volume_pos;
     rw [ ENNReal.toReal_pos_iff ] ; aesop;
-    exact measure_ball_lt_top;
+    exact MeasureTheory.measure_ball_lt_top;
   exact h_unit_ball_pos
 
 /-- A handy lower bound on the volume of the unit ball in ℝⁿ. -/
@@ -318,7 +318,7 @@ theorem unitBallVolume_lb : (2 : ℝ) ^ (n : ℕ) / (Real.sqrt n) ^ (n : ℕ) �
     -- Volume is (2/√n)ⁿ
     -- rewrite C as the `pi` set, then apply `Real.volume_pi_Ioo_toReal`
     have hvol_pi :
-        (volume (Set.pi Set.univ (fun _ : Fin n => Set.Ioo (-cube_side) cube_side))).toReal
+        (MeasureTheory.volume (Set.pi Set.univ (fun _ : Fin n => Set.Ioo (-cube_side) cube_side))).toReal
           = ∏ i : Fin n, (cube_side - (-cube_side)) := by
       simpa using
         (Real.volume_pi_Ioo_toReal
@@ -340,8 +340,8 @@ theorem unitBallVolume_lb : (2 : ℝ) ^ (n : ℕ) / (Real.sqrt n) ^ (n : ℕ) �
         PNat.ne_zero, not_false_eq_true, pow_left_inj₀]
     -- now rewrite volume C as volume of the `pi` set
     have h1 :
-        (volume C).toReal
-          = (volume (Set.pi Set.univ (fun _ : Fin n => Set.Ioo (-cube_side) cube_side))).toReal := by
+        (MeasureTheory.volume C).toReal
+          = (MeasureTheory.volume (Set.pi Set.univ (fun _ : Fin n => Set.Ioo (-cube_side) cube_side))).toReal := by
       congr 1
       -- `volume C` is measure on 𝔼 n, but the rhs is measure on Fin n → ℝ.
       -- Need to convert
@@ -355,8 +355,8 @@ theorem unitBallVolume_lb : (2 : ℝ) ^ (n : ℕ) / (Real.sqrt n) ^ (n : ℕ) �
       exact volume_euclideanSpace_eq_pi
 
     calc
-      (volume C).toReal
-        = (volume (Set.pi Set.univ (fun _ : Fin n => Set.Ioo (-cube_side) cube_side))).toReal := by
+      (MeasureTheory.volume C).toReal
+        = (MeasureTheory.volume (Set.pi Set.univ (fun _ : Fin n => Set.Ioo (-cube_side) cube_side))).toReal := by
           exact h1
       _ = ∏ i : Fin n, (cube_side - (-cube_side)) := hvol_pi
       _ = (2 * cube_side) ^ (n : ℕ) := hprod
@@ -364,15 +364,15 @@ theorem unitBallVolume_lb : (2 : ℝ) ^ (n : ℕ) / (Real.sqrt n) ^ (n : ℕ) �
   -- Step 5: vol(C) ≤ vol(B(0,1)) by monotonicity
   have h_le : (lebesgueMeasure C).toReal ≤ (lebesgueMeasure (Metric.ball (0 : 𝔼 n) 1)).toReal := by
     -- First on ENNReal level:
-    have h_vol_C_le_vol_ball : volume C ≤ volume (Metric.ball (0 : 𝔼 n) 1) :=
-      measure_mono hC_subset
+    have h_vol_C_le_vol_ball : MeasureTheory.volume C ≤ MeasureTheory.volume (Metric.ball (0 : 𝔼 n) 1) :=
+      MeasureTheory.measure_mono hC_subset
     -- ball has finite volume
     have h_ball_finite :
-        volume (Metric.ball (0 : 𝔼 n) 1) ≠ ∞ :=
-      (measure_ball_lt_top : volume (Metric.ball (0 : 𝔼 n) 1) < ∞).ne
+        MeasureTheory.volume (Metric.ball (0 : 𝔼 n) 1) ≠ ∞ :=
+      (MeasureTheory.measure_ball_lt_top : MeasureTheory.volume (Metric.ball (0 : 𝔼 n) 1) < ∞).ne
     have h_vol_C_finite:
-      volume C ≠ ∞ := by
-      exact measure_ne_top_of_subset hC_subset h_ball_finite
+      MeasureTheory.volume C ≠ ∞ := by
+      exact MeasureTheory.measure_ne_top_of_subset hC_subset h_ball_finite
     -- Monotonicity of `toReal`
     exact (ENNReal.toReal_le_toReal h_vol_C_finite h_ball_finite ).mpr h_vol_C_le_vol_ball
 

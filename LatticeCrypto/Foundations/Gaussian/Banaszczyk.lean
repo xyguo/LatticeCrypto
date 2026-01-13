@@ -36,8 +36,8 @@ namespace LatticeCrypto.Foundations.Gaussian
 --/
 section concentration
 
-open Real Complex MeasureTheory
-open RealInnerProductSpace
+open scoped Real Complex MeasureTheory
+open scoped RealInnerProductSpace
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Foundations.Lattice
@@ -431,8 +431,8 @@ namespace LatticeCrypto.Foundations.Lattice
 -/
 section covering_radius
 
-open Real Complex MeasureTheory
-open RealInnerProductSpace
+open scoped Real Complex MeasureTheory
+open scoped RealInnerProductSpace
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Foundations.Lattice

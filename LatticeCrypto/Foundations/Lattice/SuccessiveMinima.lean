@@ -14,10 +14,10 @@ import Mathlib.LinearAlgebra.Span.Defs               -- For AddSubgroup.zspan
 import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
 
 open scoped ENNReal NNReal Pointwise
-open Module
-open MeasureTheory
-open RealInnerProductSpace
-open Classical
+open scoped Module
+open scoped MeasureTheory
+open scoped RealInnerProductSpace
+open scoped Classical
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Utils.LinearAlgebra
