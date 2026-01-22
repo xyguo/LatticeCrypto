@@ -113,6 +113,19 @@ def Matrix.argminColumn
 
 end min_norm
 
+noncomputable section max_norm
+
+noncomputable def maxNorm
+    {V : Type*} [Norm V]
+    (f : Fin k → V) : ℝ :=
+  Finset.max'
+    (Finset.image (fun i => ‖f i‖) Finset.univ)
+    (by
+      rw [Finset.image_nonempty]
+      exact Finset.univ_nonempty_iff.mpr (Fin.pos_iff_nonempty.mp k.pos))
+
+end max_norm
+
 /-!
 # Some handy results regarding linear independence
 -/

@@ -235,7 +235,7 @@ lemma GeometricLattice.finite_intersection_closedBall (L : GeometricLattice n n)
           convert ProperSpace.isCompact_closedBall ( 0 : 𝓔 n ) r |> fun h => h.inter_right h_closed using 1 ; aesop;
         exact Subtype.isCompact_iff.mpr h_finite
       generalize_proofs at *;
-      have := h_finite.finite_of_discrete; aesop;
+      have := h_finite.finite_of_discrete; aesop (config := { warnOnNonterminal := false });
       exact Set.Finite.subset ( this.image Subtype.val ) fun x hx => by aesop;
 
 /- Corollary: The lattice points in an open ball form a finite set -/
@@ -323,6 +323,24 @@ theorem GeometricLattice.full_rank_eq_module_span (L : GeometricLattice n n) : L
 /-- Unimodular matrices: k × k integer matrices with determinant ±1. -/
 abbrev UnimodularMatrix (k : ℕ+) := Matrix.GeneralLinearGroup (Fin k) ℤ
 
+namespace UnimodularMatrix
+
+/-- Cast a unimodular matrix to reals -/
+def real (U : UnimodularMatrix k) : Matrix (Fin k) (Fin k) ℝ :=
+  Matrix.map U (Int.castRingHom ℝ)
+
+@[simp]
+lemma real_one : (1 : UnimodularMatrix k).real = 1 := by
+  simp [real]
+
+@[simp]
+lemma real_mul (U V : UnimodularMatrix k) : (U * V).real = U.real * V.real := by
+  unfold real
+  rw [← Matrix.map_mul]
+  rfl
+
+end UnimodularMatrix
+
 /-- Apply a unimodular transformation U to the basis B from the right: B' = B * U -/
 def LatticeBasis.mul_unimodular (B : LatticeBasis n k) (U : UnimodularMatrix k) : LatticeBasis n k :=
   let basis_mat : Matrix (Fin n) (Fin k) ℝ := B.asMatrix * (Matrix.map U (Int.castRingHom ℝ))
@@ -341,9 +359,9 @@ def LatticeBasis.mul_unimodular (B : LatticeBasis n k) (U : UnimodularMatrix k) 
       exact Matrix.eq_zero_of_mulVec_eq_zero (show (Matrix.GeneralLinearGroup.map (Int.castRingHom ℝ) U : Matrix (Fin k) (Fin k) ℝ).det ≠ 0 from by
         have h_det : (U.map (Int.castRingHom ℝ)).det = (U.det : ℝ) := by
           simp +decide [Matrix.det_apply']
-        aesop
+        aesop (config := { warnOnNonterminal := false })
         exact absurd a (by exact Matrix.det_ne_zero_of_left_inverse U.inv_mul)) h_inv
-    rw [Fintype.linearIndependent_iff]; aesop
+    rw [Fintype.linearIndependent_iff]; aesop (config := { warnOnNonterminal := false })
     specialize h_linear_comb g
     contrapose! h_linear_comb
     exact ⟨by ext i; simpa [Matrix.mulVec, dotProduct, mul_comm] using congr_fun a i, fun h => h_linear_comb <| h ▸ rfl⟩
@@ -368,7 +386,7 @@ theorem LatticeBasis.UnimodularEquiv.symm {B1 B2 : LatticeBasis n k}
     (h : B1.UnimodularEquiv B2) : B2.UnimodularEquiv B1 := by
   obtain ⟨U, hU⟩ := h
   use U⁻¹
-  aesop
+  aesop (config := { warnOnNonterminal := false })
   have h_mul : (B1.mul_unimodular U).mul_unimodular U⁻¹ = B1.mul_unimodular (U * U⁻¹) := by
     have h_mul : (B1.mul_unimodular U).mul_unimodular U⁻¹ = B1.mul_unimodular (U * U⁻¹) := by
       have h_assoc : ∀ (B : LatticeBasis n k) (U V : Matrix.GeneralLinearGroup (Fin k) ℤ),
@@ -381,12 +399,12 @@ theorem LatticeBasis.UnimodularEquiv.symm {B1 B2 : LatticeBasis n k}
         rw [Finset.sum_comm]
       apply h_assoc
     exact h_mul
-  aesop
+  aesop (config := { warnOnNonterminal := false })
   unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.mul_unimodular; aesop
 
 theorem LatticeBasis.UnimodularEquiv.trans {B1 B2 B3 : LatticeBasis n k}
     (h1 : B1.UnimodularEquiv B2) (h2 : B2.UnimodularEquiv B3) : B1.UnimodularEquiv B3 := by
-  cases h1; cases h2; aesop
+  cases h1; cases h2; aesop (config := { warnOnNonterminal := false })
   use w * w_1
   simp [LatticeBasis.mul_unimodular]
   have h_assoc : (B1.asMatrix * (w : Matrix (Fin k) (Fin k) ℤ).map (Int.castRingHom ℝ)) *
@@ -410,9 +428,9 @@ lemma cols_mul_unimodular (B : LatticeBasis n k) (U : UnimodularMatrix k) (i : F
     (B ◾ U).cols i = ∑ j : Fin k, (U.val j i : ℝ) • B.cols j := by
   unfold LatticeBasis.cols
   ext; simp
-  unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.mul_unimodular; aesop
+  unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.mul_unimodular; aesop (config := { warnOnNonterminal := false })
   simp +decide [Matrix.mul_apply]
-  rw [Finset.sum_apply, Finset.sum_congr rfl]; aesop
+  rw [Finset.sum_apply, Finset.sum_congr rfl]; aesop (config := { warnOnNonterminal := false })
   exact mul_comm _ _
 
 /-- Multiplying a basis by a unimodular matrix gives a sublattice. -/
@@ -461,7 +479,7 @@ theorem LatticeBasis.span_eq_of_UnimodularEquiv {B1 B2 : LatticeBasis n k}
   apply le_antisymm
   · have h_eq : B1 = (B1 ◾ U) ◾ U⁻¹ := by
       have h_unit : U.val * U⁻¹.val = 1 := by aesop
-      ext i j; aesop
+      ext i j; aesop (config := { warnOnNonterminal := false })
       have h_unit : B1.asMatrix * (U.val.map (Int.castRingHom ℝ)) * (U⁻¹.val.map (Int.castRingHom ℝ)) = B1.asMatrix := by
         have h_unit : (U.val.map (Int.castRingHom ℝ)) * (U⁻¹.val.map (Int.castRingHom ℝ)) = 1 := by
           rw [← Matrix.map_mul]; aesop
@@ -483,7 +501,7 @@ theorem LatticeBasis.UnimodularEquiv_of_span_eq {B1 B2 : LatticeBasis n k}
       intro j
       have h_mem : B2.cols j ∈ Submodule.span ℤ (Set.range B1.cols) :=
         h.symm ▸ Submodule.subset_span (Set.mem_range_self j)
-      rw [Finsupp.mem_span_range_iff_exists_finsupp] at h_mem; aesop
+      rw [Finsupp.mem_span_range_iff_exists_finsupp] at h_mem; aesop (config := { warnOnNonterminal := false })
       exact ⟨_, h_1.symm⟩
     choose u hu using h_comb
     use Matrix.of (fun i j => u j i)
@@ -505,7 +523,7 @@ theorem LatticeBasis.UnimodularEquiv_of_span_eq {B1 B2 : LatticeBasis n k}
       use V
       ext i j; simp +decide [Matrix.mul_apply]
       convert congr_fun (hV j) i using 1; simp +decide [mul_comm]
-      rw [Finset.sum_apply, Finset.sum_congr rfl]; intros; aesop
+      rw [Finset.sum_apply, Finset.sum_congr rfl]; intros; aesop (config := { warnOnNonterminal := false })
       exact Or.inl (hU ▸ rfl)
     have h_inv : B1.asMatrix * U.map (Int.castRingHom ℝ) * V.map (Int.castRingHom ℝ) = B1.asMatrix := by
       rw [← hU, ← hV]
