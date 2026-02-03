@@ -316,46 +316,38 @@ theorem GeometricLattice.exists_successiveMinima (L : GeometricLattice n n) (i :
       S.card = i.val + 1 ∧
       (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r) ∧
       LinearIndependent ℝ (fun v : S => (v : 𝓔 n)) := by
+  classical
   -- Choose the first i.val+1 basis vectors
-  let idx : Finset (Fin n) := (Finset.univ.filter (fun j : Fin n => j.val ≤ i.val))
+  let idx : Finset (Fin n) := Finset.Iic i
   have hcard : idx.card = i.val + 1 := by
-    -- size of initial segment {0,1,...,i.val}
-    simp +zetaDelta at *;
-    rw [ show Finset.filter ( fun j => j ≤ i ) Finset.univ = Finset.Iic i by ext; simp +decide ] ; aesop
+    simp [idx]
   let S : Finset (𝓔 n) := idx.image fun j => (L.basis.cols j : 𝓔 n)
   -- Define r as the maximum norm of these chosen basis vectors
   have hnonempty : S.Nonempty := by
-    -- since i.val+1 ≥ 1, there is at least one element
-    -- Since idx is nonempty, we can pick any element from idx and show that its image under the cols function is in S.
     have hidx_nonempty : idx.Nonempty := by
-      -- Since $i$ is a Fin $n$, its value is between $0$ and $n-1$. Therefore, $i$ itself is in $idx$.
-      use i; simp [idx];
-    -- Since idx is nonempty, we can pick any element from idx and show that its image under the cols function is in S. Therefore, S is nonempty.
-    obtain ⟨j, hj⟩ := hidx_nonempty;
-    use L.basis.cols j;
-    aesop
+      use i
+      simp [idx]
+    obtain ⟨j, hj⟩ := hidx_nonempty
+    exact ⟨L.basis.cols j, by
+      exact Finset.mem_image_of_mem _ hj⟩
   let r : ℝ := S.sup' hnonempty (fun v => ‖v‖)
   have hr_pos : 0 < r := by
-    -- norms of nonzero basis vectors are positive
-    -- Since S is nonempty and consists of non-zero vectors, the supremum of their norms is positive.
-    have hr_pos : ∀ v ∈ S, 0 < ‖v‖ := by
-      -- Since the basis vectors are non-zero, their norms are positive.
-      intros v hv
-      obtain ⟨j, hj, rfl⟩ := Finset.mem_image.mp hv
-      have h_basis_nonzero : L.basis.cols j ≠ 0 := by
-        have := L.basis.li.ne_zero j; aesop;
-      exact norm_pos_iff.mpr h_basis_nonzero;
-    norm_num +zetaDelta at *;
-    exact ⟨ 0, Nat.zero_le _, hr_pos 0 bot_le ⟩
+    have hi_mem : (L.basis.cols i : 𝓔 n) ∈ S := by
+      exact Finset.mem_image_of_mem _ (by simp [idx])
+    have hi_ne : (L.basis.cols i : 𝓔 n) ≠ 0 := by
+      exact L.basis.li.ne_zero i
+    have hi_le : ‖(L.basis.cols i : 𝓔 n)‖ ≤ r := by
+      exact Finset.le_sup' (fun v => ‖v‖) (by simpa [S, idx] using hi_mem)
+    exact lt_of_lt_of_le (norm_pos_iff.mpr hi_ne) hi_le
   have h_mem : ∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r := by
     intro v hv
     rcases Finset.mem_image.mp hv with ⟨j, hj_idx, rfl⟩
     have hjL : (L.basis.cols j : 𝓔 n) ∈ L := L.basis_mem j
     have hj_ne : (L.basis.cols j : 𝓔 n) ≠ 0 := by
       -- basis vectors are nonzero
-      have := L.basis.li; aesop;
+      have := L.basis.li;
       -- Since the basis is linearly independent, having a zero vector would contradict that.
-      apply this.ne_zero j; aesop
+      apply this.ne_zero j;
     have hj_le : ‖(L.basis.cols j : 𝓔 n)‖ ≤ r := by
       -- by definition of r = sup' over S
       exact Finset.le_sup' (fun v => ‖v‖) (by simpa [S, idx] using hv)
@@ -363,12 +355,20 @@ theorem GeometricLattice.exists_successiveMinima (L : GeometricLattice n n) (i :
   have h_li : LinearIndependent ℝ (fun v : S => (v : 𝓔 n)) := by
     -- a subset of a linearly independent family is linearly independent
     have h_basis_li : LinearIndependent ℝ (fun j : Fin n => (L.basis.cols j : 𝓔 n)) := L.basis.li
-    -- use linear independence of image of a subset
-    convert h_basis_li.comp _ _;
-    rotate_left;
-    use fun x => Classical.choose ( Finset.mem_image.mp x.2 );
-    · intro x y hxy; have := Classical.choose_spec ( Finset.mem_image.mp x.2 ) ; have := Classical.choose_spec ( Finset.mem_image.mp y.2 ) ; aesop;
-    · ext ⟨ x, hx ⟩ ; have := Classical.choose_spec ( Finset.mem_image.mp hx ) ; aesop;
+    -- choose the original index for each element of the image
+    let f : S → Fin n := fun x => Classical.choose (Finset.mem_image.mp x.2)
+    have hf_spec : ∀ x : S, (L.basis.cols (f x) : 𝓔 n) = x := by
+      intro x
+      exact (Classical.choose_spec (Finset.mem_image.mp x.2)).2
+    have hf_inj : Function.Injective f := by
+      intro x y hxy
+      apply Subtype.ext
+      have : (L.basis.cols (f x) : 𝓔 n) = L.basis.cols (f y) := by
+        simp [hxy]
+      simpa [hf_spec x, hf_spec y] using this
+    have h_li' : LinearIndependent ℝ (fun x : S => (L.basis.cols (f x) : 𝓔 n)) :=
+      h_basis_li.comp f hf_inj
+    simpa [hf_spec] using h_li'
   have hS_card : S.card = i.val + 1 := by
     rw [Finset.card_image_of_injective]
     · exact hcard
@@ -804,37 +804,141 @@ theorem successiveMinima_attained_set (L : GeometricLattice n n) (i : Fin n) :
       S.card = i.val + 1 ∧
       (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ L.successiveMinima i) ∧
       LinearIndependent ℝ (fun v : S => (v : 𝓔 n)) := by
-        -- By definition of $L.successiveMinima$, for any $\epsilon > 0$, there exists $r < L.successiveMinima i + \epsilon$ and a set $S$ of $i+1$ linearly independent lattice vectors with norms $\le r$.
-        have h_eps : ∀ ε > 0, ∃ r, 0 < r ∧ r < L.successiveMinima i + ε ∧ ∃ S : Finset (𝓔 n),
-              S.card = i.val + 1 ∧
-                  (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r) ∧
-                  LinearIndependent ℝ (fun v : S => (v : 𝓔 n)) := by
-                    intro ε ε_pos;
-                    have := exists_lt_of_csInf_lt ( show { r : ℝ | 0 < r ∧ ( ∃ ( S : Finset ( EuclideanSpace ℝ ( Fin n ) ) ), S.card = ( i : ℕ ) + 1 ∧ ( ∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r ) ∧ LinearIndependent ℝ ( fun v : S => ( v : EuclideanSpace ℝ ( Fin n ) ) ) ) }.Nonempty from ?_ ) ( lt_add_of_pos_right _ ε_pos );
-                    · exact ⟨ this.choose, this.choose_spec.1.1, this.choose_spec.2, this.choose_spec.1.2 ⟩;
-                    · have := GeometricLattice.exists_successiveMinima L i;
-                      exact ⟨ this.choose, this.choose_spec.1, this.choose_spec.2 ⟩;
-        choose! f hf1 hf2 hf3 using fun n : ℕ => h_eps ( 1 / ( n + 1 ) ) ( by positivity );
-        choose S hS1 hS2 hS3 using hf3;
-        -- Since the lattice is discrete, the set of norms of lattice vectors is discrete. In particular, in the ball of radius $L.successiveMinima i + 1$, there are finitely many lattice vectors.
-        have h_finite : Set.Finite {v : 𝓔 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ L.successiveMinima i + 1} := by
-          exact Set.Finite.subset ( L.finite_intersection_closedBall ( L.successiveMinima i + 1 ) ) fun x hx => ⟨ hx.1, hx.2.2 ⟩;
-        -- Since $S_n$ is a subset of the finite set of lattice vectors in the ball of radius $L.successiveMinima i + 1$, there must be some $S$ that appears infinitely often in the sequence $S_n$.
-        obtain ⟨S_inf, hS_inf⟩ : ∃ S_inf : Finset (𝓔 n), Set.Infinite {n : ℕ | S n = S_inf} := by
-          by_contra h_contra;
-          have h_finite_S : Set.Finite {S_inf : Finset (𝓔 n) | ∃ n, S n = S_inf ∧ S_inf ⊆ h_finite.toFinset} := by
-            exact Set.Finite.subset ( Set.toFinite ( Finset.powerset h_finite.toFinset ) ) fun x hx => by aesop;
-          have h_finite_S : Set.Finite {n : ℕ | S n ⊆ h_finite.toFinset} := by
-            exact Set.Finite.subset ( h_finite_S.biUnion fun x hx => Set.not_infinite.mp fun hi => h_contra ⟨ x, hi ⟩ ) fun n hn => by aesop;
-          exact h_finite_S.not_infinite <| Set.infinite_univ.mono fun n _ => Finset.subset_iff.mpr fun v hv => h_finite.mem_toFinset.mpr <| ⟨ hS2 n v hv |>.1, hS2 n v hv |>.2.1, le_trans ( hS2 n v hv |>.2.2 ) <| le_of_lt <| by linarith [ hf2 n, show ( 1 : ℝ ) / ( n + 1 ) ≤ 1 from div_le_self zero_le_one <| by linarith ] ⟩;
-        -- Since $S_inf$ appears infinitely often in the sequence $S_n$, it must satisfy the conditions for being a set of $i+1$ linearly independent lattice vectors with norms $\le L.successiveMinima i$.
-        have hS_inf_conditions : ∀ v ∈ S_inf, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ L.successiveMinima i := by
-          intro v hv; have := hS_inf.exists_gt; aesop;
-          · exact hS2 _ _ ( this 0 |> Classical.choose_spec |> And.left |> fun h => h.symm ▸ hv ) |>.1;
-          · obtain ⟨ n, hn1, hn2 ⟩ := this 0; specialize hS2 n 0; aesop;
-          · contrapose! this;
-            exact ⟨ ⌊ ( ‖v‖ - L.successiveMinima i ) ⁻¹⌋₊, fun n hn => Nat.le_floor <| by rw [ inv_eq_one_div, le_div_iff₀ ] <;> nlinarith [ hf1 n, hf2 n, hS2 n v <| hn ▸ hv, mul_inv_cancel₀ ( by linarith : ( n : ℝ ) + 1 ≠ 0 ) ] ⟩;
-        exact ⟨ S_inf, by obtain ⟨ n, hn ⟩ := hS_inf.nonempty; specialize hS1 n; aesop, hS_inf_conditions, by obtain ⟨ n, hn ⟩ := hS_inf.nonempty; specialize hS3 n; aesop ⟩
+  classical
+  -- Abbreviate the defining set of λᵢ
+  let A : Set ℝ :=
+    { r : ℝ | 0 < r ∧
+      ∃ (S : Finset (𝓔 n)),
+        S.card = i.val + 1 ∧
+        (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r) ∧
+        LinearIndependent ℝ (fun v : S => (v : 𝓔 n)) }
+
+  have hA_def : L.successiveMinima i = sInf A := rfl
+
+  -- Define the “snapped” set of candidate radii: max norm inside the finite set S
+  let B : Set ℝ :=
+    { r : ℝ |
+        ∃ (S : Finset (𝓔 n)) (v : 𝓔 n),
+          v ∈ S ∧
+          S.card = i.val + 1 ∧
+          (∀ w ∈ S, w ∈ L ∧ w ≠ 0 ∧ ‖w‖ ≤ r) ∧
+          LinearIndependent ℝ (fun w : S => (w : 𝓔 n)) ∧
+          r = ‖v‖ ∧
+          ∀ w ∈ S, ‖w‖ ≤ ‖v‖ }
+
+  -- 1. B ⊆ A
+  have hB_sub_A : B ⊆ A := by
+    intro r hr
+    rcases hr with ⟨S, v, hvS, hS_card, hS_props, hS_li, rfl, hmax⟩
+    have hS_nonempty : S.Nonempty := ⟨v, hvS⟩
+    have hv_ne : v ≠ 0 := (hS_props v hvS).2.1
+    have h_pos : 0 < ‖v‖ := norm_pos_iff.mpr hv_ne
+    refine ⟨h_pos, ?_⟩
+    refine ⟨S, hS_card, ?_, hS_li⟩
+    intro w hw
+    obtain ⟨hw_L, hw_ne, hw_le⟩ := hS_props w hw
+    exact ⟨hw_L, hw_ne, hw_le⟩
+
+  -- 2. For every r ∈ A, there is some b ∈ B with b ≤ r
+  have hA_to_B : ∀ r ∈ A, ∃ b ∈ B, b ≤ r := by
+    intro r hr
+    rcases hr with ⟨hr_pos, S, hS_card, hS_props, hS_li⟩
+    have hS_nonempty : S.Nonempty := by
+      have : 0 < S.card := by
+        simp [hS_card]
+      exact Finset.card_pos.mp this
+    obtain ⟨v, hvS, hv_eq⟩ :=
+      Finset.exists_mem_eq_sup' hS_nonempty (fun w => ‖w‖)
+    let b : ℝ := ‖v‖
+    have hb_le_r : b ≤ r := by
+      have := ((Finset.sup'_le_iff (f := fun w : (𝓔 n) => ‖w‖) (a := r) (s := S)) hS_nonempty).mpr ?h
+      · simpa [b, hv_eq] using this
+      . intro w hw
+        exact (hS_props w hw).2.2
+    have hbB : b ∈ B := by
+      refine ⟨S, v, hvS, hS_card, ?_, hS_li, rfl, ?_⟩
+      · intro w hw
+        have := hS_props w hw
+        have h_norm_le_b : ∀ w ∈ S, ‖w‖ ≤ b := by
+          intros w hw
+          apply hv_eq ▸ Finset.le_sup' (fun w => ‖w‖) hw
+        exact ⟨ this.1, this.2.1, h_norm_le_b w hw ⟩
+      · intro w hw
+        have hw_le_sup : ‖w‖ ≤ S.sup' hS_nonempty (fun w => ‖w‖) :=
+          Finset.le_sup' (f := fun w => ‖w‖) hw
+        simpa [b, hv_eq] using hw_le_sup
+    exact ⟨b, hbB, hb_le_r⟩
+
+  -- 3. A and B have the same infimum
+  have h_inf_eq : sInf A = sInf B := by
+    have h1 : sInf A ≤ sInf B := by
+      apply_rules [csInf_le_csInf]
+      · exact ⟨0, fun r hr => hr.1.le⟩
+      · obtain ⟨r, hr⟩ := GeometricLattice.exists_successiveMinima L i
+        obtain ⟨b, hb₁, hb₂⟩ := hA_to_B r ⟨hr.1, hr.2⟩
+        exact ⟨b, hb₁⟩
+    have h2 : sInf B ≤ sInf A := by
+      have h_lb : ∀ r ∈ A, sInf B ≤ r := by
+        intro r hrA
+        rcases hA_to_B r hrA with ⟨b, hbB, hb_le⟩
+        have h_sInf_le_b : sInf B ≤ b := by
+          exact csInf_le ⟨0, fun x hx => by
+            obtain ⟨S, v, hvS, hS_card, hS_cond, hS_lin, rfl, hv_norm⟩ := hx
+            exact norm_nonneg _⟩ hbB
+        exact le_trans h_sInf_le_b hb_le
+      apply le_csInf
+      · apply Classical.byContradiction
+        intro hA_empty
+        exact hA_empty <| by
+          obtain ⟨r, hr⟩ := GeometricLattice.exists_successiveMinima L i
+          exact ⟨r, ⟨hr.1, hr.2⟩⟩
+      · exact h_lb
+    exact le_antisymm h1 h2
+
+  -- 4. Nonemptiness of B and that B ⊆ {‖v‖ | v ∈ L.nonzeroVectors}
+  have hB_nonempty : B.Nonempty := by
+    obtain ⟨r, hr_pos, S, hS_card, hS_props, hS_li⟩ := GeometricLattice.exists_successiveMinima L i
+    have : r ∈ A := by
+      refine ⟨hr_pos, S, hS_card, hS_props, hS_li⟩
+    rcases hA_to_B r this with ⟨b, hbB, hb_le⟩
+    exact ⟨b, hbB⟩
+
+  have hB_subset_norms : B ⊆ { ‖v‖ | v ∈ L.nonzeroVectors } := by
+    intro r hrB
+    rcases hrB with ⟨S, v, hvS, hS_card, hS_props, hS_li, rfl, hmax⟩
+    have hv_L : v ∈ L := (hS_props v hvS).1
+    have hv_ne : v ≠ 0 := (hS_props v hvS).2.1
+    refine ⟨v, ⟨hv_L, hv_ne⟩, rfl⟩
+
+  -- 5. Take the minimal element of B
+  obtain ⟨m, hmB, hm_min⟩ :=
+    LatticeCrypto.Foundations.Lattice.exists_min_norm_subset_proven
+      L B hB_subset_norms hB_nonempty
+
+  -- m is the infimum of B
+  have hm_isInf : sInf B = m := by
+    have h_le : sInf B ≤ m := by
+      apply csInf_le
+      · exact ⟨m, fun x hx => hm_min x hx⟩
+      · exact hmB
+    have h_ge : m ≤ sInf B := by
+      exact le_csInf hB_nonempty hm_min
+    exact le_antisymm h_le h_ge
+
+  -- Therefore λᵢ = m
+  have h_lambda_eq_m : L.successiveMinima i = m := by
+    have : sInf A = sInf B := h_inf_eq
+    simp [hA_def, this, hm_isInf]
+
+  -- Use the witness for m ∈ B to get the required set
+  rcases hmB with ⟨S, v, hvS, hS_card, hS_props, hS_li, hm_eq, hmax⟩
+  refine ⟨S, hS_card, ?_, hS_li⟩
+  intro w hw
+  obtain ⟨hw_L, hw_ne, hw_le⟩ := hS_props w hw
+  have hw_le' : ‖w‖ ≤ L.successiveMinima i := by
+    have : ‖w‖ ≤ ‖v‖ := hmax w hw
+    simpa [h_lambda_eq_m, hm_eq] using this
+  exact ⟨hw_L, hw_ne, hw_le'⟩
 
 /-
 If a set of k+1 linearly independent lattice vectors exists, at least one must have norm >= lambda_k.
@@ -867,20 +971,54 @@ lemma contradiction_of_small_norm (L : GeometricLattice n n) (j : Fin n) (hj : j
     (h_mem_v : v ∈ L.nonzeroVectors)
     (h_norm_x : ∀ i, ‖x i‖ ≤ ‖v‖)
     (h_norm_v : ‖v‖ < L.successiveMinima ⟨j.val + 1, hj⟩) : False := by
-      contrapose! h_norm_v;
-      refine' csInf_le _ _;
-      · exact ⟨ 0, fun r hr => hr.1.le ⟩;
-      · refine' ⟨ norm_pos_iff.mpr h_mem_v.2, Finset.image ( Fin.snoc x v ) Finset.univ, _, _, _ ⟩ <;> simp_all ( config := { decide := Bool.true } ) ;
-        · rw [ Finset.card_image_of_injective _ ( fun i j hij => by simpa [ Fin.ext_iff ] using h_li.injective hij ), Finset.card_fin ];
-        · intro a; refine' Fin.lastCases _ _ a <;> aesop;
-          · exact h_mem_x i |>.1;
-          · exact h_mem_x i |>.2 a_1;
-        · convert h_li.comp _ _;
-          rotate_left;
-          use fun y => Classical.choose ( Finset.mem_image.mp y.2 );
-          · intro y z h; have := Classical.choose_spec ( Finset.mem_image.mp y.2 ) ; have := Classical.choose_spec ( Finset.mem_image.mp z.2 ) ; aesop;
-          · bound;
-            ext ⟨ y, hy ⟩ ; have := Classical.choose_spec ( Finset.mem_image.mp hy ) ; aesop;
+  classical
+  contrapose! h_norm_v
+  refine' csInf_le _ _
+  · exact ⟨0, fun r hr => hr.1.le⟩
+  ·
+    let snoc : Fin (j.val + 1 + 1) → 𝓔 n := Fin.snoc x v
+    let S : Finset (𝓔 n) := Finset.image snoc Finset.univ
+    refine' ⟨norm_pos_iff.mpr h_mem_v.2, S, _, _, _⟩
+    · -- cardinality
+      simpa [S, snoc] using (by
+        rw [Finset.card_image_of_injective _
+          (fun i j hij => by simpa [Fin.ext_iff] using h_li.injective hij),
+          Finset.card_fin])
+    · -- membership, nonzero, and norm bound
+      intro a ha
+      rcases Finset.mem_image.mp ha with ⟨i, hi, rfl⟩
+      by_cases h : (i.val : ℕ) < j.val + 1
+      · -- i is in the first block, so use x
+        let i' : Fin (j.val + 1) := ⟨i.val, h⟩
+        have hL : snoc i ∈ L := by
+          simpa [snoc, Fin.snoc, h, i'] using (h_mem_x i').1
+        have hne : snoc i ≠ 0 := by
+          simpa [snoc, Fin.snoc, h, i'] using (h_mem_x i').2
+        have hnorm : ‖snoc i‖ ≤ ‖v‖ := by
+          simpa [snoc, Fin.snoc, h, i'] using h_norm_x i'
+        exact ⟨hL, hne, hnorm⟩
+      · -- i is the last index, so use v
+        have hL : snoc i ∈ L := by
+          simpa [snoc, Fin.snoc, h] using h_mem_v.1
+        have hne : snoc i ≠ 0 := by
+          simpa [snoc, Fin.snoc, h] using h_mem_v.2
+        have hnorm : ‖snoc i‖ ≤ ‖v‖ := by
+          simp [snoc, Fin.snoc, h]
+        exact ⟨hL, hne, hnorm⟩
+    · -- linear independence
+      let f : S → Fin (j.val + 1 + 1) := fun y => Classical.choose (Finset.mem_image.mp y.2)
+      have hf_spec : ∀ y : S, (snoc (f y) : 𝓔 n) = (y : 𝓔 n) := by
+        intro y
+        exact (Classical.choose_spec (Finset.mem_image.mp y.2)).2
+      have hf_inj : Function.Injective f := by
+        intro y z h
+        apply Subtype.ext
+        have : (snoc (f y) : 𝓔 n) = snoc (f z) := by
+          simp [h]
+        simpa [hf_spec y, hf_spec z] using this
+      have h_li' : LinearIndependent ℝ (fun y : S => (snoc (f y) : 𝓔 n)) :=
+        h_li.comp f hf_inj
+      simpa [hf_spec] using h_li'
 
 /-
 Given a vector with norm strictly between lambda_0 and lambda_k, there exists an index j < k such that lambda_j <= norm < lambda_{j+1}.
@@ -912,39 +1050,59 @@ lemma inductive_step_contradiction (L : GeometricLattice n n) (k : ℕ) (hk : k 
   (hv_mem : v ∈ L.nonzeroVectors)
   (hv_li : LinearIndependent ℝ (Fin.snoc x v))
   (hv_lt : ‖v‖ < L.successiveMinima ⟨k, hk⟩) : False := by
-    -- Applying `exists_index_between_norms` to find such a `j`.
-    obtain ⟨j, hj⟩ : ∃ j : Fin k, L.successiveMinima (Fin.castLE (by linarith) j) ≤ ‖v‖ ∧ ‖v‖ < L.successiveMinima (Fin.mk (j + 1) (by
-    exact lt_of_le_of_lt ( Nat.succ_le_of_lt j.2 ) hk)) := by
+    -- Pick the index `j` with λ_j ≤ ‖v‖ < λ_{j+1}.
+    obtain ⟨j, hj⟩ : ∃ j : Fin k,
+        L.successiveMinima (Fin.castLE (by linarith) j) ≤ ‖v‖ ∧
+        ‖v‖ < L.successiveMinima (Fin.mk (j + 1) (by
+          exact lt_of_le_of_lt (Nat.succ_le_of_lt j.2) hk)) := by
       exact exists_index_between_norms L k hk v hv_mem hv_lt
-    generalize_proofs at *;
-    -- Applying `contradiction_of_small_norm` with the family $x'$ and vector $v$.
-    apply contradiction_of_small_norm L ⟨j.val, by
-      linarith [ Fin.is_lt j ]⟩ (by
-    (expose_names; exact pf_1)) (fun i => x ⟨i.val, by
-      exact lt_of_lt_of_le i.2 ( Nat.succ_le_of_lt j.2 )⟩) v
     generalize_proofs at *
-    all_goals generalize_proofs at *;
-    · convert hv_li.comp _ _;
-      rotate_left;
-      use fun i => if i.val < j.val + 1 then ⟨ i.val, by
-        exact Nat.lt_succ_of_le ( Fin.is_le i |> Nat.le_trans <| Nat.succ_le_of_lt <| by linarith [ Fin.is_lt j ] ) ⟩ else ⟨ k, by
-        exact Nat.lt_succ_self _ ⟩
-      all_goals generalize_proofs at *;
-      · intro i j; aesop;
-        · exact Fin.ext a;
-        · linarith [ Fin.is_lt j, Fin.is_lt j_1 ];
-        · exact False.elim <| h_1.not_ge <| by linarith [ Fin.is_lt i, Fin.is_lt j, Fin.is_lt j_1 ] ;
-        · exact Fin.ext ( by linarith [ Fin.is_lt i, Fin.is_lt j ] );
-      · ext i; aesop;
-        · simp +decide [ Fin.snoc, h ];
-          grind;
-        · simp +decide [ Fin.snoc ];
-          split_ifs <;> linarith;
-    · exact fun i => h_x_mem _;
-    · assumption;
-    · aesop;
-      exact le_trans ( GeometricLattice.successiveMinima_mono L <| Fin.le_iff_val_le_val.mpr <| Nat.le_of_lt_succ <| by aesop ) left;
-    · exact hj.2
+
+    -- Restrict the first `k` vectors to the first `j+1` entries.
+    set x' : Fin (j.val + 1) → 𝓔 n := fun i =>
+      x ⟨i.val, by
+        exact lt_of_lt_of_le i.2 (Nat.succ_le_of_lt j.2)⟩
+
+    -- Apply `contradiction_of_small_norm` to the truncated family `x'`.
+    refine contradiction_of_small_norm L ⟨j.val, by
+      linarith [Fin.is_lt j]⟩ (by
+        (expose_names; exact pf_1)) x' v ?_ ?_ ?_ ?_ ?_
+    · -- Linearly independent: use `linearIndependent_fin_snoc` plus restriction.
+      have hv_li' : LinearIndependent ℝ x ∧ v ∉ Submodule.span ℝ (Set.range x) := by
+        simpa [linearIndependent_fin_snoc] using hv_li
+      have hincl : Function.Injective (fun i : Fin (j.val + 1) =>
+          (⟨i.val, lt_of_lt_of_le i.is_lt (Nat.succ_le_of_lt j.is_lt)⟩ : Fin k)) := by
+        intro i i' h
+        exact Fin.ext (by simpa using congrArg Fin.val h)
+      have h_li' : LinearIndependent ℝ x' := by
+        simpa [x'] using h_li.comp
+          (fun i : Fin (j.val + 1) =>
+            (⟨i.val, lt_of_lt_of_le i.is_lt (Nat.succ_le_of_lt j.is_lt)⟩ : Fin k))
+          hincl
+      have h_span : Submodule.span ℝ (Set.range x') ≤ Submodule.span ℝ (Set.range x) := by
+        refine Submodule.span_le.mpr ?_
+        rintro _ ⟨i, rfl⟩
+        exact Submodule.subset_span ⟨_, rfl⟩
+      have hv_not_span : v ∉ Submodule.span ℝ (Set.range x') := by
+        intro hv_in
+        exact hv_li'.2 (h_span hv_in)
+      simpa [linearIndependent_fin_snoc] using And.intro h_li' hv_not_span
+    · -- Membership in the lattice is preserved under restriction.
+      exact fun i => h_x_mem _
+    · -- `v` is a nonzero lattice vector.
+      exact hv_mem
+    · -- Norms of `x'` are bounded by ‖v‖ using monotonicity of minima.
+      intro i
+      set i' : Fin k := ⟨i.val, lt_of_lt_of_le i.is_lt (Nat.succ_le_of_lt j.is_lt)⟩
+      have h_eq : ‖x' i‖ = L.successiveMinima (Fin.castLE (le_of_lt hk) i') := by
+        simpa [x', i'] using h_norm i'
+      have hij : (Fin.castLE (le_of_lt hk) i') ≤ (Fin.castLE (le_of_lt hk) j) := by
+        exact Fin.le_iff_val_le_val.mpr (Nat.le_of_lt_succ i.is_lt)
+      have h_le : L.successiveMinima (Fin.castLE (le_of_lt hk) i') ≤ ‖v‖ :=
+        le_trans (GeometricLattice.successiveMinima_mono L hij) hj.1
+      simpa [h_eq] using h_le
+    · -- Final small-norm hypothesis.
+      exact hj.2
 
 /-
 Inductive step: given k linearly independent vectors with correct norms, we can find a (k+1)-th vector.
@@ -1067,35 +1225,60 @@ theorem shortestVectorLength_ge_gramSchmidt_minNorm
   (B : SquareLatticeBasis n)
   (h : isBasisFor B L) :
   minNorm (InnerProductSpace.gramSchmidt ℝ B.basis) ≤ GeometricLattice.shortestVectorLength L := by
-    refine' le_csInf _ _;
-    · exact ⟨ _, ⟨ ⟨ _, L.exists_shortest_vector.choose_spec.1 ⟩, rfl ⟩ ⟩;
-    · aesop;
-      -- By definition of `mem_iff_exists_coeffs`, we know that there exist integers `c` such that `w = ∑ i, c i • B.basis i`.
-      obtain ⟨c, hc⟩ : ∃ c : Fin n → ℤ, w = ∑ i, c i • B.basis i := by
-        have h_span : w ∈ Submodule.span ℤ (Set.range B.basis) := by
-          convert left.1 using 1;
-          exact congrArg Membership.mem h;
-        rw [ Finsupp.mem_span_range_iff_exists_finsupp ] at h_span;
-        aesop;
-      -- Since $w$ is non-zero, the coefficients $c$ are not all zero. Use `exists_max_nonzero_index` to find the largest index $k$ such that $c_k ≠ 0$.
-      obtain ⟨k, hk_ne_zero, hk_max⟩ : ∃ k : Fin n, c k ≠ 0 ∧ ∀ i, k < i → c i = 0 := by
-        -- Since $c$ is not all zero, there must be some $i$ such that $c_i \neq 0$.
-        obtain ⟨i, hi⟩ : ∃ i : Fin n, c i ≠ 0 := by
-          contrapose! left; aesop;
-          exact a.2 rfl;
-        exact ⟨ Finset.max' ( Finset.univ.filter fun i => c i ≠ 0 ) ⟨ i, Finset.mem_filter.mpr ⟨ Finset.mem_univ _, hi ⟩ ⟩, Finset.mem_filter.mp ( Finset.max'_mem ( Finset.univ.filter fun i => c i ≠ 0 ) ⟨ i, Finset.mem_filter.mpr ⟨ Finset.mem_univ _, hi ⟩ ⟩ ) |>.2, fun j hj => Classical.not_not.1 fun hj' => not_lt_of_ge ( Finset.le_max' _ _ <| by aesop ) hj ⟩;
-      -- Project $w$ onto the $k$-th Gram-Schmidt vector $b*_k$. By `projection_on_gramSchmidt_of_max_index`, $\langle w, b*_k \rangle = c_k \cdot \|b*_k\|^2$.
-      have h_proj : inner ℝ w (gramSchmidt ℝ B.basis k) = (c k : ℝ) * ‖gramSchmidt ℝ B.basis k‖ ^ 2 := by
-        rw [ hc, projection_on_gramSchmidt_of_max_index ] ; aesop;
-        norm_cast;
-      -- By Cauchy-Schwarz, $|\langle w, b*_k \rangle| \leq \|w\| \cdot \|b*_k\|$.
-      have h_cauchy_schwarz : |inner ℝ w (gramSchmidt ℝ B.basis k)| ≤ ‖w‖ * ‖gramSchmidt ℝ B.basis k‖ := by
-        exact abs_real_inner_le_norm _ _;
-      -- Since $c_k$ is a non-zero integer, $|c_k| \geq 1$. Thus $\|b*_k\| \leq \|w\|$.
-      have h_norm_gramSchmidt : ‖gramSchmidt ℝ B.basis k‖ ≤ ‖w‖ := by
-        rw [ h_proj, abs_mul, abs_sq ] at h_cauchy_schwarz;
-        nlinarith [ show ( |↑ ( c k )| : ℝ ) ≥ 1 by exact mod_cast abs_pos.mpr hk_ne_zero, norm_nonneg w, norm_nonneg ( gramSchmidt ℝ B.basis k ) ];
-      exact le_trans ( minNorm_le _ k ) h_norm_gramSchmidt
+  refine le_csInf ?_ ?_
+  · -- nonempty set of norms
+    obtain ⟨v, hv, _⟩ := L.exists_shortest_vector
+    exact ⟨‖v‖, ⟨⟨v, hv⟩, rfl⟩⟩
+  · rintro b ⟨w, rfl⟩
+    -- move membership to the lattice generated by `B`
+    have h_carrier : B.toLattice.carrier = L.carrier := by
+      simpa [isBasisFor, GeometricLattice.CarrierEquiv] using h
+    have hwB : (w : 𝓔 n) ∈ B.toLattice := by
+      -- rewrite membership via carrier equality
+      rw [GeometricLattice.mem_def]
+      -- goal: w ∈ B.toLattice.carrier
+      rw [h_carrier]
+      -- goal: w ∈ L.carrier
+      exact w.property.1
+
+    -- extract integer coefficients in the basis `B`
+    obtain ⟨c, hc⟩ : ∃ c : Fin n → ℤ, (w : 𝓔 n) = ∑ i, c i • B.basis i := by
+      rcases (GeometricLattice.mem_iff_exists_coeffs (B.toLattice) (w : 𝓔 n)).1 hwB with ⟨c, hc⟩
+      refine ⟨c, ?_⟩
+      simpa [LatticeBasis.cols] using hc
+
+    -- pick the largest nonzero coefficient
+    have hc_ne : c ≠ 0 := by
+      intro hc0
+      have : (w : 𝓔 n) = 0 := by
+        simpa [hc0] using hc
+      exact w.property.2 this
+    obtain ⟨k, hk_ne_zero, hk_max⟩ := exists_max_nonzero_index c hc_ne
+
+    -- switch to real coefficients for Gram–Schmidt
+    let cR : Fin n → ℝ := fun i => (c i : ℝ)
+    have hcR : (w : 𝓔 n) = ∑ i, cR i • B.basis i := by
+      simpa [cR, Int.cast_smul_eq_zsmul] using hc
+    have hk_max' : ∀ i, k < i → cR i = 0 := by
+      intro i hi
+      have : c i = 0 := hk_max i hi
+      simp [cR, this]
+
+    -- project onto the k-th Gram–Schmidt vector
+    have h_proj : inner ℝ (w : 𝓔 n) (gramSchmidt ℝ B.basis k) =
+        (c k : ℝ) * ‖gramSchmidt ℝ B.basis k‖ ^ 2 := by
+      simpa [cR] using
+        (projection_on_gramSchmidt_of_max_index B cR k hk_max' (w : 𝓔 n) hcR)
+
+    -- Cauchy–Schwarz and integer coefficient bound
+    have h_cauchy_schwarz : |inner ℝ (w : 𝓔 n) (gramSchmidt ℝ B.basis k)| ≤
+        ‖(w : 𝓔 n)‖ * ‖gramSchmidt ℝ B.basis k‖ := by
+      exact abs_real_inner_le_norm _ _
+    have h_norm_gramSchmidt : ‖gramSchmidt ℝ B.basis k‖ ≤ ‖(w : 𝓔 n)‖ := by
+      rw [h_proj, abs_mul, abs_sq] at h_cauchy_schwarz
+      nlinarith [show (|↑(c k)| : ℝ) ≥ 1 by exact mod_cast abs_pos.mpr hk_ne_zero,
+        norm_nonneg (w : 𝓔 n), norm_nonneg (gramSchmidt ℝ B.basis k)]
+    exact le_trans (minNorm_le _ k) h_norm_gramSchmidt
 
 end gram_schmidt
 
