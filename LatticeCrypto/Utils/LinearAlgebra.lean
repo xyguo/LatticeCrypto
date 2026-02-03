@@ -4,6 +4,7 @@ import Mathlib.Topology.Algebra.Group.Basic      -- For the subspace topology on
 import Mathlib.Topology.Algebra.OpenSubgroup
 import Mathlib.Analysis.InnerProductSpace.PiL2  -- For EuclideanSpace
 import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
+import Mathlib.Analysis.InnerProductSpace.GramMatrix
 import Mathlib.Data.Matrix.Basic                -- for type synonym support
 import Mathlib.Analysis.Normed.Group.Subgroup   -- For LinearIndependent.discrete_zspan
 import Mathlib.LinearAlgebra.LinearIndependent.Defs  -- For LinearIndependent
@@ -390,6 +391,144 @@ theorem euc_gramSchmidt_matrix_det_abs {n : ℕ+} (M : Matrix (Fin n) (Fin n) �
   convert ( gramSchmidt_matrix_det_abs ?_ );
   all_goals first | infer_instance | norm_cast;
   cases n using PNat.recOn <;> trivial
+
+/-- For a square matrix, the determinant of `Mᵀ * M` equals the product of squared Gram-Schmidt norms.
+    (Assumes columns are linearly independent; this is implicit in using Gram-Schmidt.) -/
+theorem det_transpose_mul_self_eq_prod_gramSchmidt_norm_sq {n : ℕ+}
+    (M : Matrix (Fin n) (Fin n) ℝ) :
+    Matrix.det (M.transpose * M) =
+      ∏ i : Fin n, ‖InnerProductSpace.gramSchmidt ℝ (fun j => piToEuc (M.col j)) i‖ ^ 2 := by
+  classical
+  let gs : Fin n → ℝ :=
+    fun i => ‖InnerProductSpace.gramSchmidt ℝ (fun j => piToEuc (M.col j)) i‖
+  have h_abs : |M.det| = ∏ i : Fin n, gs i := by
+    simpa [gs] using (euc_gramSchmidt_matrix_det_abs (M := M))
+  have h_sq : (M.det) ^ 2 = (∏ i : Fin n, gs i) ^ 2 := by
+    have h' := congrArg (fun x => x ^ 2) h_abs
+    simpa [sq_abs] using h'
+  have h_prod_sq : (∏ i : Fin n, gs i) ^ 2 = ∏ i : Fin n, (gs i) ^ 2 := by
+    simpa using (Finset.prod_pow (s := (Finset.univ : Finset (Fin n))) (n := 2)
+      (f := gs)).symm
+  calc
+    Matrix.det (M.transpose * M)
+        = Matrix.det M.transpose * Matrix.det M := by
+            simp [Matrix.det_mul]
+    _ = M.det * M.det := by simp [Matrix.det_transpose]
+    _ = (M.det) ^ 2 := by simp [pow_two]
+    _ = ∏ i : Fin n, (gs i) ^ 2 := by
+          simpa [h_prod_sq] using h_sq
+/-
+If a family of vectors $v$ is related to an orthogonal family $f$ by a triangular change of basis with unit diagonal, then the determinant of the Gram matrix of $v$ is the product of the squared norms of $f$.
+-/
+lemma det_gram_eq_prod_norm_sq_of_triangular
+    {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+    {n : ℕ}
+    (v f : Fin n → E)
+    (h_ortho : Pairwise (fun i j => ⟪f i, f j⟫_ℝ = 0))
+    (h_triang : ∀ i, v i - f i ∈ Submodule.span ℝ (Set.image f (Set.Iio i))) :
+    Matrix.det (Matrix.gram ℝ v) = ∏ i, ‖f i‖ ^ 2 := by
+  -- By definition of $f$, we know that $v_i - f_i \in \text{span}\{f_j\}_{j < i}$ for all $i$.
+  -- This implies that the matrix $C$ whose columns are $f_i$ is upper triangular with 1s on the diagonal.
+  classical
+  -- Build a triangular change-of-basis matrix C such that v = C • f.
+  have h_C_upper_triangular : ∃ C : Matrix (Fin n) (Fin n) ℝ, (∀ i, v i = ∑ j ∈ Finset.univ, C i j • f j) ∧ (∀ i j, i < j → C i j = 0) ∧ (∀ i, C i i = 1) := by
+    -- Use the span condition to build the coefficients row-by-row.
+    have h_C_upper_triangular : ∀ i, ∃ c : Fin n → ℝ, v i = ∑ j ∈ Finset.univ, c j • f j ∧ (∀ j, i < j → c j = 0) ∧ c i = 1 := by
+      intro i
+      obtain ⟨c, hc⟩ : ∃ c : Fin n → ℝ, v i - f i = ∑ j ∈ Finset.univ.filter (fun j => j < i), c j • f j := by
+        have := h_triang i;
+        rw [ Finsupp.mem_span_image_iff_linearCombination ] at this;
+        obtain ⟨ l, hl₁, hl₂ ⟩ := this; use fun j => l j; simp_all +decide [ Finsupp.linearCombination_apply, Finsupp.sum ] ;
+        rw [ ← hl₂, Finset.sum_subset ( show l.support ⊆ Finset.filter ( fun x => x < i ) Finset.univ from fun x hx => Finset.mem_filter.mpr ⟨ Finset.mem_univ _, hl₁ hx ⟩ ) ] ; aesop;
+      refine' ⟨ fun j => if j = i then 1 else if j < i then c j else 0, _, _, _ ⟩ <;> simp_all +decide [ sub_eq_iff_eq_add' ];
+      · simp +decide [ Finset.sum_ite, Finset.filter_ne', Finset.filter_eq' ];
+        rw [ Finset.filter_erase ] ; aesop;
+      · exact fun j hij => by rw [ if_neg ( ne_of_gt hij ), if_neg ( not_lt_of_gt hij ) ] ;
+    exact ⟨ fun i j => Classical.choose ( h_C_upper_triangular i ) j, fun i => Classical.choose_spec ( h_C_upper_triangular i ) |>.1, fun i j hij => Classical.choose_spec ( h_C_upper_triangular i ) |>.2.1 j hij, fun i => Classical.choose_spec ( h_C_upper_triangular i ) |>.2.2 ⟩;
+  -- By definition of $C$, we know that $G(v) = C G(f) C^T$.
+  obtain ⟨C, hC⟩ := h_C_upper_triangular
+  have h_gram_eq : Matrix.gram ℝ v = C * Matrix.gram ℝ f * C.transpose := by
+    ext i j; simp +decide [ Matrix.mul_apply, Matrix.gram_apply, hC.1 ] ;
+    simp +decide [ inner_sum, sum_inner, inner_smul_left, inner_smul_right, mul_comm, mul_left_comm, Finset.mul_sum _ _ _ ];
+  -- Since $f$ is orthogonal, $\text{Gram}(f)$ is diagonal with entries $\|f_i\|^2$.
+  have h_gram_f_diag : Matrix.gram ℝ f = Matrix.diagonal (fun i => ‖f i‖ ^ 2) := by
+    ext i j; by_cases hij : i = j <;> simp_all +decide [ Matrix.gram, inner_self_eq_norm_sq_to_K ] ;
+    exact h_ortho hij;
+  -- Compute the determinant.
+  have hdetC : Matrix.det C = ∏ i, C i i := by
+    -- C is lower triangular: entries above the diagonal vanish.
+    have htri : ∀ i j, i < j → C i j = 0 := by
+      intro i j hij
+      exact hC.2.1 i j hij
+    have htri' : C.BlockTriangular OrderDual.toDual := by
+      intro i j hij
+      exact htri i j (by simpa using hij)
+    simpa using (Matrix.det_of_lowerTriangular (M := C) htri')
+  have hdetC1 : Matrix.det C = 1 := by
+    have hdiag : ∀ i, C i i = 1 := hC.2.2
+    simp [hdetC, hdiag]
+  calc
+    Matrix.det (Matrix.gram ℝ v)
+        = Matrix.det C * Matrix.det (Matrix.gram ℝ f) * Matrix.det C.transpose := by
+            simp [h_gram_eq, Matrix.det_mul]
+    _ = Matrix.det (Matrix.gram ℝ f) := by
+            simp [hdetC1, Matrix.det_transpose]
+    _ = ∏ i, ‖f i‖ ^ 2 := by
+            simp [h_gram_f_diag, Matrix.det_diagonal]
+
+/-- Gram determinant formula for a finite linearly independent family in Euclidean space.
+  This is the rectangular version: `det(gram v) = ∏ ‖GS(v)_i‖^2`.
+  (Assumes linear independence of the columns.) -/
+theorem det_gram_eq_prod_gramSchmidt_norm_sq {m n : ℕ+}
+    (v : Fin m → 𝓔 n) :
+    Matrix.det (Matrix.gram ℝ v) =
+      ∏ i : Fin m, ‖InnerProductSpace.gramSchmidt ℝ v i‖ ^ 2 := by
+  -- Sketch: identify `span v` with `ℝ^m` via an orthonormal basis, transport `v`,
+  -- note Gram matrix is preserved, then apply `det_transpose_mul_self_eq_prod_gramSchmidt_norm_sq`.
+  convert det_gram_eq_prod_norm_sq_of_triangular v ( fun i => InnerProductSpace.gramSchmidt ℝ v i ) _ _ using 1;
+  · exact InnerProductSpace.gramSchmidt_pairwise_orthogonal ℝ v;
+  · intro i;
+    have h_def : v i - InnerProductSpace.gramSchmidt ℝ v i ∈ Submodule.span ℝ (Set.image (InnerProductSpace.gramSchmidt ℝ v) (Set.Iio i)) := by
+      have h_def : ∀ (i : Fin m), v i - InnerProductSpace.gramSchmidt ℝ v i ∈ Submodule.span ℝ (Set.image (InnerProductSpace.gramSchmidt ℝ v) (Set.Iio i)) := by
+        intro i
+        rw [InnerProductSpace.gramSchmidt_def];
+        simp +zetaDelta at *;
+        refine' Submodule.sum_mem _ _;
+        intro c hc;
+        refine' Submodule.mem_span.mpr _;
+        intro p hp;
+        convert hp ⟨ c, Finset.mem_Iio.mp hc, rfl ⟩ |> fun h => Submodule.smul_mem _ ( ( innerSL ℝ ) ( InnerProductSpace.gramSchmidt ℝ v c ) ( v i ) / ‖InnerProductSpace.gramSchmidt ℝ v c‖ ^ 2 ) h using 1;
+        rw [ Submodule.starProjection_singleton ];
+        norm_num [ innerSL_apply ]
+      exact h_def i;
+    exact h_def
+
+/-- Gram-Schmidt on a prefix of a sequence agrees with Gram-Schmidt on the full sequence.
+    (Used to relate prefix Gram determinants to Gram matrices.) -/
+theorem gramSchmidt_prefix_eq {n k : ℕ+} (B : Fin k → 𝓔 n) (i : Fin k) :
+    let m : ℕ+ := ⟨i.1 + 1, Nat.succ_pos _⟩
+    let vecs : Fin m → 𝓔 n :=
+      fun j => B ⟨j, Nat.lt_of_lt_of_le j.2 (Nat.succ_le_of_lt i.2)⟩
+    ∀ j : Fin m, InnerProductSpace.gramSchmidt ℝ vecs j =
+      InnerProductSpace.gramSchmidt ℝ B ⟨j, Nat.lt_of_lt_of_le j.2 (Nat.succ_le_of_lt i.2)⟩ := by
+  intro m vecs;
+  by_contra h_contra;
+  -- Let $j$ be the smallest index such that the Gram-Schmidt vectors differ.
+  obtain ⟨j, hj⟩ : ∃ j : Fin m, InnerProductSpace.gramSchmidt ℝ vecs j ≠ InnerProductSpace.gramSchmidt ℝ B ⟨j.val, by
+    exact lt_of_lt_of_le j.2 ( Nat.succ_le_of_lt i.2 )⟩ ∧ ∀ l : Fin m, l < j → InnerProductSpace.gramSchmidt ℝ vecs l = InnerProductSpace.gramSchmidt ℝ B ⟨l.val, by
+    exact lt_of_lt_of_le l.2 ( Nat.succ_le_of_lt i.2 )⟩ := by
+    all_goals generalize_proofs at *;
+    exact ⟨ Finset.min' ( Finset.univ.filter fun j => InnerProductSpace.gramSchmidt ℝ vecs j ≠ InnerProductSpace.gramSchmidt ℝ B ⟨ j, by solve_by_elim ⟩ ) ⟨ Classical.choose ( not_forall.mp h_contra ), Finset.mem_filter.mpr ⟨ Finset.mem_univ _, Classical.choose_spec ( not_forall.mp h_contra ) ⟩ ⟩, Finset.mem_filter.mp ( Finset.min'_mem ( Finset.univ.filter fun j => InnerProductSpace.gramSchmidt ℝ vecs j ≠ InnerProductSpace.gramSchmidt ℝ B ⟨ j, by solve_by_elim ⟩ ) ⟨ Classical.choose ( not_forall.mp h_contra ), Finset.mem_filter.mpr ⟨ Finset.mem_univ _, Classical.choose_spec ( not_forall.mp h_contra ) ⟩ ⟩ ) |>.2, fun l hl => Classical.not_not.1 fun h => hl.not_ge ( Finset.min'_le _ _ <| by aesop ) ⟩
+  generalize_proofs at *;
+  refine' hj.1 ( _ );
+  rw [ InnerProductSpace.gramSchmidt_def, InnerProductSpace.gramSchmidt_def ];
+  refine' congr_arg₂ _ _ _;
+  · exact rfl;
+  · refine' Finset.sum_bij ( fun l hl => ⟨ l, by
+      (expose_names; exact pf_1 l) ⟩ ) _ _ _ _ <;> simp_all +decide [ Fin.ext_iff ]
+    all_goals generalize_proofs at *;
+    · exact fun l hl => ⟨ ⟨ l, by linarith [ Fin.is_lt l, Fin.is_lt j, show ( l : ℕ ) < j from hl ] ⟩, hl, rfl ⟩;
+    · aesop
 
 noncomputable def Basis_of_gramSchmidtOrthonormalBasis {n : ℕ+} (b : Module.Basis (Fin n) ℝ (𝓔 n)) : Module.Basis (Fin n) ℝ (𝓔 n) := by
   have h_eq : Module.finrank ℝ (𝓔 n) = Fintype.card (Fin n) := by bound

@@ -657,12 +657,16 @@ noncomputable def LLLStep (B : LatticeBasis n k) (δ : ℝ) : LatticeBasis n k :
       exact swapAdjacent B' i hi
 
 /-- LLL basis reduction algorithm with explicit iteration bound.
-Runs at most `numIters` iterations of the LLL step. -/
+Terminates early once a basis is `LLLReduced`. -/
 noncomputable def LLL_impl : ℕ → LatticeBasis n k → ℝ → LatticeBasis n k
   | 0, B, _ => B
   | numIters + 1, B, δ =>
-      let B' := LLLStep B δ
-      LLL_impl numIters B' δ
+      by
+        classical
+        by_cases h : LLLReduced B δ
+        · exact B
+        · let B' := LLLStep B δ
+          exact LLL_impl numIters B' δ
 
 end lll_spec
 

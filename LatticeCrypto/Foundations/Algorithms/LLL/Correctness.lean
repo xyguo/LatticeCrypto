@@ -878,7 +878,12 @@ private lemma LLL_equiv_base (B : LatticeBasis n k) (δ : ℝ) :
 private lemma LLL_equiv_step (numIters : ℕ) (B : LatticeBasis n k) (δ : ℝ)
     (ih : ∀ (B' : LatticeBasis n k), (LLL_impl numIters B' δ).toLattice ≡ᵤ B'.toLattice) :
     (LLL_impl (numIters + 1) B δ).toLattice ≡ᵤ B.toLattice := by
-      convert ih ( LLLStep B δ ) |> ( ·.trans ( LLLStep_equiv B δ ) ) using 1
+      classical
+      by_cases h : LLLReduced B δ
+      · simp [LLL_impl, h]
+        exact rfl
+      · simp [LLL_impl, h]
+        exact (ih (LLLStep B δ)).trans (LLLStep_equiv B δ)
 
 /-- LLL preserves the lattice. -/
 theorem LLL_equiv (B : LatticeBasis n k) (δ : ℝ) (numIters : ℕ) :
