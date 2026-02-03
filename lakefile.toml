@@ -1,6 +1,6 @@
 name = "latticecrypto"
 version = "0.1.0"
-defaultTargets = ["latticecrypto"]
+defaultTargets = ["LatticeCrypto"]
 
 [[lean_lib]]
 name = "LatticeCrypto"

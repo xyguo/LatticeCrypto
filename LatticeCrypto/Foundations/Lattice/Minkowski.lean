@@ -5,15 +5,7 @@ import LatticeCrypto.Foundations.Lattice.SuccessiveMinima
 import LatticeCrypto.Utils.Geometry
 import LatticeCrypto.Utils.Vec
 
-import Mathlib.Topology.Algebra.Group.Basic
-import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
-import Mathlib.MeasureTheory.Group.Measure
 import Mathlib.MeasureTheory.Constructions.Polish.Basic
-import Mathlib.Analysis.Convex.Body
-import Mathlib.Analysis.Convex.Basic
-import Mathlib.Analysis.Normed.Module.Convex
-import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
-import Mathlib.Algebra.Order.Field.Basic
 
 open scoped ENNReal NNReal Pointwise
 open scoped MeasureTheory

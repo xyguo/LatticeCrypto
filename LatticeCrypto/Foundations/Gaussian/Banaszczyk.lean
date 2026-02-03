@@ -1,10 +1,5 @@
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Normed.Lp.PiLp
-import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
-import Mathlib.Analysis.Fourier.FourierTransform
 import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Topology.Defs.Basic
 
 import LatticeCrypto.Foundations.Gaussian.Defs
 import LatticeCrypto.Foundations.Gaussian.Fourier

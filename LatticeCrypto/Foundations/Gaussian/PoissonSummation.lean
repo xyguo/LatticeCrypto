@@ -1,12 +1,3 @@
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Normed.Lp.PiLp
-import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
-import Mathlib.Analysis.Fourier.FourierTransform
-import Mathlib.Analysis.Fourier.PoissonSummation
-import Mathlib.Analysis.SpecialFunctions.Gaussian.PoissonSummation
-import Mathlib.Topology.Algebra.InfiniteSum.Basic
-import Mathlib.Topology.Defs.Basic
-
 import LatticeCrypto.Foundations.Gaussian.Defs
 import LatticeCrypto.Foundations.Gaussian.Fourier
 import LatticeCrypto.Foundations.Lattice.Defs

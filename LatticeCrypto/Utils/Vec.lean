@@ -1,4 +1,5 @@
 import Mathlib.Analysis.InnerProductSpace.PiL2  -- For EuclideanSpace
+import LatticeCrypto.Init
 
 namespace LatticeCrypto.Utils.Vec
 

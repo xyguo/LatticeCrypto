@@ -1,19 +1,12 @@
 import LatticeCrypto.Foundations.Lattice.Defs
 import LatticeCrypto.Foundations.Lattice.Basic
-import Mathlib.Tactic.Contrapose
-import Mathlib.Topology.Defs.Basic
-import Mathlib.Algebra.Module.ZLattice.Basic
-
-import LatticeCrypto.Utils.LinearAlgebra
 import LatticeCrypto.Utils.Geometry
 import LatticeCrypto.Utils.Vec
-open LatticeCrypto.Utils.Vec
-open LatticeCrypto.Utils.LinearAlgebra
-open LatticeCrypto.Utils.Geometry
 
+open LatticeCrypto.Utils.Vec
+open LatticeCrypto.Utils.Geometry
 open scoped ENNReal NNReal Pointwise
 open scoped RealInnerProductSpace
-open scoped Classical
 
 
 /-!

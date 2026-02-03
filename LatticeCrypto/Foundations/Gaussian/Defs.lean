@@ -1,17 +1,12 @@
+import Mathlib.Topology.Algebra.InfiniteSum.Basic
+import Mathlib.Probability.Distributions.Gaussian.Real
+import Mathlib.Probability.ProbabilityMassFunction.Basic
+
 import LatticeCrypto.Foundations.Lattice.Defs
 import LatticeCrypto.Foundations.Lattice.Basic
 import LatticeCrypto.Foundations.Lattice.FundamentalDomain
 import LatticeCrypto.Utils.Geometry
 import LatticeCrypto.Utils.Vec
-
-import Mathlib.Topology.Algebra.InfiniteSum.Basic
-import Mathlib.Topology.Algebra.Group.Basic
-import Mathlib.GroupTheory.QuotientGroup.Defs
-import Mathlib.GroupTheory.Coset.Defs
-import Mathlib.MeasureTheory.Measure.MeasureSpace
-import Mathlib.Probability.Distributions.Gaussian.Real
-import Mathlib.Probability.ProbabilityMassFunction.Basic
-import Mathlib.Probability.HasLaw
 
 open scoped Real Complex MeasureTheory ProbabilityTheory
 open LatticeCrypto.Utils.Vec

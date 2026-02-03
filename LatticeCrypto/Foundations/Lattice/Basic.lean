@@ -9,9 +9,8 @@ open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.LinearAlgebra
 open LatticeCrypto.Utils.Geometry
 
-open scoped ENNReal NNReal Pointwise
+open scoped ENNReal NNReal
 open scoped RealInnerProductSpace
-open scoped Classical
 
 /-!
   This file defines basic lattice operations for `GeometricLattice` and `LatticeBasis`.

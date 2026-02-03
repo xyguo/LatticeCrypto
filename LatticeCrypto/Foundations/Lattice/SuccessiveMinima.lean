@@ -4,18 +4,8 @@ import LatticeCrypto.Utils.Geometry
 import LatticeCrypto.Utils.LinearAlgebra
 import LatticeCrypto.Utils.Vec
 
-import Mathlib.Topology.Algebra.Group.Basic
-import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
-import Mathlib.Analysis.Convex.Body
-import Mathlib.Analysis.Convex.Basic
-import Mathlib.CategoryTheory.Category.Basic
-import Mathlib.Order.CompleteLattice.Defs
-import Mathlib.LinearAlgebra.Span.Defs               -- For AddSubgroup.zspan
-import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
-
 open scoped ENNReal NNReal Pointwise
 open scoped Module
-open scoped MeasureTheory
 open scoped RealInnerProductSpace
 open scoped Classical
 open LatticeCrypto.Utils.Vec

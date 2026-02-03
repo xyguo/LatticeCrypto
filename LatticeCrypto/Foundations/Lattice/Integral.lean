@@ -3,9 +3,6 @@ import LatticeCrypto.Utils.LinearAlgebra
 import LatticeCrypto.Utils.Geometry
 import LatticeCrypto.Utils.Vec
 
-open scoped RealInnerProductSpace
-open scoped Module
-open scoped FiniteDimensional
 open LatticeCrypto.Utils.LinearAlgebra
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Utils.Vec

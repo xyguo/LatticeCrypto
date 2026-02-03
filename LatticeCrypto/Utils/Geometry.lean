@@ -1,19 +1,6 @@
-import Mathlib.Analysis.Normed.Group.Basic      -- For NormedAddCommGroup
-import Mathlib.Analysis.InnerProductSpace.PiL2  -- For EuclideanSpace
-import Mathlib.Data.Matrix.Basic                -- for type synonym support
-import Mathlib.Analysis.Normed.Group.Subgroup   -- For LinearIndependent.discrete_zspan
-import Mathlib.LinearAlgebra.LinearIndependent.Defs  -- For LinearIndependent
-import Mathlib.LinearAlgebra.Span.Defs               -- For AddSubgroup.zspan
-import Mathlib.Data.Rat.Defs                   -- For ℚ (Rat)
-import Mathlib.Data.Real.Basic                  -- For ℝ (Real)
-import Mathlib.LinearAlgebra.Basis.Basic
-import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
 import Mathlib.Algebra.Module.ZLattice.Basic
-import Mathlib.Data.PNat.Basic
-
 import Mathlib.MeasureTheory.Measure.Haar.InnerProductSpace
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
-import Mathlib.Analysis.Convex.Body
 import Mathlib.Analysis.Convex.Basic
 import Mathlib.Analysis.Normed.Module.Convex
 import Mathlib.CategoryTheory.Category.Basic  -- For aesop_cat
@@ -21,11 +8,9 @@ import Mathlib.CategoryTheory.Category.Basic  -- For aesop_cat
 import LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Vec
 
-open scoped ENNReal NNReal Pointwise
+open scoped ENNReal
 open scoped MeasureTheory
 open scoped RealInnerProductSpace
-open scoped Classical
-open scoped FiniteDimensional
 
 
 variable {n : ℕ+}
@@ -257,7 +242,7 @@ theorem unitBallVolume_lb : (2 : ℝ) ^ (n : ℕ) / (Real.sqrt n) ^ (n : ℕ) �
             aesop
         _ = (n : ℝ) * (1 / n) := by
             rw [div_eq_inv_mul, mul_pow]
-            ring
+            ring_nf
             rw [inv_pow, Real.sq_sqrt]
             exact Nat.cast_nonneg n
         _ = 1 := by

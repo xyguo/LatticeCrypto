@@ -1,12 +1,4 @@
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Normed.Lp.PiLp
-import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
 import Mathlib.Analysis.Fourier.FourierTransform
-import Mathlib.Analysis.Fourier.PoissonSummation
-import Mathlib.Analysis.SpecialFunctions.Gaussian.PoissonSummation
-import Mathlib.Topology.Algebra.InfiniteSum.Basic
-import Mathlib.Topology.Defs.Basic
-import Mathlib.Analysis.Fourier.AddCircle
 import Mathlib.Analysis.Fourier.AddCircleMulti
 
 import LatticeCrypto.Foundations.Gaussian.Defs
@@ -19,10 +11,10 @@ import LatticeCrypto.Utils.Vec
 
 open scoped Real
 open scoped RealInnerProductSpace
+open scoped FourierTransform
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Foundations.Lattice
-open scoped FourierTransform
 
 namespace LatticeCrypto.Foundations.Gaussian
 
@@ -34,7 +26,9 @@ noncomputable section fourier_transform
 variable {n : ℕ+}
 
 open scoped Real Complex MeasureTheory
-open LatticeCrypto.Foundations.Lattice LatticeCrypto.Utils.Vec LatticeCrypto.Foundations.Gaussian
+open LatticeCrypto.Foundations.Lattice
+open LatticeCrypto.Utils.Vec
+open LatticeCrypto.Foundations.Gaussian
 
 /-! Fourier transform of rhoS -/
 noncomputable def rhoS_FT {n : ℕ+} (s : ℝ) (x : 𝓔 n) : ℂ :=

@@ -1,7 +1,3 @@
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Topology.Defs.Basic
-
 import LatticeCrypto.Foundations.Gaussian.Defs
 import LatticeCrypto.Foundations.Gaussian.Fourier
 import LatticeCrypto.Foundations.Gaussian.PoissonSummation

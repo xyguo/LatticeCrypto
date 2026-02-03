@@ -2,8 +2,7 @@ import LatticeCrypto.Foundations.Algorithms.LLL.Defs
 
 namespace LatticeCrypto.Foundations.Algorithms
 
-open scoped Real RealInnerProductSpace BigOperators
-open scoped Classical
+open scoped Real RealInnerProductSpace
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Utils.LinearAlgebra

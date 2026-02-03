@@ -1,11 +1,10 @@
 import LatticeCrypto.Foundations.Algorithms.LLL.Defs
 import LatticeCrypto.Foundations.Algorithms.LLL.Algorithm
 import LatticeCrypto.Foundations.Algorithms.LLL.Correctness
-import Mathlib.Analysis.InnerProductSpace.GramMatrix
 
 namespace LatticeCrypto.Foundations.Algorithms
 
-open scoped Real RealInnerProductSpace BigOperators
+open scoped Real RealInnerProductSpace
 open scoped Classical
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry

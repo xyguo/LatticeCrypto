@@ -1,34 +1,13 @@
-import Mathlib.Algebra.Group.Subgroup.Defs     -- For AddSubgroup
-import Mathlib.Analysis.Normed.Group.Basic      -- For NormedAddCommGroup
-import Mathlib.Topology.Algebra.Group.Basic      -- For the subspace topology on AddSubgroup
-import Mathlib.Topology.Algebra.OpenSubgroup
-import Mathlib.Analysis.InnerProductSpace.PiL2  -- For EuclideanSpace
 import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
 import Mathlib.Analysis.InnerProductSpace.GramMatrix
-import Mathlib.Data.Matrix.Basic                -- for type synonym support
-import Mathlib.Analysis.Normed.Group.Subgroup   -- For LinearIndependent.discrete_zspan
 import Mathlib.LinearAlgebra.LinearIndependent.Defs  -- For LinearIndependent
-import Mathlib.LinearAlgebra.Span.Defs               -- For AddSubgroup.zspan
-import Mathlib.Data.Real.Basic                  -- For ℝ (Real)
-import Mathlib.LinearAlgebra.Basis.Basic
-import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
 import Mathlib.Algebra.Module.ZLattice.Basic
-import Mathlib.Data.PNat.Basic
-import Mathlib.Data.Set.Card
-
-import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
-import Mathlib.Analysis.Convex.Body
-import Mathlib.Analysis.Convex.Basic
-import Mathlib.Analysis.Normed.Module.Convex
 
 import LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Vec
 
-open scoped ENNReal NNReal Pointwise MeasureTheory
 open scoped RealInnerProductSpace
-open scoped Classical
 open scoped Module
-open scoped FiniteDimensional
 
 
 variable {n k : ℕ+}

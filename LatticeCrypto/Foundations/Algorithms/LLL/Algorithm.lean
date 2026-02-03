@@ -1,18 +1,15 @@
 import LatticeCrypto.Foundations.Lattice.Defs
 import LatticeCrypto.Foundations.Lattice.Basic
 import LatticeCrypto.Foundations.Algorithms.LLL.Defs
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Data.Fin.SuccPred
 import LatticeCrypto.Utils.Geometry
 import LatticeCrypto.Utils.LinearAlgebra
 import LatticeCrypto.Utils.Vec
-import Mathlib.LinearAlgebra.Matrix.Permutation
 
 namespace LatticeCrypto.Foundations.Algorithms
 
 namespace LLL
 
-open scoped Real RealInnerProductSpace BigOperators
+open scoped Real RealInnerProductSpace
 open scoped Classical
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
