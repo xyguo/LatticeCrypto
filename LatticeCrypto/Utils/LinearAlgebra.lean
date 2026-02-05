@@ -193,11 +193,11 @@ theorem le_rank_iff {R : Type u} {M : Type v} [Semiring R] [AddCommMonoid M] [Mo
 lemma rank_span_ge_iff_subset {V : Type*} [AddCommGroup V] [Module ℝ V] (s : Set V) (k : ℕ) :
     k ≤ Module.rank ℝ (Submodule.span ℝ s) ↔
     ∃ t : Finset V, t.card = k ∧ ↑t ⊆ s ∧ LinearIndependent ℝ (fun x : t => (x : V)) := by
-      bound;
+      aesop (config := { warnOnNonterminal := false });
       · -- By definition of rank, there exists a linearly independent subset of s with cardinality equal to the rank.
         obtain ⟨t, ht⟩ : ∃ t : Set V, t ⊆ s ∧ LinearIndependent ℝ (fun x : t => (x : V)) ∧ Cardinal.mk t = Module.rank ℝ (Submodule.span ℝ s) := by
           have := exists_linearIndependent ℝ s;
-          obtain ⟨ t, ht₁, ht₂, ht₃ ⟩ := this; use t; aesop;
+          obtain ⟨ t, ht₁, ht₂, ht₃ ⟩ := this; use t; aesop (config := { warnOnNonterminal := false });
           rw [ ← ht₂, rank_span_set ht₃ ];
         -- Since $k \leq \text{rank}(\text{span}(s))$, there exists a subset $t' \subseteq t$ with $|t'| = k$.
         obtain ⟨t', ht'⟩ : ∃ t' : Set V, t' ⊆ t ∧ Cardinal.mk t' = k := by
@@ -207,8 +207,8 @@ lemma rank_span_ge_iff_subset {V : Type*} [AddCommGroup V] [Module ℝ V] (s : S
         obtain ⟨t_fin, ht_fin⟩ : ∃ t_fin : Finset V, t_fin = t' ∧ t_fin.card = k := by
           have h_finite : Set.Finite t' := by
             exact Set.finite_coe_iff.mp ( Cardinal.lt_aleph0_iff_finite.mp ( ht'.2.symm ▸ Cardinal.nat_lt_aleph0 k ) );
-          have := h_finite.exists_finset_coe; aesop;
-        refine' ⟨ t_fin, ht_fin.2, _, _ ⟩ <;> aesop;
+          have := h_finite.exists_finset_coe; aesop ;
+        refine' ⟨ t_fin, ht_fin.2, _, _ ⟩ <;> aesop (config := { warnOnNonterminal := false });
         · exact Set.Subset.trans left_1 left;
         · convert left_3.comp _ _;
           rotate_left;
@@ -281,12 +281,12 @@ lemma det_eq_of_forall_col_diff_span
         refine' ⟨ fun i j => if i = j then 1 else if i < j then -w j i else 0, _, _ ⟩ <;> simp_all +decide [ ← Matrix.ext_iff ];
         · intro i j; specialize hw j; replace hw := congr_fun hw i; simp_all +decide [ Matrix.mul_apply, Finset.sum_ite ] ;
           simp +decide [ Finset.filter_eq', Finset.filter_ne', mul_comm ];
-          rw [ Finset.filter_erase ] ; aesop;
+          rw [ Finset.filter_erase ] ; aesop (config := { warnOnNonterminal := false });
           ring;
         · exact fun i j hij => by rw [ if_neg hij.ne', if_neg hij.not_gt ] ;
       -- Since $T$ is upper triangular with $1$ on the diagonal, its determinant is $1$.
       have hT_det : Matrix.det T = 1 := by
-        rw [ Matrix.det_of_upperTriangular ] <;> aesop;
+        rw [ Matrix.det_of_upperTriangular ] <;> aesop (config := { warnOnNonterminal := false });
         intro i j hij; aesop;
       aesop
 

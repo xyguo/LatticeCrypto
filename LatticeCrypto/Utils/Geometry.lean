@@ -58,7 +58,7 @@ theorem volume_euclideanSpace_eq_pi {S : Set (𝓔 n)}:
   have h_volume_eq : (MeasureTheory.Measure.map eucToPi lebesgueMeasure) (eucToPi '' S) = lebesgueMeasure S := by
     have h_volume_eq : ∀ s : Set (𝓔 n), (MeasureTheory.Measure.map (⇑eucToPi) lebesgueMeasure) (eucToPi '' s) = (MeasureTheory.MeasureSpace.volume : Set (Fin n → ℝ) → ℝ≥0∞) (eucToPi '' s) := by
       exact fun s => congr_arg ( fun f => f ( eucToPi '' s ) ) ( eucToPi_measurePreserving.map_eq );
-    aesop;
+    aesop (config := { warnOnNonterminal := false });
     convert h_volume_eq S |> Eq.symm;
     · -- Since `eucToPi` is measure-preserving, the map of the Lebesgue measure under `eucToPi` is equal to the Lebesgue measure on the target space.
       apply Eq.symm; exact (by
@@ -185,7 +185,7 @@ theorem unitBallVolume_pos : 0 < unitBallVolume n := by
           exact fun {r} a => Metric.measure_ball_pos MeasureTheory.volume 0 a
         exact h_ball_pos zero_lt_one;
       exact h_volume_pos;
-    rw [ ENNReal.toReal_pos_iff ] ; aesop;
+    rw [ ENNReal.toReal_pos_iff ] ; aesop (config := { warnOnNonterminal := false });
     exact MeasureTheory.measure_ball_lt_top;
   exact h_unit_ball_pos
 
@@ -332,7 +332,7 @@ theorem unitBallVolume_lb : (2 : ℝ) ^ (n : ℕ) / (Real.sqrt n) ^ (n : ℕ) �
       -- Need to convert
       let Cpi : Set (Fin n → ℝ) := eucToPi '' C
       have : Cpi = Set.pi Set.univ (fun _ : Fin n => Set.Ioo (-cube_side) cube_side) := by
-        ext; aesop;
+        ext; aesop (config := { warnOnNonterminal := false });
         · exact left i ( Set.mem_univ i ) |>.1;
         · exact left i ( Set.mem_univ i ) |>.2;
         · exact ⟨ piToEuc x, fun i _ => a i, by ext i; simp +decide [ eucToPi, piToEuc ] ⟩

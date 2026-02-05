@@ -329,7 +329,7 @@ theorem EuclideanLattice.minkowski_convex_body (L : EuclideanLattice n n)
     have hS'_vol_eq : (lebesgueMeasure S').toReal = ((2 : ℝ)⁻¹) ^ (n : ℕ) * (lebesgueMeasure S).toReal := by
       -- Apply the theorem that scaling a set by a factor of $c$ multiplies its volume by $c^n$.
       have h_scale : ∀ c : ℝ, 0 < c → (lebesgueMeasure (c • S)).toReal = c ^ (n : ℕ) * (lebesgueMeasure S).toReal := by
-        intro c hc; erw [ MeasureTheory.Measure.addHaar_smul ] ; aesop;
+        intro c hc; erw [ MeasureTheory.Measure.addHaar_smul ] ; aesop (config := { warnOnNonterminal := false });
         exact Or.inl ( by rw [ abs_of_pos hc ] );
       -- Apply the scaling theorem with $c = 2^{-1}$.
       apply h_scale; norm_num
@@ -544,7 +544,7 @@ lemma exists_min_index_eq_successiveMinima (L : EuclideanLattice n n) (k : Fin n
       -- Since `L.successiveMinima` is monotonic, the set `S = {i | L.successiveMinima i = L.successiveMinima k}` is nonempty and has a least element.
       obtain ⟨j, hj_mem⟩ : ∃ j : Fin n, j ∈ {i : Fin n | L.successiveMinima i = L.successiveMinima k} ∧ (∀ i : Fin n, i ∈ {i : Fin n | L.successiveMinima i = L.successiveMinima k} → j ≤ i) := by
         exact ⟨ Finset.min' ( Finset.univ.filter fun i => L.successiveMinima i = L.successiveMinima k ) ⟨ k, by aesop ⟩, by simpa using Finset.min'_mem ( Finset.univ.filter fun i => L.successiveMinima i = L.successiveMinima k ) ⟨ k, by aesop ⟩, fun i hi => Finset.min'_le _ _ <| by aesop ⟩;
-      use j; aesop;
+      use j; aesop (config := { warnOnNonterminal := false });
       exact lt_of_le_of_ne ( left ▸ L.successiveMinima_mono a.le ) fun h => a.not_ge ( right _ h )
 
 
@@ -572,7 +572,7 @@ theorem minkowski_ellipsoid_convex (b : Basis (Fin n) ℝ (𝓔 n)) (lambdas : F
       -- Apply the triangle inequality to each term in the sum.
       have h_sum_triangle : ∑ i, (inner ℝ (a • x + b • y) (b_GS i) / (‖b_GS i‖ * lambdas i)) ^ 2 ≤ a * ∑ i, (inner ℝ x (b_GS i) / (‖b_GS i‖ * lambdas i)) ^ 2 + b * ∑ i, (inner ℝ y (b_GS i) / (‖b_GS i‖ * lambdas i)) ^ 2 := by
         simpa only [ Finset.mul_sum _ _ _, Finset.sum_add_distrib ] using Finset.sum_le_sum fun i _ => h_inner_triangle i;
-      unfold minkowski_ellipsoid at *; aesop;
+      unfold minkowski_ellipsoid at *; aesop (config := { warnOnNonterminal := false });
       cases lt_or_ge a b <;> nlinarith
 
 /-
@@ -618,18 +618,18 @@ theorem minkowski_scaling_det (b : Basis (Fin n) ℝ (𝓔 n)) (lambdas : Fin n 
 
 theorem minkowski_ellipsoid_mem_iff (b : Basis (Fin n) ℝ (𝓔 n)) (lambdas : Fin n → ℝ) (y : 𝓔 n) :
     y ∈ minkowski_ellipsoid b lambdas ↔ ∑ i, (inner ℝ y (Basis_of_gramSchmidtOrthonormalBasis b i) / lambdas i) ^ 2 < 1 := by
-      unfold LatticeCrypto.Foundations.Lattice.minkowski_ellipsoid; aesop;
+      unfold LatticeCrypto.Foundations.Lattice.minkowski_ellipsoid; aesop (config := { warnOnNonterminal := false });
       · convert a using 3 ; norm_num [ div_mul_eq_div_div ];
-        erw [ InnerProductSpace.gramSchmidtOrthonormalBasis_apply ] ; aesop;
-        · unfold InnerProductSpace.gramSchmidtNormed; aesop;
+        erw [ InnerProductSpace.gramSchmidtOrthonormalBasis_apply ] ; aesop (config := { warnOnNonterminal := false });
+        · unfold InnerProductSpace.gramSchmidtNormed; aesop (config := { warnOnNonterminal := false });
           rw [ inner_smul_right ] ; ring!;
-        · aesop;
-          unfold InnerProductSpace.gramSchmidtNormed at a_1; aesop;
+        · aesop (config := { warnOnNonterminal := false });
+          unfold InnerProductSpace.gramSchmidtNormed at a_1; aesop (config := { warnOnNonterminal := false });
           have := InnerProductSpace.gramSchmidt_ne_zero x b.linearIndependent; aesop;
       · convert a using 2 ; norm_num [ div_mul_eq_div_div ];
-        unfold LatticeCrypto.Utils.LinearAlgebra.Basis_of_gramSchmidtOrthonormalBasis; aesop;
+        unfold LatticeCrypto.Utils.LinearAlgebra.Basis_of_gramSchmidtOrthonormalBasis; aesop (config := { warnOnNonterminal := false });
         rw [ InnerProductSpace.gramSchmidtOrthonormalBasis_apply ];
-        · unfold InnerProductSpace.gramSchmidtNormed; aesop;
+        · unfold InnerProductSpace.gramSchmidtNormed; aesop (config := { warnOnNonterminal := false });
           rw [ inner_smul_right ] ; ring;
         · simp +decide [ InnerProductSpace.gramSchmidtNormed ];
           exact gramSchmidt_ne_zero x b.linearIndependent
@@ -654,7 +654,7 @@ theorem minkowski_ellipsoid_eq_image_ball (b : Basis (Fin n) ℝ (𝓔 n)) (lamb
           -- By definition of $T$, we know that $x = \sum_{i=1}^n \langle x, u_i \rangle u_i$.
           have hx : x = ∑ i, inner ℝ x (Basis_of_gramSchmidtOrthonormalBasis b i) • Basis_of_gramSchmidtOrthonormalBasis b i := by
             convert ( Basis.sum_repr ( Basis_of_gramSchmidtOrthonormalBasis b ) x ) |> Eq.symm;
-            unfold LatticeCrypto.Utils.LinearAlgebra.Basis_of_gramSchmidtOrthonormalBasis; aesop;
+            unfold LatticeCrypto.Utils.LinearAlgebra.Basis_of_gramSchmidtOrthonormalBasis; aesop (config := { warnOnNonterminal := false });
             rw [ OrthonormalBasis.repr_apply_apply ];
             rw [ real_inner_comm ];
           conv_lhs => rw [ hx ];
@@ -662,12 +662,12 @@ theorem minkowski_ellipsoid_eq_image_ball (b : Basis (Fin n) ℝ (𝓔 n)) (lamb
           exact Finset.sum_congr rfl fun _ _ => by rw [ smul_smul, mul_comm ] ;
         rw [ h_expand, ← real_inner_self_eq_norm_sq ];
         simp +decide [ inner_sum, sum_inner, inner_smul_left, inner_smul_right, sq ];
-        rw [ Finset.sum_congr rfl ] ; intros ; rw [ Finset.sum_eq_single ‹_› ] <;> aesop;
+        rw [ Finset.sum_congr rfl ] ; intros ; rw [ Finset.sum_eq_single ‹_› ] <;> aesop (config := { warnOnNonterminal := false });
         · simp +decide [ Basis_of_gramSchmidtOrthonormalBasis ];
         · simp +decide [ Basis_of_gramSchmidtOrthonormalBasis, a_2 ];
-      aesop;
+      aesop (config := { warnOnNonterminal := false });
       · rw [ ← Real.sqrt_sq ( norm_nonneg _ ) ];
-        rw [ Real.sqrt_lt' ] <;> aesop;
+        rw [ Real.sqrt_lt' ] <;> aesop (config := { warnOnNonterminal := false });
         exact (minkowski_ellipsoid_mem_iff b lambdas x).mp a;
       · exact minkowski_ellipsoid_mem_iff b lambdas x |>.2 ( by nlinarith [ h_eq x, norm_nonneg ( ( minkowski_scaling b lambdas hlambdas ).symm x ) ] );
     refine' h_contra _;
@@ -682,7 +682,7 @@ theorem minkowski_ellipsoid_volume (b : Basis (Fin n) ℝ (𝓔 n)) (lambdas : F
       -- By the properties of the scaling map and the unit ball, we can rewrite the volume expression.
       have h_eq : minkowski_ellipsoid b lambdas = (minkowski_scaling b lambdas (fun i => ne_of_gt (hlambdas i))).toLinearMap '' Metric.ball 0 1 := by
         exact minkowski_ellipsoid_eq_image_ball b lambdas fun i => ne_of_gt (hlambdas i);
-      rw [ h_eq, MeasureTheory.Measure.addHaar_image_linearMap ] ; aesop;
+      rw [ h_eq, MeasureTheory.Measure.addHaar_image_linearMap ] ; aesop (config := { warnOnNonterminal := false });
       rw [ minkowski_scaling_det b lambdas ( fun i => ne_of_gt ( hlambdas i ) ) ] ; norm_num [ abs_of_pos, Finset.abs_prod, hlambdas ] ;
       exact Or.inl rfl
 
@@ -731,7 +731,7 @@ lemma minkowski_ellipsoid_disjoint_ineq (b : Basis (Fin n) ℝ (𝓔 n)) (lambda
           have hv_norm_sq : ∀ i j, i ≠ j → ⟪gramSchmidt ℝ b i, gramSchmidt ℝ b j⟫_ℝ = 0 := by
             exact fun i j a => gramSchmidt_orthogonal ℝ (⇑b) a;
           simp_all +decide [ sq, mul_assoc ];
-          exact Finset.sum_congr rfl fun i hi => by rw [ Finset.sum_eq_single i ] <;> aesop ; simp ( config := { decide := Bool.true } ) [ ← sq, inner_self_eq_norm_sq_to_K ] ;
+          exact Finset.sum_congr rfl fun i hi => by rw [ Finset.sum_eq_single i ] <;> aesop (config := { warnOnNonterminal := false }) ; simp ( config := { decide := Bool.true } ) [ ← sq, inner_self_eq_norm_sq_to_K ] ;
         rw [ hv_norm_sq, ← Finset.sum_subset ( Finset.filter_subset ( fun i => i ≤ k ) Finset.univ ) ];
         simp +zetaDelta at *;
         intro i hi; specialize h_proj_zero i hi; rw [ hc ] at h_proj_zero; simp_all +decide ;
@@ -784,15 +784,15 @@ lemma mem_span_of_norm_lt (L : EuclideanLattice n n) (v : 𝓔 n) (hv : v ∈ L.
       have h_lin_indep : LinearIndependent ℝ (Fin.snoc (fun i : Fin k => Classical.choose L.linearIndependent_successiveMinima_attained (Fin.castLE (by
       exact k.2.le) i)) v) := by
         all_goals generalize_proofs at *;
-        rw [ linearIndependent_fin_snoc ] ; aesop
+        rw [ linearIndependent_fin_snoc ] ; aesop (config := { warnOnNonterminal := false })
         all_goals generalize_proofs at *;
         · exact Classical.choose_spec ( L.linearIndependent_successiveMinima_attained ) |>.2.comp _ ( fun i => by aesop );
         · rw [ Finsupp.mem_span_range_iff_exists_finsupp ] at a;
           contrapose! h_not_in_span;
-          aesop;
+          aesop (config := { warnOnNonterminal := false });
           refine' Submodule.sum_mem _ fun i hi => _;
           refine' Submodule.smul_mem _ _ _;
-          refine' Submodule.subset_span ⟨ Fin.castLE ( by aesop ) i, _, _ ⟩ <;> aesop
+          refine' Submodule.subset_span ⟨ Fin.castLE ( by aesop (config := { warnOnNonterminal := false }) ) i, _, _ ⟩ <;> aesop (config := { warnOnNonterminal := false })
           all_goals generalize_proofs at *;
           · exact Fin.castSucc_lt_last i;
           · unfold EuclideanLattice.extremalBasis; aesop;
@@ -816,7 +816,7 @@ theorem minkowski_ellipsoid_disjoint (L : EuclideanLattice n n) :
           · have h_span : v ∈ Submodule.span ℝ (Set.range (EuclideanLattice.extremalBasis L)) := by
               simp +zetaDelta at *;
             rw [ Finsupp.mem_span_range_iff_exists_finsupp ] at h_span;
-            rcases h_span with ⟨ c, rfl ⟩ ; rw [ Finsupp.sum ] ; aesop;
+            rcases h_span with ⟨ c, rfl ⟩ ; rw [ Finsupp.sum ] ; aesop (config := { warnOnNonterminal := false });
             exact Submodule.sum_mem _ fun i hi => Submodule.smul_mem _ _ <| Submodule.subset_span <| Set.mem_image_of_mem _ <| Nat.le_sub_one_of_lt <| Fin.is_lt i;
           · exact fun i => EuclideanLattice.successiveMinima_pos L i;
           · exact fun i j hij hj => L.successiveMinima_mono hij;

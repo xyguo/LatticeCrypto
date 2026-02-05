@@ -76,7 +76,7 @@ lemma exists_min_norm_subset (L : EuclideanLattice n n) (S : Set ℝ)
       obtain ⟨m, hm⟩ : ∃ m ∈ T, ∀ t ∈ T, m ≤ t := by
         exact ⟨ Finset.min' ( Set.Finite.toFinset hT_finite ) ( Finset.nonempty_of_ne_empty <| by aesop ), hT_finite.mem_toFinset.mp <| Finset.min'_mem _ _, fun t ht => Finset.min'_le _ _ <| hT_finite.mem_toFinset.mpr ht ⟩
       use m
-      aesop;
+      aesop (config := { warnOnNonterminal := false });
       -- Since $s \in S$ and $S \subseteq \{ \|v\| \mid v \in L, v \neq 0 \}$, we have $0 \leq s$.
       have hs_nonneg : 0 ≤ s := by
         obtain ⟨ v, hv₁, hv₂ ⟩ := h_subset a; linarith [ norm_nonneg v ] ;
@@ -193,7 +193,7 @@ theorem EuclideanLattice.shortestVectorLength_eq (L : EuclideanLattice n n) :
     · -- The infimum value is in the set
       obtain ⟨v, hv, hv_min⟩ := L.exists_shortest_vector
       -- Since the infimum is achieved by some vector in L.nonzeroVectors, we can conclude that there exists a vector v in L.nonzeroVectors such that ‖v‖ is the infimum.
-      use v; aesop;
+      use v; aesop (config := { warnOnNonterminal := false });
       -- Since $v$ is in the set and for any $w$ in the set, $\|v\| \leq \|w\|$, the infimum must be at least $\|v\|$.
       have h_inf_ge : ⨅ (v : L.nonzeroVectors), ‖(v : 𝓔 n)‖ ≥ ‖v‖ := by
         -- Apply the fact that the infimum is the greatest lower bound.
@@ -431,7 +431,7 @@ theorem EuclideanLattice.successiveMinima_mono (L : EuclideanLattice n n)
     -- Let $r$ be a positive real number such that $r \geq \max_{i} \|B_i\|$.
     obtain ⟨r, hr⟩ : ∃ r : ℝ, 0 < r ∧ ∀ i : Fin n, ‖B.cols i‖ ≤ r := by
       exact ⟨ ∑ i : Fin n, ‖B.cols i‖ + 1, add_pos_of_nonneg_of_pos ( Finset.sum_nonneg fun _ _ => norm_nonneg _ ) zero_lt_one, fun i => by linarith [ Finset.single_le_sum ( fun i _ => norm_nonneg ( B.cols i ) ) ( Finset.mem_univ i ) ] ⟩;
-    refine' ⟨ r, hr.1, Finset.image ( fun i => B.cols i ) ( Finset.Iic j ), _, _, _ ⟩ <;> aesop;
+    refine' ⟨ r, hr.1, Finset.image ( fun i => B.cols i ) ( Finset.Iic j ), _, _, _ ⟩ <;> aesop (config := { warnOnNonterminal := false });
     · rw [ Finset.card_image_of_injective _ fun i j hij => by simpa [ Fin.ext_iff ] using B.li.injective hij, Finset.card_eq_sum_ones ] ; aesop;
     · exact Submodule.subset_span ( Set.mem_range_self w );
     · exact absurd a ( by exact ne_of_apply_ne ( fun x => ‖x‖ ) ( by simpa using B.li.ne_zero w ) );
@@ -493,9 +493,9 @@ theorem EuclideanLattice.successiveMinima_boundedAbove (L : EuclideanLattice n n
       · simp at this
       · aesop
     · -- Construct the finset of i+1 basis vectors
-      use Finset.image ( fun j => L.basis.cols j ) ( Finset.Iic i ) ; aesop;
-      · rw [ Finset.card_image_of_injective _ fun x y hxy => _ ] <;> aesop;
-        have := L.basis.li; have := this.injective; aesop;
+      use Finset.image ( fun j => L.basis.cols j ) ( Finset.Iic i ) ; aesop (config := { warnOnNonterminal := false });
+      · rw [ Finset.card_image_of_injective _ fun x y hxy => _ ] <;> aesop (config := { warnOnNonterminal := false });
+        have := L.basis.li; have := this.injective; aesop (config := { warnOnNonterminal := false });
       · -- Since the basis vectors are in the lattice, we have L.basis.cols a ∈ L.
         apply L.carrier_eq.symm ▸ Submodule.subset_span (Set.mem_range_self a);
       · -- Since the basis is linearly independent, the only solution to the equation ∑ c_i * b_i = 0 is c_i = 0 for all i.
@@ -1127,7 +1127,7 @@ lemma exists_partial_basis (L : EuclideanLattice n n) (k : ℕ) (hk : k ≤ n) :
   ∃ x : Fin k → 𝓔 n,
     LinearIndependent ℝ x ∧
     ∀ i : Fin k, x i ∈ L.nonzeroVectors ∧ ‖x i‖ = L.successiveMinima (Fin.castLE hk i) := by
-      induction k <;> aesop;
+      induction k <;> aesop (config := { warnOnNonterminal := false });
       -- By the inductive hypothesis, we can find such an x for n_1.
       obtain ⟨x, hx⟩ := a (Nat.le_of_succ_le hk);
       -- Apply the lemma `inductive_step_successiveMinima` to find the (n_1+1)-th vector.
@@ -1172,7 +1172,7 @@ lemma projection_on_gramSchmidt_of_max_index
     inner ℝ v (gramSchmidt ℝ B.basis k) = c k * ‖gramSchmidt ℝ B.basis k‖ ^ 2 := by
       -- By definition of `gramSchmidt`, we know that `⟪gramSchmidt ℝ B.basis k,gramSchmidt ℝ B.basis i⟫ = 0` for all `i < k`.
       have h_ortho : ∀ i : Fin n, i < k → ⟪gramSchmidt ℝ B.basis k, gramSchmidt ℝ B.basis i⟫ = 0 := by
-        intro i hi; rw [ inner_eq_zero_symm ] ; aesop;
+        intro i hi; rw [ inner_eq_zero_symm ] ; aesop (config := { warnOnNonterminal := false });
         exact gramSchmidt_orthogonal ℝ _ ( ne_of_lt hi );
       have h_inner : ⟪gramSchmidt ℝ B.basis k, B.basis k⟫_ℝ = (‖gramSchmidt ℝ B.basis k‖^2) := by
         have := gramSchmidt_def ℝ B.basis k;
@@ -1189,7 +1189,7 @@ lemma projection_on_gramSchmidt_of_max_index
         exact Finset.sum_eq_zero h_proj_ortho;
       have h_inner_sum : ⟪gramSchmidt ℝ B.basis k, ∑ i ∈ Finset.univ.erase k, c i • B.basis i⟫_ℝ = 0 := by
         rw [ inner_sum ];
-        refine Finset.sum_eq_zero fun i hi => ?_ ; by_cases hi' : i < k <;> aesop;
+        refine Finset.sum_eq_zero fun i hi => ?_ ; by_cases hi' : i < k <;> aesop (config := { warnOnNonterminal := false });
         · have h_inner_sum : ⟪gramSchmidt ℝ B.basis k, B.basis i⟫_ℝ = 0 := by
             exact gramSchmidt_inv_triangular ℝ B.basis hi';
           simp_all +decide [ inner_smul_right ];

@@ -40,8 +40,8 @@ theorem LatticeBasis.fundamentalDomain.closure_apply (B : SquareLatticeBasis n) 
   B.fundamentalDomain_closure = closure B.fundamentalDomain := by
   -- The closure of the fundamental domain is the set of points where each coordinate is in [0, 1], which is exactly the fundamental domain closure.
   ext; simp [LatticeBasis.fundamentalDomain_closure, LatticeBasis.fundamentalDomain];
-  rw [ mem_closure_iff_seq_limit ] ; aesop;
-  · refine' ⟨ fun n => ( 1 - 1 / ( n + 1 ) : ℝ ) • x, _, _ ⟩ <;> aesop;
+  rw [ mem_closure_iff_seq_limit ] ; aesop (config := { warnOnNonterminal := false });
+  · refine' ⟨ fun n => ( 1 - 1 / ( n + 1 ) : ℝ ) • x, _, _ ⟩ <;> aesop (config := { warnOnNonterminal := false });
     · exact mul_nonneg ( sub_nonneg.2 <| inv_le_one_of_one_le₀ <| by linarith ) <| a i |>.1;
     · nlinarith [ a i, inv_mul_cancel₀ ( by linarith : ( n_1 : ℝ ) + 1 ≠ 0 ) ];
     · exact le_trans ( Filter.Tendsto.smul ( tendsto_const_nhds.sub <| tendsto_inv_atTop_zero.comp <| Filter.tendsto_atTop_add_const_right _ _ tendsto_natCast_atTop_atTop ) tendsto_const_nhds ) ( by norm_num );
@@ -78,7 +78,7 @@ theorem LatticeBasis.fundamentalDomain_isBounded (B : SquareLatticeBasis n) : Bo
 /-- The fundamental parallelepiped of a lattice basis is convex. -/
 theorem LatticeBasis.fundamentalDomain_isConvex (B : SquareLatticeBasis n) : Convex ℝ B.fundamentalDomain := by
   refine' convex_iff_forall_pos.mpr _;
-  unfold LatticeBasis.fundamentalDomain; aesop;
+  unfold LatticeBasis.fundamentalDomain; aesop (config := { warnOnNonterminal := false });
   · nlinarith [ a i, a_1 i ];
   · nlinarith [ a i, a_1 i ]
 
@@ -192,7 +192,7 @@ theorem LatticeBasis.sub_mod_mem_lattice (B : SquareLatticeBasis n) (v : 𝓔 n)
   rw [toLattice, mod]
   -- v - B.mod v = B * c - B * {c} = B * (c - {c}) = B * floor(c)
   refine' Submodule.mem_span.mpr _;
-  bound;
+  aesop (config := { warnOnNonterminal := false });
   have := a ( Set.mem_range_self ( ⟨ 0, PNat.pos n ⟩ : Fin n ) ) ; simp_all +decide [ ZSpan.fract ] ;
   -- Since the floor of v is a linear combination of the basis vectors with integer coefficients, and each basis vector is in p, the floor of v is in p.
   have h_floor : ∀ (c : Fin n → ℤ), (∑ i, c i • B.cols i) ∈ p := by
@@ -327,7 +327,7 @@ theorem LatticeBasis.centeredFundamentalDomain.closure_apply (B : SquareLatticeB
     simp [LatticeBasis.centeredFundamentalDomain_closure] at hx;
     refine' mem_closure_iff_seq_limit.mpr _;
     use fun m => x - (1 / (m + 1) : ℝ) • ∑ i : Fin n, (B.asTopBasis.repr x i) • B.asTopBasis i;
-    aesop;
+    aesop (config := { warnOnNonterminal := false });
     · intro i; specialize hx i; norm_num at *;
       -- Since the sum is over the basis vectors, each term in the sum is (B.basis x_1) i. But the basis vectors are orthogonal, so the sum should simplify to x i. Therefore, the sum is equal to x i.
       have h_sum : ∑ x_1 : Fin n, (((LatticeBasis.asTopBasis B).repr : 𝓔 n → Fin (↑n : ℕ) →₀ ℝ) x : Fin (↑n : ℕ) → ℝ) x_1 * (((LatticeBasis.asTopBasis B).repr : 𝓔 n → Fin (↑n : ℕ) →₀ ℝ) (B.basis x_1) : Fin (↑n : ℕ) → ℝ) i = (((LatticeBasis.asTopBasis B).repr : 𝓔 n → Fin (↑n : ℕ) →₀ ℝ) x : Fin (↑n : ℕ) → ℝ) i := by
@@ -337,7 +337,7 @@ theorem LatticeBasis.centeredFundamentalDomain.closure_apply (B : SquareLatticeB
         aesop;
       constructor <;> nlinarith [ inv_mul_cancel₀ ( by linarith : ( n_1 : ℝ ) + 1 ≠ 0 ) ]
     · exact le_trans ( tendsto_const_nhds.sub ( Filter.Tendsto.smul ( tendsto_inv_atTop_zero.comp ( Filter.tendsto_atTop_add_const_right _ _ tendsto_natCast_atTop_atTop ) ) tendsto_const_nhds ) ) ( by norm_num );
-  · intro m hm; replace hm := mem_closure_iff_seq_limit.mp hm; aesop;
+  · intro m hm; replace hm := mem_closure_iff_seq_limit.mp hm; aesop (config := { warnOnNonterminal := false });
     -- Since the coordinates of $m$ are the limits of the coordinates of $w$, and each coordinate of $w$ is in $[-0.5, 0.5]$, it follows that each coordinate of $m$ is also in $[-0.5, 0.5]$.
     have h_coords : ∀ i, Filter.Tendsto (fun n => (B.asTopBasis.repr (w n) i)) Filter.atTop (nhds (B.asTopBasis.repr m i)) := by
       -- The basis representation is a continuous linear map, so if w converges to m, then the basis representation of w converges to the basis representation of m.
@@ -353,8 +353,8 @@ noncomputable def LatticeBasis.halfBasisSum (B : SquareLatticeBasis n) : 𝓔 n 
 /-- The centered fundamental domain equals the fundamental domain shifted by -½ ∑ bᵢ -/
 theorem LatticeBasis.centeredFundamentalDomain_eq_shifted (B : SquareLatticeBasis n) :
     B.centeredFundamentalDomain = (fun v => v - B.halfBasisSum) '' B.fundamentalDomain := by
-    unfold LatticeBasis.centeredFundamentalDomain; unfold LatticeBasis.fundamentalDomain; ext; aesop;
-    · refine' ⟨ x + LatticeBasis.halfBasisSum B, _, _ ⟩ <;> aesop;
+    unfold LatticeBasis.centeredFundamentalDomain; unfold LatticeBasis.fundamentalDomain; ext; aesop (config := { warnOnNonterminal := false });
+    · refine' ⟨ x + LatticeBasis.halfBasisSum B, _, _ ⟩ <;> aesop (config := { warnOnNonterminal := false });
       · -- By definition of `halfBasisSum`, we know that its i-th component is 0.5.
         have h_halfBasisSum_i : ((B.asTopBasis.repr (LatticeBasis.halfBasisSum B)) i) = 0.5 := by
           -- The i-th component of the sum is the sum of the i-th components of each term.
@@ -362,7 +362,7 @@ theorem LatticeBasis.centeredFundamentalDomain_eq_shifted (B : SquareLatticeBasi
             unfold LatticeBasis.halfBasisSum; aesop;
           -- Since the basis is a basis, the representation of each basis vector in the basis is the standard basis vector.
           have h_basis_rep : ∀ x : Fin n, (B.asTopBasis.repr (B.cols x)) = Finsupp.single x 1 := by
-            bound;
+            aesop (config := { warnOnNonterminal := false });
             convert ( B.asTopBasis.repr_self x_1 ) using 1;
             unfold LatticeBasis.asTopBasis; aesop;
           simp_all +decide [ Finsupp.single_apply ];
@@ -374,7 +374,7 @@ theorem LatticeBasis.centeredFundamentalDomain_eq_shifted (B : SquareLatticeBasi
             unfold LatticeBasis.halfBasisSum; aesop;
           -- Since the basis is a basis, the representation of each basis vector in the basis is the standard basis vector.
           have h_basis_rep : ∀ x : Fin n, (B.asTopBasis.repr (B.cols x)) = Finsupp.single x 1 := by
-            bound;
+            aesop (config := { warnOnNonterminal := false });
             convert ( B.asTopBasis.repr_self x_1 ) using 1;
             unfold LatticeBasis.asTopBasis; aesop;
           simp_all +decide [ Finsupp.single_apply ];
@@ -396,7 +396,7 @@ theorem LatticeBasis.centeredFundamentalDomain_eq_shifted (B : SquareLatticeBasi
       have h_sum : ∑ x : Fin n, (1 / 2 : ℝ) * (((LatticeBasis.asTopBasis B).repr : 𝓔 n → Fin (↑n : ℕ) →₀ ℝ) (LatticeBasis.cols B x) : Fin (↑n : ℕ) → ℝ) i = (1 / 2 : ℝ) := by
         -- Since the basis vectors are linearly independent, their representations in the basis are the standard basis vectors.
         have h_basis_rep : ∀ i : Fin n, (B.asTopBasis.repr (B.cols i)) = Finsupp.single i 1 := by
-          aesop;
+          aesop (config := { warnOnNonterminal := false });
           convert B.asTopBasis.repr_self i_1 using 1;
           unfold LatticeBasis.asTopBasis; aesop;
         rw [ Finset.sum_eq_single i ] <;> aesop;
@@ -404,7 +404,7 @@ theorem LatticeBasis.centeredFundamentalDomain_eq_shifted (B : SquareLatticeBasi
 
 /-- The fundamental parallelepiped of a lattice basis whose center is shifted to the origin is symmetric. -/
 theorem LatticeBasis.centeredFundamentalDomain_closureIsSymmetric {x : 𝓔 n} (B: SquareLatticeBasis n) : x ∈ B.centeredFundamentalDomain_closure ↔ -x ∈ B.centeredFundamentalDomain_closure := by
-  unfold LatticeBasis.centeredFundamentalDomain_closure; aesop;
+  unfold LatticeBasis.centeredFundamentalDomain_closure; aesop (config := { warnOnNonterminal := false });
   · linarith [ a i ];
   · linarith [ a i ]
 

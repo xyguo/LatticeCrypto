@@ -25,13 +25,11 @@ variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
 def rho (x : E) : ℝ := Real.exp (-π * ‖x‖^2)
 
 scoped notation "ρ" => rho
-#check ρ (1 : ℝ) = rho (1 : ℝ)
 
 /-- The scaled Gaussian ρ_s(x) = ρ(x/s) = exp(-π ‖x‖^2 / s^2) -/
 def rhoS (s : ℝ) (x : E) : ℝ := Real.exp (-π * ‖s⁻¹ • x‖^2)
 
 scoped notation "ρ[" s "]" => rhoS s
-#check ρ[2] (1 : ℝ) = rhoS 2 (1 : ℝ)
 
 theorem rhoS_eq_rho_s_inv_mul_x {s : ℝ} {x : E} :
   rhoS s x = rho (s⁻¹ • x) := by
@@ -537,7 +535,9 @@ lemma summable_exp_neg_mul_sq_lattice {n : ℕ+} (L : EuclideanLattice n n) {c :
     contrapose! h_eq_sum;
     rw [ tsum_eq_zero_of_not_summable h_eq_sum ] ; exact ne_of_lt <| lt_of_lt_of_le ( by positivity ) <| Summable.le_tsum ( h_summable ) 0 <| fun _ _ => by positivity;
 
-
+-- Turn off unused variable linter for the following theorem because the proof actually does use `hs` implicitly in the `positivity` tactic.
+set_option linter.unusedVariables false in
+/-- The periodized rhoST function is continuous. -/
 theorem rhoST_periodize.continuous :
     ∀ (s : ℝ) (hs : 0 ≠ s) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) (L : EuclideanLattice n n),
     Continuous (rhoST_periodize s T L) := by

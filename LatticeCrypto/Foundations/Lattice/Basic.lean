@@ -126,7 +126,7 @@ theorem LatticeBasis.repr_spec (B : LatticeBasis n k) (v : 𝓔 n)
   simp only [LatticeBasis.asZSpanBasis] at h
   conv_lhs => rw [← Subtype.coe_mk v hv']
   convert congr_arg Subtype.val h.symm using 1;
-  induction ( Finset.univ : Finset ( Fin k ) ) using Finset.induction <;> aesop;
+  induction ( Finset.univ : Finset ( Fin k ) ) using Finset.induction <;> aesop (config := { warnOnNonterminal := false });
   congr;
   exact Eq.symm (Module.Basis.span_apply (LatticeBasis.asZSpanBasis._proof_1 B) a)
 
@@ -305,7 +305,7 @@ theorem EuclideanLattice.neg_eq_self {L: EuclideanLattice n n} : L.neg ≡ᵤ L 
   generalize_proofs at *;
   -- By definition of `smul`, we have `L.neg.basis = L.basis.smul (-1)`.
   rw [h_basis_neg];
-  unfold LatticeBasis.smul LatticeBasis.mul_unimodular; aesop;
+  unfold LatticeBasis.smul LatticeBasis.mul_unimodular; aesop (config := { warnOnNonterminal := false });
   unfold LatticeBasis.asMatrix; ext i j; simp +decide [ Matrix.mul_apply ] ;
   simp +decide [ Matrix.one_apply ]
 
@@ -324,7 +324,7 @@ theorem LatticeBasis.det_ne_zero (B : SquareLatticeBasis n) : B.asMatrix.det ≠
   have h_li : LinearIndependent ℝ (fun j => B.asMatrix.col j) := by
     convert B.li using 1
   -- For a square matrix, linear independence of columns implies det ≠ 0
-  contrapose! h_li; aesop;
+  contrapose! h_li; aesop (config := { warnOnNonterminal := false });
   rw [ Fintype.linearIndependent_iff ] at a;
   -- Apply the fact that if the determinant is zero, then there exists a non-zero vector `g` such that `A * g = 0`.
   obtain ⟨g, hg⟩ : ∃ g : Fin n → ℝ, g ≠ 0 ∧ B.asMatrix.mulVec g = 0 := by
@@ -349,7 +349,7 @@ def LatticeBasis.dual (B : SquareLatticeBasis n) : SquareLatticeBasis n :=
   have h_li : LinearIndependent ℝ (fun j => dual_mat.col j) := by
     -- Since the determinant of the dual matrix is non-zero, the columns are linearly independent.
     have h_det_nonzero : dual_mat.det ≠ 0 := by
-      aesop;
+      aesop (config := { warnOnNonterminal := false });
       exact absurd a ( LatticeBasis.det_ne_zero B );
     exact Matrix.linearIndependent_cols_of_det_ne_zero h_det_nonzero
   { basis := fun j => dual_mat.col j
@@ -464,7 +464,7 @@ theorem EuclideanLattice.dual_carrier_eq_integralDual (L : EuclideanLattice n n)
       obtain ⟨ d, rfl ⟩ := h_span; use fun i => d i; simp ( config := { decide := Bool.true } ) [ Finsupp.sum_fintype ] ;
       norm_cast;
     simp_all ( config := { decide := Bool.true } ) [ inner_sum, inner_smul_right ];
-    rw [ Finset.sum_congr rfl fun i hi => by rw [ sum_inner, Finset.sum_congr rfl fun j hj => by rw [ inner_smul_left ] ] ] ; aesop;
+    rw [ Finset.sum_congr rfl fun i hi => by rw [ sum_inner, Finset.sum_congr rfl fun j hj => by rw [ inner_smul_left ] ] ] ; aesop (config := { warnOnNonterminal := false });
     exact ⟨ ∑ x : Fin n, d x * c x, by push_cast; rfl ⟩
 
   · -- Direction: y has integral inner product with all x ∈ L → y ∈ L.dual.carrier
@@ -531,7 +531,7 @@ theorem EuclideanLattice.mem_dual_iff_integral_inner_basis (L : EuclideanLattice
       -- By linearity of the inner product, we can distribute the inner product over the sum.
       have h_inner_dist : ⟪x, y⟫ = ∑ i, c i • ⟪L.basis.cols i, y⟫ := by
         simp +decide [ hc ];
-        rw [ sum_inner, Finset.sum_congr rfl ] ; intros ; aesop;
+        rw [ sum_inner, Finset.sum_congr rfl ] ; intros ; aesop (config := { warnOnNonterminal := false });
         convert inner_smul_left _ _ _;
         ext;
         erw [ Real.ofCauchy_intCast ] ; norm_num;

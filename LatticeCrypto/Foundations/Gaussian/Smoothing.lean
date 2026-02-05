@@ -796,6 +796,7 @@ open LatticeCrypto.Foundations.Lattice
 
 variable {n : ℕ+} (L : EuclideanLattice n n) (s : ℝ)
 
+set_option linter.unusedVariables false in
 /-- Affine (open) half-space -/
 def AffineHalfSpace (u : 𝓔 n) (hu : ‖u‖ = 1) (t : ℝ) : Set (𝓔 n) :=
   { x : 𝓔 n | inner ℝ u x < t }
