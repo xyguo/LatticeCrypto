@@ -248,7 +248,7 @@ theorem fourierCoefficient_eq_quotient (L : EuclideanLattice n n) (f : 𝓔 n �
 -/
 noncomputable def fourierSeriesOnQuotient (L : EuclideanLattice n n)
     (coeffs : L.dual.carrier → ℂ) (x_quot : L.Quotient) : ℂ :=
-  sorry
+  fourierSeries L coeffs (Quot.out x_quot)
 
 /-
 The complex exponential term involving the inner product with a dual lattice vector is periodic with respect to the lattice.
