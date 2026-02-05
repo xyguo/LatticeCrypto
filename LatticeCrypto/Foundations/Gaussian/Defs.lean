@@ -101,14 +101,14 @@ theorem rhoS_eq_Pi_gaussianPDF (s : ℝ) (x : 𝓔 n) (h: s > 0):
   field_simp [h.ne']
 
 /-- Handy corollary for ρ=1 -/
-theorem rho_eq_gaussianPDF (x : 𝓔 n) :
+corollary rho_eq_gaussianPDF (x : 𝓔 n) :
     rho x = ProbabilityTheory.gaussianPDFReal 0 ⟨1 / (2 * π), by positivity⟩ ‖x‖ := by
     have h1 := rhoS_eq_gaussianPDF 1 x
     simp [rhoS_1_eq_rho] at h1
     simp [h1]
 
 /-- Handy corollary for ρ=1 -/
-theorem rho_eq_Pi_gaussianPDF (x : 𝓔 n) :
+corollary rho_eq_Pi_gaussianPDF (x : 𝓔 n) :
     rho x = ∏ (i : Fin n), ProbabilityTheory.gaussianPDFReal 0 ⟨1 / (2 * π), by positivity⟩ (x i) := by
     have h1 := rhoS_eq_Pi_gaussianPDF 1 x
     simp [rhoS_1_eq_rho] at h1
@@ -862,7 +862,7 @@ lemma rhoSTMass_mono {s₁ s₂ : ℝ} {T : (𝓔 n) ≃L[ℝ] (𝓔 n)} (h1  : 
     norm_num [ add_zero]
 
 /-- Corollary : just apply the above to T = identity map -/
-lemma rhoSMass_mono {s₁ s₂ : ℝ} (h1 : 0 < s₁) (h : s₁ ≤ s₂) (L : GeometricLattice n n) :
+corollary rhoSMass_mono {s₁ s₂ : ℝ} (h1 : 0 < s₁) (h : s₁ ≤ s₂) (L : GeometricLattice n n) :
     rhoSMass s₁ 0 L ≤ rhoSMass s₂ 0 L := by
     exact rhoSTMass_mono h1 h L (T := ContinuousLinearEquiv.refl _ _)
 
@@ -886,7 +886,7 @@ lemma summable_rhoSMassOn (s : ℝ) (hs : 0 < s) (c : 𝓔 n) (L : GeometricLatt
     exact h_abs_conv.of_abs
 
 /- Handy collorary of the above applied to rhoMassOn -/
-lemma summable_rhoMassOn (c : 𝓔 n) (L : GeometricLattice n n) (S : Set (𝓔 n)) :
+corollary summable_rhoMassOn (c : 𝓔 n) (L : GeometricLattice n n) (S : Set (𝓔 n)) :
   Summable (fun v : L.carrier => (S.indicator rho) ((v : 𝓔 n) + c)) := by
   have h_rhoSMass_summable : Summable (fun v : L.carrier => (S.indicator (rhoS 1)) ((v : 𝓔 n) + c)) := by
     exact summable_rhoSMassOn 1 zero_lt_one c L S;

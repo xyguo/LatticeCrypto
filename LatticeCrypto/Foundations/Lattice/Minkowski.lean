@@ -285,7 +285,7 @@ theorem GeometricLattice.blichfeldt (L : GeometricLattice n n) (S : Set (𝓔 n)
     exact L.sub_mem x.property y.property
 
 /-- Corollary: If vol(S) > det(L), then S - S contains a non-zero lattice point. -/
-theorem GeometricLattice.blichfeldt_diff (L : GeometricLattice n n) (S : Set (𝓔 n))
+corollary GeometricLattice.blichfeldt_diff (L : GeometricLattice n n) (S : Set (𝓔 n))
     (hS_meas : MeasurableSet S)
     (hS_vol : L.det < (lebesgueMeasure S).toReal) :
     ∃ v ∈ L.nonzeroVectors, v ∈ S - S := by
@@ -490,7 +490,7 @@ theorem GeometricLattice.minkowski_first_sqrt (L : GeometricLattice n n) :
 /-- A simple upper bound on the shortest vector length using the geometric mean of the Gram-Schmidt vectors.
   This is a corollary of Minkowski's First Theorem.
 -/
-theorem shortestVectorLength_le_gramSchmidt_geometric_mean (L : GeometricLattice n n) (B: SquareLatticeBasis n)
+corollary shortestVectorLength_le_gramSchmidt_geometric_mean (L : GeometricLattice n n) (B: SquareLatticeBasis n)
   (h: isBasisFor B L) : L.shortestVectorLength ≤ Real.sqrt n * (∏ i : Fin n, ‖InnerProductSpace.gramSchmidt ℝ B.basis i‖) ^ (1 / (n : ℝ)) := by
   have h_L_det := euc_gramSchmidt_matrix_det_abs L.basis.asMatrix
   have h_B_det := euc_gramSchmidt_matrix_det_abs B.asMatrix

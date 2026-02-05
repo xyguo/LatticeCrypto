@@ -287,7 +287,7 @@ theorem GeometricLattice.successiveMinima_defs_eq (L : GeometricLattice n n) :
   linearly independent lattice vectors with norms at most `r`, then the `i`-th successive
   minimum is at most `r`.
 -/
-lemma GeometricLattice.le_successiveMinima_of_exists_linearIndependent
+corollary GeometricLattice.le_successiveMinima_of_exists_linearIndependent
     (L : GeometricLattice n n)
     {i : Fin n} {r : ℝ} (hr : 0 < r)
     (S : Finset (𝓔 n))
@@ -409,7 +409,7 @@ theorem GeometricLattice.successiveMinima_one (L : GeometricLattice n n) :
 /-
  Immediate corollary from the definition: The norm of any non-zero lattice vector is at least the first successive minimum.
 -/
-lemma GeometricLattice.norm_ge_successiveMinima_one (L : GeometricLattice n n) (v : 𝓔 n)
+corollary GeometricLattice.norm_ge_successiveMinima_one (L : GeometricLattice n n) (v : 𝓔 n)
     (hv : v ∈ L.nonzeroVectors) :
     L.successiveMinima ⟨0, n.pos⟩ ≤ ‖v‖ := by
       have := hv;

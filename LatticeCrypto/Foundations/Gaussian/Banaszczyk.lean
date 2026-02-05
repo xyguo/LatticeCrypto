@@ -54,7 +54,7 @@ section numeric_bounds
 /-
 ln(4) < 3π/4 using proven bounds.
 -/
-lemma log_four_lt_three_pi_div_four : Real.log 4 < 3 * Real.pi / 4 := by
+private fact log_four_lt_three_pi_div_four : Real.log 4 < 3 * Real.pi / 4 := by
   have h_log : Real.log 4 < 2 := by
     rw [ show ( 4 : ℝ ) = 2 ^ 2 by norm_num, Real.log_pow ];
     have := Real.log_lt_sub_one_of_pos two_pos ; norm_num at * ; linarith;
@@ -66,7 +66,7 @@ lemma log_four_lt_three_pi_div_four : Real.log 4 < 3 * Real.pi / 4 := by
 /-
 Numeric bound: exp(-3πn/4) * 2^n < 2^{-n}.
 -/
-lemma numeric_bound_for_tail_bound (n : ℕ+) :
+private fact numeric_bound_for_tail_bound (n : ℕ+) :
   Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ) < (2 : ℝ)^(-(n : ℝ)) := by
     -- We want to show exp(-3 * pi * n / 4) * 2^n < 2^{-n}.
     -- Multiply by 2^n: exp(-3 * pi * n / 4) * 4^n < 1.
@@ -78,17 +78,17 @@ lemma numeric_bound_for_tail_bound (n : ℕ+) :
     rw [ ← Real.exp_add ] ; ring_nf ; norm_num;
     have := log_four_lt_three_pi_div_four; nlinarith [ show ( n : ℝ ) ≥ 1 by exact Nat.one_le_cast.mpr n.2 ] ;
 
-lemma log_ten_lt_231 : Real.log 10 < 2.31 := by
+private fact log_ten_lt_231 : Real.log 10 < 2.31 := by
   norm_num [ Real.log_lt_iff_lt_exp ];
   rw [ Real.exp_eq_exp_ℝ ];
   rw [ NormedSpace.exp_eq_tsum_div ] ; exact lt_of_lt_of_le ( by norm_num [ Finset.sum_range_succ, Nat.factorial ] ) ( Summable.sum_le_tsum ( Finset.range 11 ) ( fun _ _ => by positivity ) ( by exact Real.summable_pow_div_factorial _ ) ) ;
 
-lemma pi_gt_31 : Real.pi > 3.1 := by
+private fact pi_gt_31 : Real.pi > 3.1 := by
   -- From `assump_const`, we have that `Real.pi ≤ 3.1`.
   have : Real.pi > 3.14 := Real.pi_gt_d2
   linarith
 
-lemma base_bound_strong : Real.exp (-3 * Real.pi / 4) * 2 < 0.2 := by
+private fact base_bound_strong : Real.exp (-3 * Real.pi / 4) * 2 < 0.2 := by
   -- We'll use that $e^{-3\pi/4} \cdot 2 < 0.2$ to bound the expression. This follows from the fact that $e^{-3\pi/4} < 0.1$.
   have h_exp : Real.exp (-3 * Real.pi / 4) < 0.1 := by
     rw [ ← Real.log_lt_log_iff ( by positivity ) ] <;> norm_num;
@@ -104,7 +104,7 @@ lemma base_bound_strong : Real.exp (-3 * Real.pi / 4) * 2 < 0.2 := by
     rw [ Real.log_div ] <;> norm_num ; linarith;
   norm_num at * ; linarith
 
-lemma stronger_numeric_bound_for_tail_bound (n : ℕ+) :
+private fact stronger_numeric_bound_for_tail_bound (n : ℕ+) :
   Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ) < (0.2 : ℝ)^(n : ℝ) := by
   set K : ℝ := Real.exp (-3 * Real.pi / 4) * 2;
   have hK : K < 0.2 := by
@@ -119,7 +119,7 @@ lemma stronger_numeric_bound_for_tail_bound (n : ℕ+) :
   simp [K]; ring_nf;
   rw [← Real.exp_nat_mul]; ring_nf
 
-lemma numeric_bound_strong (n : ℕ+) :
+private fact numeric_bound_strong (n : ℕ+) :
   (Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ)) / (1 - (Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ))) < (0.2 : ℝ)^(n : ℝ) / (1 - (0.2 : ℝ)^(n : ℝ)) := by
     -- Substitute $K = \exp(-3\pi n/4) \cdot 2^n$ and use the bound $K < 0.2^n$.
     set K : ℝ := Real.exp (-3 * Real.pi * n / 4) * 2 ^ (n : ℝ)
@@ -136,7 +136,7 @@ lemma numeric_bound_strong (n : ℕ+) :
       exact pow_lt_one₀ ( by norm_num ) ( by norm_num ) ( by positivity );
     exact h_sub
 
-lemma numeric_bound_weaker (n : ℕ+) :
+private corollary numeric_bound_weaker (n : ℕ+) :
   (Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ)) / (1 - (Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ))) < (2 : ℝ)^(-(n : ℝ)) * (1 - (2 : ℝ)^(-(n : ℝ))) := by
     set K : ℝ := Real.exp (-3 * Real.pi * n / 4) * 2 ^ (n : ℝ)
     have h_sub : K / (1 - K) < (0.2 : ℝ) ^ (n : ℝ) / (1 - (0.2 : ℝ) ^ (n : ℝ)) := by
@@ -206,7 +206,7 @@ lemma rhoMassOn_le_factor_mul_rhoSMassOn (c : 𝓔 n) (L : GeometricLattice n n)
     rho(c + L \setminus \sqrt{n} B_n)  < 2^{−n} rho(L),
   where L \setminus \sqrt{n} B_n is the set of lattice points of norm no-shorter than √{n}.
 -/
-lemma rhoMass_outside_ball_stronger (c : 𝓔 n) (L : GeometricLattice n n) :
+theorem rhoMass_outside_ball_stronger (c : 𝓔 n) (L : GeometricLattice n n) :
   rhoMassOn c L (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ < (0.2 : ℝ)^(n : ℝ) * (rhoMass 0 L) := by
     have := rhoMassOn_le_factor_mul_rhoSMassOn c L;
     -- Apply Lemma 2 to bound the mass outside the ball.
@@ -237,7 +237,7 @@ lemma rhoMass_outside_ball_stronger (c : 𝓔 n) (L : GeometricLattice n n) :
     rw [ rhoSMass_one_eq_rhoMass ]
 
 /-- Handy bound 2^{-n} on rhoMass on lattice points outside ball of radius √n -/
-theorem rhoMass_outside_ball (c : 𝓔 n) (L : GeometricLattice n n) :
+corollary rhoMass_outside_ball (c : 𝓔 n) (L : GeometricLattice n n) :
   rhoMassOn c L (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ < (2 : ℝ)^(-n : ℝ) * (rhoMass 0 L) := by
   have : (0.2 : ℝ)^(n : ℝ) < (2 : ℝ)^(-(n : ℝ)) := by
     norm_num [ Real.rpow_def_of_pos ];
@@ -301,7 +301,7 @@ theorem rhoMass_with_long_sv_stronger (L : GeometricLattice n n) (h_svl : L.shor
   exact h_final
 
 /-- The weaker but handy bound that's less than 2^{-n} -/
-theorem rhoMass_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) :
+corollary rhoMass_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) :
   rhoMassOn 0 L {0}ᶜ < (2 : ℝ)^(-n : ℝ) * (1 - (2 : ℝ)^(-n : ℝ)) := by
   have h_bound := rhoMass_with_long_sv_stronger L h_svl;
   have h_num_le : (0.2 : ℝ) ^ (n : ℝ) / (1 - (0.2 : ℝ) ^ (n : ℝ)) ≤ (1 / 2 : ℝ) ^ (n : ℝ) * (1 - (1 / 2 : ℝ) ^ (n : ℝ)) := by
@@ -316,7 +316,7 @@ theorem rhoMass_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVecto
   exact lt_of_lt_of_le h_bound h_num_le
 
 /-- Corollary : lattices with long shortest vector have almost uniform rhoMass on the dual cosets -/
-theorem rhoMass_ub_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝓔 n) :
+corollary rhoMass_ub_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝓔 n) :
   rhoMass u L.dual ≤ (1 + 2 * (2 : ℝ)^(-n : ℝ)) * L.det := by
   have h_poisson := poisson_summation_rhoS_coset L.dual 1 (by positivity) u
   unfold GeometricLattice.latticeSum at h_poisson
@@ -359,7 +359,7 @@ theorem rhoMass_ub_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.sh
     exact rfl
 
 /-- Corollary : lattices with long shortest vector have almost uniform rhoMass on the dual cosets -/
-theorem rhoMass_lb_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝓔 n) :
+corollary rhoMass_lb_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝓔 n) :
   rhoMass u L.dual ≥ (1 - 2 * (2 : ℝ)^(-n : ℝ)) * L.det := by
   have h_poisson := poisson_summation_rhoS_coset L.dual 1 (by positivity) u
   unfold GeometricLattice.latticeSum at h_poisson
