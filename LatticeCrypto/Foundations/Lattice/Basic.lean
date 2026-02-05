@@ -13,13 +13,13 @@ open scoped ENNReal NNReal
 open scoped RealInnerProductSpace
 
 /-!
-  This file defines basic lattice operations for `GeometricLattice` and `LatticeBasis`.
+  This file defines basic lattice operations for `EuclideanLattice` and `LatticeBasis`.
 
-  ## GeometricLattice Operations
-  - `GeometricLattice.coset` and `GeometricLattice.Quotient`
-  - `GeometricLattice.smul`
-  - `GeometricLattice.mem`
-  - `GeometricLattice.dual`
+  ## EuclideanLattice Operations
+  - `EuclideanLattice.coset` and `EuclideanLattice.Quotient`
+  - `EuclideanLattice.smul`
+  - `EuclideanLattice.mem`
+  - `EuclideanLattice.dual`
 
   ## LatticeBasis Operations
   - `LatticeBasis.smul`
@@ -27,7 +27,7 @@ open scoped RealInnerProductSpace
   - `LatticeBasis.dual_inner` (biorthogonality: ⟨B_i, B*_j⟩ = δ_ij)
 
   ## Bridges
-  - `GeometricLattice.dual_carrier_eq` (dual lattice = vectors with integral inner products)
+  - `EuclideanLattice.dual_carrier_eq` (dual lattice = vectors with integral inner products)
 -/
 
 namespace LatticeCrypto.Foundations.Lattice
@@ -45,20 +45,20 @@ noncomputable section membership
 -/
 
 /-- Membership in a geometric lattice. -/
-instance : Membership (𝓔 n) (GeometricLattice n k) where
+instance : Membership (𝓔 n) (EuclideanLattice n k) where
   mem L v := v ∈ L.carrier
 
 /-- A vector is in the lattice iff it is in the carrier. -/
-theorem GeometricLattice.mem_def (L : GeometricLattice n k) (v : 𝓔 n) :
+theorem EuclideanLattice.mem_def (L : EuclideanLattice n k) (v : 𝓔 n) :
     v ∈ L ↔ v ∈ L.carrier := Iff.rfl
 
 /-- A vector is in the lattice iff it can be expressed as an integer linear combination of basis vectors. -/
-theorem GeometricLattice.mem_iff_zspan (L : GeometricLattice n k) (v : 𝓔 n) :
+theorem EuclideanLattice.mem_iff_zspan (L : EuclideanLattice n k) (v : 𝓔 n) :
     v ∈ L ↔ v ∈ Submodule.span ℤ (Set.range L.basis.cols) := by
   rw [mem_def, L.carrier_eq]
 
 /-- A vector is in the lattice iff there exist integer coefficients such that v = ∑ cᵢ bᵢ. -/
-theorem GeometricLattice.mem_iff_exists_coeffs (L : GeometricLattice n k) (v : 𝓔 n) :
+theorem EuclideanLattice.mem_iff_exists_coeffs (L : EuclideanLattice n k) (v : 𝓔 n) :
     v ∈ L ↔ ∃ c : Fin k → ℤ, v = ∑ i, c i • L.basis.cols i := by
   rw [mem_iff_zspan]
   constructor
@@ -74,36 +74,36 @@ theorem GeometricLattice.mem_iff_exists_coeffs (L : GeometricLattice n k) (v : �
     exact Submodule.smul_mem _ _ (Submodule.subset_span (Set.mem_range_self i))
 
 /-- Zero is always in the lattice. -/
-theorem GeometricLattice.zero_mem (L : GeometricLattice n k) : (0 : 𝓔 n) ∈ L := by
+theorem EuclideanLattice.zero_mem (L : EuclideanLattice n k) : (0 : 𝓔 n) ∈ L := by
   rw [mem_def]
   exact L.carrier.zero_mem
 
 /-- The lattice is closed under addition. -/
-theorem GeometricLattice.add_mem (L : GeometricLattice n k) {v w : 𝓔 n}
+theorem EuclideanLattice.add_mem (L : EuclideanLattice n k) {v w : 𝓔 n}
     (hv : v ∈ L) (hw : w ∈ L) : v + w ∈ L := by
   rw [mem_def] at *
   exact L.carrier.add_mem hv hw
 
 /-- The lattice is closed under negation. -/
-theorem GeometricLattice.neg_mem (L : GeometricLattice n k) {v : 𝓔 n}
+theorem EuclideanLattice.neg_mem (L : EuclideanLattice n k) {v : 𝓔 n}
     (hv : v ∈ L) : -v ∈ L := by
   rw [mem_def] at *
   exact L.carrier.neg_mem hv
 
 /-- The lattice is closed under subtraction. -/
-theorem GeometricLattice.sub_mem (L : GeometricLattice n k) {v w : 𝓔 n}
+theorem EuclideanLattice.sub_mem (L : EuclideanLattice n k) {v w : 𝓔 n}
     (hv : v ∈ L) (hw : w ∈ L) : v - w ∈ L := by
   rw [mem_def] at *
   exact L.carrier.sub_mem hv hw
 
 /-- The lattice is closed under integer scalar multiplication. -/
-theorem GeometricLattice.zsmul_mem (L : GeometricLattice n k) {v : 𝓔 n}
+theorem EuclideanLattice.zsmul_mem (L : EuclideanLattice n k) {v : 𝓔 n}
     (hv : v ∈ L) (m : ℤ) : m • v ∈ L := by
   rw [mem_def] at *
   bound
 
 /-- Basis vectors are in the lattice. -/
-theorem GeometricLattice.basis_mem (L : GeometricLattice n k) (i : Fin k) :
+theorem EuclideanLattice.basis_mem (L : EuclideanLattice n k) (i : Fin k) :
     L.basis.cols i ∈ L := by
   rw [mem_iff_zspan]
   exact Submodule.subset_span (Set.mem_range_self i)
@@ -120,7 +120,7 @@ noncomputable def LatticeBasis.repr (B : LatticeBasis n k) (v : 𝓔 n)
 /-- The representation gives the correct coefficients. -/
 theorem LatticeBasis.repr_spec (B : LatticeBasis n k) (v : 𝓔 n)
     (hv : v ∈ B.toLattice) : v = ∑ i, (B.repr v hv i) • B.basis i := by
-  rw [GeometricLattice.mem_def] at hv
+  rw [EuclideanLattice.mem_def] at hv
   have hv' : v ∈ Submodule.span ℤ (Set.range B.basis) := B.toLattice.carrier_eq ▸ hv
   have h := B.asZSpanBasis.sum_repr ⟨v, hv'⟩
   simp only [LatticeBasis.asZSpanBasis] at h
@@ -138,7 +138,7 @@ noncomputable def LatticeBasis.ofCoeffs (B : LatticeBasis n k)
 /-- A vector constructed from coefficients is in the lattice. -/
 theorem LatticeBasis.ofCoeffs_mem (B : LatticeBasis n k)
     (c : Fin k → ℤ) : B.ofCoeffs c ∈ B.toLattice := by
-  rw [GeometricLattice.mem_iff_exists_coeffs]
+  rw [EuclideanLattice.mem_iff_exists_coeffs]
   exact ⟨c, rfl⟩
 
 /-- repr is a left inverse of ofCoeffs. -/
@@ -171,28 +171,28 @@ end membership
 
 
 /-!
-## Cosets and Quotients for GeometricLattice
+## Cosets and Quotients for EuclideanLattice
 -/
 
 noncomputable section coset
 
 /-- The coset of a vector v with respect to lattice L: v + L -/
-def GeometricLattice.coset (L : GeometricLattice n k) (v : 𝓔 n) : Set (𝓔 n) :=
+def EuclideanLattice.coset (L : EuclideanLattice n k) (v : 𝓔 n) : Set (𝓔 n) :=
   { x | ∃ l ∈ L.carrier, x = v + l }
 
 -- Notation for cosets: v +ᶜ L
-notation:65 v " +ᶜ " L:65 => GeometricLattice.coset L v
+notation:65 v " +ᶜ " L:65 => EuclideanLattice.coset L v
 
 /-- The quotient space ℝⁿ / L -/
-def GeometricLattice.Quotient (L : GeometricLattice n k) : Type _ :=
+def EuclideanLattice.Quotient (L : EuclideanLattice n k) : Type _ :=
   (𝓔 n) ⧸ L.carrier
 
 /-- The canonical projection map π : ℝⁿ → ℝⁿ/L -/
-def GeometricLattice.mk_quotient (L : GeometricLattice n k) (v : 𝓔 n) : L.Quotient :=
+def EuclideanLattice.mk_quotient (L : EuclideanLattice n k) (v : 𝓔 n) : L.Quotient :=
   QuotientAddGroup.mk v
 
 /-- Two vectors are in the same coset iff their difference is in the lattice -/
-theorem GeometricLattice.coset_eq_iff (L : GeometricLattice n k) (v w : 𝓔 n) :
+theorem EuclideanLattice.coset_eq_iff (L : EuclideanLattice n k) (v w : 𝓔 n) :
     (v +ᶜ L) = (w +ᶜ L) ↔ (v - w) ∈ L.carrier := by
   constructor
   · intro h
@@ -204,7 +204,7 @@ theorem GeometricLattice.coset_eq_iff (L : GeometricLattice n k) (v w : 𝓔 n) 
     exact hl
   · intro h
     ext x
-    simp only [GeometricLattice.coset, Set.mem_setOf_eq]
+    simp only [EuclideanLattice.coset, Set.mem_setOf_eq]
     constructor
     · intro ⟨l, hl, hx⟩
       use l + (v - w)
@@ -243,13 +243,13 @@ def LatticeBasis.smul (c : ℝ) (B : LatticeBasis n k) (hc : c ≠ 0) : LatticeB
       exact Fintype.linearIndependent_iff.mp B.li g h_sum_zero }
 
 /-- Scale a geometric lattice by a non-zero scalar -/
-def GeometricLattice.smul (L : GeometricLattice n k) (c : ℝ) (hc : c ≠ 0) : GeometricLattice n k :=
+def EuclideanLattice.smul (L : EuclideanLattice n k) (c : ℝ) (hc : c ≠ 0) : EuclideanLattice n k :=
   (L.basis.smul c hc).toLattice
 
 /-- Scaling preserves carrier equivalence (basically the theorem ZSpan.smul) -/
-theorem GeometricLattice.smul_carrier (L : GeometricLattice n k) (c : ℝ) (hc : c ≠ 0) :
+theorem EuclideanLattice.smul_carrier (L : EuclideanLattice n k) (c : ℝ) (hc : c ≠ 0) :
     (L.smul c hc).carrier = L.carrier.map (DistribMulAction.toLinearMap ℤ (𝓔 n) c) := by
-  simp only [GeometricLattice.smul, LatticeBasis.toLattice, LatticeBasis.smul]
+  simp only [EuclideanLattice.smul, LatticeBasis.toLattice, LatticeBasis.smul]
   simp only [LatticeBasis.cols]
   ext x
   simp only [Submodule.mem_map]
@@ -290,13 +290,13 @@ theorem GeometricLattice.smul_carrier (L : GeometricLattice n k) (c : ℝ) (hc :
 end smul
 
 /-- Negation of a geometric lattice -/
-def GeometricLattice.neg (L : GeometricLattice n k) : GeometricLattice n k :=
+def EuclideanLattice.neg (L : EuclideanLattice n k) : EuclideanLattice n k :=
   L.smul (-1) (by norm_num)
 
 /-- -L = L -/
-theorem GeometricLattice.neg_eq_self {L: GeometricLattice n n} : L.neg ≡ᵤ L := by
+theorem EuclideanLattice.neg_eq_self {L: EuclideanLattice n n} : L.neg ≡ᵤ L := by
   -- The carrier of the negated lattice is the same as the carrier of the original lattice because negation is an automorphism.
-  apply GeometricLattice.eq_iff_basis_equiv.mpr;
+  apply EuclideanLattice.eq_iff_basis_equiv.mpr;
   -- Since multiplying by -1 is a unimodular transformation, we can construct the unimodular matrix U as -1.
   use -1;
   -- By definition of `L.neg`, we have `L.neg.basis = L.basis.smul (-1)`.
@@ -420,20 +420,20 @@ theorem LatticeBasis.dual_dual (B : SquareLatticeBasis n) : B.dual.dual = B := b
   The dual lattice of a full-rank geometric lattice.
   L* is generated by the dual basis B*.
 -/
-def GeometricLattice.dual (L : GeometricLattice n n) : GeometricLattice n n :=
+def EuclideanLattice.dual (L : EuclideanLattice n n) : EuclideanLattice n n :=
   L.basis.dual.toLattice
 
 /--
   The set of vectors with integral inner product against all lattice vectors.
 -/
-def integralDualSet (L : GeometricLattice n n) : Set (𝓔 n) :=
+def integralDualSet (L : EuclideanLattice n n) : Set (𝓔 n) :=
   { y | ∀ x ∈ L.carrier, ∃ m : ℤ, ⟪x, y⟫ = (m : ℝ) }
 
 /--
   The dual lattice carrier equals the set of vectors with integral inner products.
   This is the key characterization: L* = { y ∈ ℝⁿ | ∀ x ∈ L, ⟨x, y⟩ ∈ ℤ }
 -/
-theorem GeometricLattice.dual_carrier_eq_integralDual (L : GeometricLattice n n) :
+theorem EuclideanLattice.dual_carrier_eq_integralDual (L : EuclideanLattice n n) :
     (L.dual.carrier : Set (𝓔 n)) = integralDualSet L := by
   ext y
   simp only [integralDualSet, Set.mem_setOf_eq]
@@ -506,7 +506,7 @@ theorem GeometricLattice.dual_carrier_eq_integralDual (L : GeometricLattice n n)
 /--
   A vector is in the dual lattice iff it has integral inner product with all basis vectors.
 -/
-theorem GeometricLattice.mem_dual_iff_integral_inner_basis (L : GeometricLattice n n) (y : 𝓔 n) :
+theorem EuclideanLattice.mem_dual_iff_integral_inner_basis (L : EuclideanLattice n n) (y : 𝓔 n) :
     y ∈ L.dual.carrier ↔ ∀ i : Fin n, ∃ m : ℤ, ⟪L.basis.cols i, y⟫ = (m : ℝ) := by
   constructor
   · intro hy i
@@ -536,17 +536,17 @@ theorem GeometricLattice.mem_dual_iff_integral_inner_basis (L : GeometricLattice
         ext;
         erw [ Real.ofCauchy_intCast ] ; norm_num;
       choose m hm using h; use ∑ i, c i * m i; simp_all +decide ;
-    exact ( GeometricLattice.dual_carrier_eq_integralDual L ) |>.symm.subset h_integral_dual
+    exact ( EuclideanLattice.dual_carrier_eq_integralDual L ) |>.symm.subset h_integral_dual
 
 /--
   The dual of the dual lattice is the original lattice.
 -/
-theorem GeometricLattice.dual_dual (L : GeometricLattice n n) : L.dual.dual ≡ᵤ L := by
-  rw [GeometricLattice.eq_iff_basis_equiv]
+theorem EuclideanLattice.dual_dual (L : EuclideanLattice n n) : L.dual.dual ≡ᵤ L := by
+  rw [EuclideanLattice.eq_iff_basis_equiv]
   -- L.dual.dual.basis = L.basis.dual.dual =ᵤ L.basis
   have h : L.dual.dual.basis = L.basis := by
     -- This follows from LatticeBasis.dual_dual
-    simp only [GeometricLattice.dual, LatticeBasis.toLattice]
+    simp only [EuclideanLattice.dual, LatticeBasis.toLattice]
     exact L.basis.dual_dual
   rw [h]
   exact LatticeBasis.UnimodularEquiv.refl L.basis

@@ -22,7 +22,7 @@ universe u
   In this file we define the mathematical notion of a lattice in ℝⁿ.
 
   * `LatticeBasis`: An n×k real matrix with linearly independent columns (k ≤ n).
-  * `GeometricLattice`: A lattice defined by its basis, with carrier being the ℤ-span of the basis.
+  * `EuclideanLattice`: A lattice defined by its basis, with carrier being the ℤ-span of the basis.
   * `FullRank`: A predicate stating that n = k (the lattice has full rank).
 -/
 
@@ -129,7 +129,7 @@ A geometric lattice is defined by its basis, with the carrier being the ℤ-span
   A geometric lattice in ℝⁿ, defined by a basis of k linearly independent vectors.
   The carrier is the ℤ-span of the basis.
 -/
-structure GeometricLattice (n k : ℕ+) where
+structure EuclideanLattice (n k : ℕ+) where
   /-- The basis for the lattice -/
   basis : LatticeBasis n k
   /-- The carrier is exactly the ℤ-span of the basis -/
@@ -138,44 +138,44 @@ structure GeometricLattice (n k : ℕ+) where
   carrier_eq : carrier = Submodule.span ℤ (Set.range basis.cols) := by rfl
 
 /-- Two geometric lattices with the same carrier are equivalent (though their bases may differ). -/
-def GeometricLattice.CarrierEquiv (L1 L2 : GeometricLattice n k) : Prop :=
+def EuclideanLattice.CarrierEquiv (L1 L2 : EuclideanLattice n k) : Prop :=
   L1.carrier = L2.carrier
 
 /-- Carrier equivalence is reflexive. -/
-theorem GeometricLattice.CarrierEquiv.refl (L : GeometricLattice n k) : L.CarrierEquiv L := rfl
+theorem EuclideanLattice.CarrierEquiv.refl (L : EuclideanLattice n k) : L.CarrierEquiv L := rfl
 
 /-- Carrier equivalence is symmetric. -/
-theorem GeometricLattice.CarrierEquiv.symm {L1 L2 : GeometricLattice n k}
+theorem EuclideanLattice.CarrierEquiv.symm {L1 L2 : EuclideanLattice n k}
     (h : L1.CarrierEquiv L2) : L2.CarrierEquiv L1 := by
     rw [CarrierEquiv] at *
     exact h.symm
 
 /-- Carrier equivalence is transitive. -/
-theorem GeometricLattice.CarrierEquiv.trans {L1 L2 L3 : GeometricLattice n k}
+theorem EuclideanLattice.CarrierEquiv.trans {L1 L2 L3 : EuclideanLattice n k}
     (h1 : L1.CarrierEquiv L2) (h2 : L2.CarrierEquiv L3) : L1.CarrierEquiv L3 := by
     rw [CarrierEquiv] at *
     exact h1.trans h2
 
 /-- Carrier equivalence as a setoid. -/
-instance GeometricLattice.carrierSetoid : Setoid (GeometricLattice n k) where
+instance EuclideanLattice.carrierSetoid : Setoid (EuclideanLattice n k) where
   r := CarrierEquiv
   iseqv := ⟨CarrierEquiv.refl, CarrierEquiv.symm, CarrierEquiv.trans⟩
 
 /-- Notation for carrier equivalence of geometric lattices. -/
-infix:50 " ≡ᵤ " => GeometricLattice.CarrierEquiv
+infix:50 " ≡ᵤ " => EuclideanLattice.CarrierEquiv
 
-/-- Construct a GeometricLattice from a LatticeBasis -/
-def LatticeBasis.toLattice (B : LatticeBasis n k) : GeometricLattice n k :=
+/-- Construct a EuclideanLattice from a LatticeBasis -/
+def LatticeBasis.toLattice (B : LatticeBasis n k) : EuclideanLattice n k :=
   { basis := B }
 
-theorem GeometricLattice.eq_basis_toLattice (L : GeometricLattice n k) :
+theorem EuclideanLattice.eq_basis_toLattice (L : EuclideanLattice n k) :
     L = L.basis.toLattice := by
       let L' := L.basis.toLattice
       cases L
       cases L'
       congr
 
-def isBasisFor (B: SquareLatticeBasis n) (L: GeometricLattice n n) : Prop :=
+def isBasisFor (B: SquareLatticeBasis n) (L: EuclideanLattice n n) : Prop :=
   B.toLattice ≡ᵤ L
 
 /-!
@@ -183,27 +183,27 @@ def isBasisFor (B: SquareLatticeBasis n) (L: GeometricLattice n n) : Prop :=
 -/
 
 /-- The carrier of a geometric lattice is finitely generated. -/
-theorem GeometricLattice.fg (L : GeometricLattice n k) : L.carrier.FG := by
+theorem EuclideanLattice.fg (L : EuclideanLattice n k) : L.carrier.FG := by
   rw [L.carrier_eq]
   have h_fin : (Set.range L.basis.cols).Finite := Set.finite_range _
   exact Submodule.fg_span h_fin
 
 /-- The carrier of a geometric lattice has discrete topology. -/
-theorem GeometricLattice.discrete (L : GeometricLattice n k) : DiscreteTopology L.carrier := by
+theorem EuclideanLattice.discrete (L : EuclideanLattice n k) : DiscreteTopology L.carrier := by
   rw [L.carrier_eq]
   exact discrete_zspan L.basis.li
 
 /-- The carrier of a geometric lattice is a countable set. -/
-instance GeometricLattice.instCountable (L : GeometricLattice n k) : Countable L.carrier := by
+instance EuclideanLattice.instCountable (L : EuclideanLattice n k) : Countable L.carrier := by
   rw [L.carrier_eq]
   exact Finsupp.instCountableSubtypeMemSubmoduleSpanRange L.basis.cols
 
 /-- Instance for discrete topology on the carrier. -/
-instance GeometricLattice.instDiscreteTopology (L : GeometricLattice n k) :
+instance EuclideanLattice.instDiscreteTopology (L : EuclideanLattice n k) :
     DiscreteTopology L.carrier := L.discrete
 
 /- The lattice is a closed set because it is discrete -/
-lemma GeometricLattice.isClosed (L : GeometricLattice n k) : IsClosed (L.carrier : Set (𝓔 n)) := by
+lemma EuclideanLattice.isClosed (L : EuclideanLattice n k) : IsClosed (L.carrier : Set (𝓔 n)) := by
   -- Since the lattice is a discrete subgroup of ℝ^n, it is closed.
   have h_discrete : DiscreteTopology (L.carrier : Set (𝓔 n)) := by
     simp +zetaDelta at *;
@@ -214,7 +214,7 @@ lemma GeometricLattice.isClosed (L : GeometricLattice n k) : IsClosed (L.carrier
   convert h_closed_subgroup ( L.carrier.toAddSubgroup ) h_discrete using 1
 
 /- The lattice points in a closed ball form a finite set -/
-lemma GeometricLattice.finite_intersection_closedBall (L : GeometricLattice n n) (r : ℝ) :
+lemma EuclideanLattice.finite_intersection_closedBall (L : EuclideanLattice n n) (r : ℝ) :
     Set.Finite { v ∈ L.carrier | ‖v‖ ≤ r } := by
       -- The ball of radius r in the lattice is a closed subset of the ball in R^n, which is compact. Therefore, the lattice points in the ball are finite.
       have h_closed : IsClosed {v : 𝓔 n | v ∈ L.carrier ∧ ‖v‖ ≤ r} := by
@@ -228,7 +228,7 @@ lemma GeometricLattice.finite_intersection_closedBall (L : GeometricLattice n n)
       exact Set.Finite.subset ( this.image Subtype.val ) fun x hx => by aesop;
 
 /- Corollary: The lattice points in an open ball form a finite set -/
-lemma GeometricLattice.finite_intersection_ball (L : GeometricLattice n n) (r : ℝ) :
+lemma EuclideanLattice.finite_intersection_ball (L : EuclideanLattice n n) (r : ℝ) :
     Set.Finite { v ∈ L.carrier | ‖v‖ < r } := by
   -- The open ball is a subset of the closed ball
   have h_subset : { v ∈ L.carrier | ‖v‖ < r } ⊆ { v ∈ L.carrier | ‖v‖ ≤ r } := by
@@ -241,7 +241,7 @@ lemma GeometricLattice.finite_intersection_ball (L : GeometricLattice n n) (r : 
 -/
 
 /-- A lattice has full rank if n = k (the lattice spans the entire ambient space). -/
-class FullRank (L : GeometricLattice n k) : Prop where
+class FullRank (L : EuclideanLattice n k) : Prop where
   rank_eq : n = k
 
 /-- A square lattice basis produces a full-rank lattice. -/
@@ -249,7 +249,7 @@ instance (B : SquareLatticeBasis n) : FullRank B.toLattice where
   rank_eq := rfl
 
 /-- Full rank is equivalent to the real span being the whole space. -/
-theorem FullRank.iff_span_top {L : GeometricLattice n k} :
+theorem FullRank.iff_span_top {L : EuclideanLattice n k} :
     FullRank L ↔ Submodule.span ℝ (L.carrier : Set (𝓔 n)) = ⊤ := by
   constructor
   · intro ⟨h_eq⟩
@@ -293,12 +293,12 @@ theorem FullRank.iff_span_top {L : GeometricLattice n k} :
     exact PNat.eq (id (Eq.symm h_k_eq_n))
 
 /-- A full-rank lattice is a ZLattice. -/
-theorem FullRank.isZLattice (L : GeometricLattice n k) [FullRank L] : IsZLattice ℝ L.carrier := by
+theorem FullRank.isZLattice (L : EuclideanLattice n k) [FullRank L] : IsZLattice ℝ L.carrier := by
   constructor
   exact FullRank.iff_span_top.mp ‹_›
 
 @[simp]
-theorem GeometricLattice.full_rank_eq_module_span (L : GeometricLattice n n) : L.carrier = Submodule.span ℤ (Set.range L.basis.asTopBasis) := by
+theorem EuclideanLattice.full_rank_eq_module_span (L : EuclideanLattice n n) : L.carrier = Submodule.span ℤ (Set.range L.basis.asTopBasis) := by
   convert L.carrier_eq;
   -- The basis of the top subspace is the same as the basis of the lattice, which is given by the columns of the matrix.
   ext i; simp [LatticeBasis.asTopBasis];
@@ -553,15 +553,15 @@ theorem LatticeBasis.span_eq_iff {B1 B2 : LatticeBasis n k} :
 -/
 
 /-- Two geometric lattices are equal iff their bases are unimodularly equivalent. -/
-theorem GeometricLattice.eq_iff_basis_equiv {L1 L2 : GeometricLattice n k} :
+theorem EuclideanLattice.eq_iff_basis_equiv {L1 L2 : EuclideanLattice n k} :
     L1 ≡ᵤ L2 ↔ L1.basis =ᵤ L2.basis := by
   constructor
   · intro h_eq
-    rw [GeometricLattice.CarrierEquiv] at h_eq
+    rw [EuclideanLattice.CarrierEquiv] at h_eq
     rw [L1.carrier_eq, L2.carrier_eq] at h_eq
     exact LatticeBasis.UnimodularEquiv_of_span_eq h_eq
   · intro h_equiv
-    rw [GeometricLattice.CarrierEquiv, L1.carrier_eq, L2.carrier_eq]
+    rw [EuclideanLattice.CarrierEquiv, L1.carrier_eq, L2.carrier_eq]
     exact LatticeBasis.span_eq_of_UnimodularEquiv h_equiv
 
 end Lattice

@@ -61,11 +61,11 @@ instance : Coe (IntegralLatticeBasis n k) (LatticeBasis n k) :=
 def ZnSubmodule (n : ℕ+) : Submodule ℤ (𝓔 n) :=
   Submodule.span ℤ (Set.range (stdBasis : Fin n → 𝓔 n))
 
-/-- A predicate asserting that a GeometricLattice is integral. Mathematically, Λ ⊆ ℤⁿ. -/ class IsIntegral (L : GeometricLattice n k) : Prop where
+/-- A predicate asserting that a EuclideanLattice is integral. Mathematically, Λ ⊆ ℤⁿ. -/ class IsIntegral (L : EuclideanLattice n k) : Prop where
   subset_int : L.carrier ≤ ZnSubmodule n
 
 /-- A lattice is integral iff all lattice vectors have integer components. -/
-theorem isIntegral_iff_vec_integral (L : GeometricLattice n k) :
+theorem isIntegral_iff_vec_integral (L : EuclideanLattice n k) :
     IsIntegral L ↔ ∀ v ∈ L.carrier, ∃ z : Fin n → ℤ, ∀ i : Fin n, (v : 𝓔 n) i = (z i : ℝ) := by
     simp +decide at *;
     constructor;
@@ -86,14 +86,14 @@ theorem isIntegral_iff_vec_integral (L : GeometricLattice n k) :
       exact h_sum.symm ▸ Submodule.sum_mem _ fun i _ => Submodule.smul_mem _ _ ( Submodule.subset_span ( Set.mem_range_self _ ) )
 
 /-- A special lattice that is a subset of ℤⁿ -/
-structure IntegralLattice (n k : ℕ+) extends GeometricLattice n k where
-  integral : IsIntegral toGeometricLattice
+structure IntegralLattice (n k : ℕ+) extends EuclideanLattice n k where
+  integral : IsIntegral toEuclideanLattice
 
-instance : Coe (IntegralLattice n k) (GeometricLattice n k) := ⟨IntegralLattice.toGeometricLattice⟩
+instance : Coe (IntegralLattice n k) (EuclideanLattice n k) := ⟨IntegralLattice.toEuclideanLattice⟩
 
-instance (L : IntegralLattice n k) : IsIntegral (L : GeometricLattice n k) := L.integral
+instance (L : IntegralLattice n k) : IsIntegral (L : EuclideanLattice n k) := L.integral
 
-theorem isIntegral_iff_basis_integral (L : GeometricLattice n k) :
+theorem isIntegral_iff_basis_integral (L : EuclideanLattice n k) :
   IsIntegral L ↔ ∀ j, L.basis.cols j ∈ ZnSubmodule n := by
   constructor;
   · -- If the lattice is integral, then the carrier is a subset of ZnSubmodule n.

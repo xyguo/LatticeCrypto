@@ -103,10 +103,10 @@ lemma fourier_transform_comp_linear_map
 /-- Specialization of theorem `fourier_transform_comp_linear_map` with the linear
   map coming from a lattice basis.
 -/
-theorem fourier_transform_comp_linear_map_from_lattice (L : GeometricLattice n n) (f : 𝓔 n → ℂ) (y : 𝓔 n) :
+theorem fourier_transform_comp_linear_map_from_lattice (L : EuclideanLattice n n) (f : 𝓔 n → ℂ) (y : 𝓔 n) :
     𝓕 (f ∘ L.basis.asLinearEquiv.toContinuousLinearEquiv) y = L.det⁻¹ * 𝓕 f (L.basis.asMatrix.transpose⁻¹.mulVec y) := by
   convert fourier_transform_comp_linear_map f _ _ using 4;
-  · unfold GeometricLattice.det;
+  · unfold EuclideanLattice.det;
     unfold LatticeBasis.volume;
     erw [ LinearMap.det_toLin' ];
   · rw [ Matrix.inv_eq_left_inv ];
@@ -125,12 +125,12 @@ theorem fourier_transform_comp_linear_map_from_lattice (L : GeometricLattice n n
 /-- Alternative form of `fourier_transform_comp_linear_map_from_lattice`
   that connects the Fourier transform of `f` composed with the dual lattice basis.
 -/
-theorem fourier_transform_comp_linear_map_from_lattice_dual (L : GeometricLattice n n) (f : 𝓔 n → ℂ) (y : 𝓔 n) :
+theorem fourier_transform_comp_linear_map_from_lattice_dual (L : EuclideanLattice n n) (f : 𝓔 n → ℂ) (y : 𝓔 n) :
     𝓕 (f ∘ L.basis.asLinearEquiv.toContinuousLinearEquiv) y = L.dual.det * 𝓕 f (L.basis.dual.asMatrix.mulVec y) := by
   convert fourier_transform_comp_linear_map_from_lattice L f y using 2;
   -- Apply the theorem that states the determinant of the dual lattice is the inverse of the determinant of the original lattice.
   have h_det_dual : L.dual.det = 1 / L.det := by
-    exact GeometricLattice.dual_det_eq_inv L;
+    exact EuclideanLattice.dual_det_eq_inv L;
   aesop
 
 /-- Specialization of theorem `fourier_transform_comp_linear_map` with `f` being `rhoS` -/
@@ -161,24 +161,24 @@ open scoped RealInnerProductSpace
 
 /-- The measure on the quotient space 𝓔 n ⧸ L.carrier, defined as the pushforward of
     the Lebesgue measure restricted to the fundamental domain. -/
-noncomputable def quotientMeasure (L : GeometricLattice n n) : MeasureTheory.Measure (𝓔 n ⧸ L.carrier.toAddSubgroup) :=
+noncomputable def quotientMeasure (L : EuclideanLattice n n) : MeasureTheory.Measure (𝓔 n ⧸ L.carrier.toAddSubgroup) :=
   MeasureTheory.Measure.map QuotientAddGroup.mk (MeasureTheory.volume.restrict L.basis.fundamentalDomain)
 
 /-- The measure space instance on the quotient 𝓔 n ⧸ L.carrier -/
-noncomputable def quotientMeasureSpace (L : GeometricLattice n n) : MeasureTheory.MeasureSpace (𝓔 n ⧸ L.carrier.toAddSubgroup) where
+noncomputable def quotientMeasureSpace (L : EuclideanLattice n n) : MeasureTheory.MeasureSpace (𝓔 n ⧸ L.carrier.toAddSubgroup) where
   volume := quotientMeasure L
 
 /-- The total measure of the quotient space equals the determinant of the lattice -/
-lemma quotientMeasure_univ (L : GeometricLattice n n) :
+lemma quotientMeasure_univ (L : EuclideanLattice n n) :
     quotientMeasure L Set.univ = ENNReal.ofReal L.det := by
   unfold quotientMeasure
   rw [MeasureTheory.Measure.map_apply QuotientAddGroup.measurable_coe MeasurableSet.univ]
   simp only [Set.preimage_univ]
   rw [MeasureTheory.Measure.restrict_apply MeasurableSet.univ, Set.univ_inter]
-  simp [lebesgueMeasure, GeometricLattice.det_eq_measure_fundamentalDomain L]
+  simp [lebesgueMeasure, EuclideanLattice.det_eq_measure_fundamentalDomain L]
 
 /-- The induced topology on the quotient space -/
-instance (L : GeometricLattice n n) : TopologicalSpace L.Quotient :=
+instance (L : EuclideanLattice n n) : TopologicalSpace L.Quotient :=
   _root_.instTopologicalSpaceQuotient
 
 
@@ -186,18 +186,18 @@ instance (L : GeometricLattice n n) : TopologicalSpace L.Quotient :=
   Define the Fourier coefficient of a function `g` over a lattice `L` as the integral of `g` over the fundamental domain of `L` multiplied by a complex exponential, normalized by the determinant of `L`.
   Note here `g` is not explicitly specified as a periodic function, but this definition makes sense only when `g` is periodic with respect to the lattice `L`.
 -/
-noncomputable def fourierCoefficient (L : GeometricLattice n n) (g : 𝓔 n → ℂ) (w : L.dual.carrier) : ℂ :=
+noncomputable def fourierCoefficient (L : EuclideanLattice n n) (g : 𝓔 n → ℂ) (w : L.dual.carrier) : ℂ :=
   (1 / L.det : ℂ) * ∫ x in L.basis.fundamentalDomain, g x * cexp (-2 * π * Complex.I * (inner ℝ x (w : 𝓔 n)))
 
 noncomputable def fourierCoefficientReal
-  (L : GeometricLattice n n)
+  (L : EuclideanLattice n n)
   (g : 𝓔 n → ℝ)
   (w : L.dual.carrier) : ℂ :=
   fourierCoefficient L (fun x => (g x : ℂ)) w
 
 @[simp]
 lemma fourierCoefficientReal_apply
-  (L : GeometricLattice n n)
+  (L : EuclideanLattice n n)
   (g : 𝓔 n → ℝ)
   (w : L.dual.carrier) :
   fourierCoefficientReal L g w
@@ -211,7 +211,7 @@ lemma fourierCoefficientReal_apply
   Define the Fourier series of a function `g` as the sum of its Fourier coefficients multiplied by complex exponentials.
   Note here both `g` and its Fourier coeff will be bundled in `coeffs`.
 -/
-noncomputable def fourierSeries (L : GeometricLattice n n) (coeffs : L.dual.carrier → ℂ) (x : 𝓔 n) : ℂ :=
+noncomputable def fourierSeries (L : EuclideanLattice n n) (coeffs : L.dual.carrier → ℂ) (x : 𝓔 n) : ℂ :=
   ∑' w : L.dual.carrier, coeffs w * cexp (2 * π * Complex.I * (inner ℝ x (w : 𝓔 n)))
 
 
@@ -220,12 +220,12 @@ noncomputable def fourierSeries (L : GeometricLattice n n) (coeffs : L.dual.carr
   It lifts the function to the fundamental domain and applies the standard definition.
 -/
 noncomputable def fourierCoefficientOnQuotient
-    (L : GeometricLattice n n)
+    (L : EuclideanLattice n n)
     (g : L.Quotient → ℂ)
     (w : L.dual.carrier) : ℂ :=
   fourierCoefficient L (fun x => g (QuotientAddGroup.mk x)) w
 
-theorem fourierCoefficientOnQuotient_eq (L : GeometricLattice n n)
+theorem fourierCoefficientOnQuotient_eq (L : EuclideanLattice n n)
     (g : L.Quotient → ℂ) (w : L.dual.carrier) :
     fourierCoefficientOnQuotient L g w = fourierCoefficient L (g ∘ QuotientAddGroup.mk) w :=
   rfl
@@ -234,7 +234,7 @@ theorem fourierCoefficientOnQuotient_eq (L : GeometricLattice n n)
   If you have a periodic function `f` on the whole space, and you descend it to the quotient,
   the coefficients match your original definition.
 -/
-theorem fourierCoefficient_eq_quotient (L : GeometricLattice n n) (f : 𝓔 n → ℂ) (w : L.dual.carrier) :
+theorem fourierCoefficient_eq_quotient (L : EuclideanLattice n n) (f : 𝓔 n → ℂ) (w : L.dual.carrier) :
     fourierCoefficientOnQuotient L (periodizeQuotient f L) w =
     fourierCoefficient L (periodize f L) w := by
   -- This follows immediately from the property that periodizeQuotient lifted is periodize
@@ -246,18 +246,18 @@ theorem fourierCoefficient_eq_quotient (L : GeometricLattice n n) (f : 𝓔 n �
   This is well-defined because the Fourier series terms (exponentials of dual vectors)
   are naturally periodic over L.
 -/
-noncomputable def fourierSeriesOnQuotient (L : GeometricLattice n n)
+noncomputable def fourierSeriesOnQuotient (L : EuclideanLattice n n)
     (coeffs : L.dual.carrier → ℂ) (x_quot : L.Quotient) : ℂ :=
   sorry
 
 /-
 The complex exponential term involving the inner product with a dual lattice vector is periodic with respect to the lattice.
 -/
-lemma cexp_inner_dual_periodicity (L : GeometricLattice n n) (v : L.carrier) (w : L.dual.carrier) (x : 𝓔 n) :
+lemma cexp_inner_dual_periodicity (L : EuclideanLattice n n) (v : L.carrier) (w : L.dual.carrier) (x : 𝓔 n) :
     cexp (-2 * π * Complex.I * inner ℝ (x + v) (w : 𝓔 n)) = cexp (-2 * π * Complex.I * inner ℝ x (w : 𝓔 n)) := by
       -- Since $⟨v, w⟩_ℝ = m$ for some integer $m$, we have $e^{-2π i m} = 1$.
       have h_inner : ∃ m : ℤ, (inner ℝ (v : 𝓔 n) (w : 𝓔 n)) = m := by
-        have := LatticeCrypto.Foundations.Lattice.GeometricLattice.dual_carrier_eq_integralDual L;
+        have := LatticeCrypto.Foundations.Lattice.EuclideanLattice.dual_carrier_eq_integralDual L;
         replace this := Set.ext_iff.mp this w; aesop;
       obtain ⟨ m, hm ⟩ := h_inner; simp +decide ;
       rw [ inner_add_left ] ; push_cast [ hm ] ; rw [ Complex.exp_eq_exp_iff_exists_int ] ; exact ⟨ -m, by push_cast; ring ⟩ ;
@@ -266,7 +266,7 @@ lemma cexp_inner_dual_periodicity (L : GeometricLattice n n) (v : L.carrier) (w 
 The integral of `|f(x + v)|` over the fundamental domain is equal to the integral of `|f(x)|` over the shifted fundamental domain.
 -/
 
-lemma integral_shift_eq_integral_domain (f : 𝓔 n → ℝ) (L : GeometricLattice n n) (v : L.carrier) :
+lemma integral_shift_eq_integral_domain (f : 𝓔 n → ℝ) (L : EuclideanLattice n n) (v : L.carrier) :
     ∫ x in L.basis.fundamentalDomain, |f (x + v)| = ∫ x in Set.image (fun y => (v : 𝓔 n) + y) L.basis.fundamentalDomain, |f x| := by
       rw [ MeasureTheory.integral_image_eq_integral_abs_det_fderiv_smul ] <;> norm_num [ add_comm ];
       any_goals intro x hx; exact hasFDerivAt_id x |> HasFDerivAt.hasFDerivWithinAt;
@@ -276,7 +276,7 @@ lemma integral_shift_eq_integral_domain (f : 𝓔 n → ℝ) (L : GeometricLatti
 /-
 The sum of the integrals of the absolute value of the shifted function over the fundamental domain is summable, assuming the function is integrable.
 -/
-lemma summable_integral_abs_shift (f : 𝓔 n → ℝ) (L : GeometricLattice n n) (hf : MeasureTheory.Integrable f) :
+lemma summable_integral_abs_shift (f : 𝓔 n → ℝ) (L : EuclideanLattice n n) (hf : MeasureTheory.Integrable f) :
     Summable (fun v : L.carrier => ∫ x in L.basis.fundamentalDomain, |f (x + v)|) := by
       have h_partition : ∫ x, |f x| = ∑' v : L.carrier, ∫ x in (Set.image (fun y => (v : 𝓔 n) + y) L.basis.fundamentalDomain), |f x| := by
         have := @MeasureTheory.IsAddFundamentalDomain.integral_eq_tsum L.carrier;
@@ -286,7 +286,7 @@ lemma summable_integral_abs_shift (f : 𝓔 n → ℝ) (L : GeometricLattice n n
         · constructor;
           simp +zetaDelta at *;
           intro a ha s hs; erw [ MeasureTheory.measure_preimage_add ] ;
-        · exact GeometricLattice.fundamentalDomain_isAddFundamentalDomain L MeasureTheory.volume;
+        · exact EuclideanLattice.fundamentalDomain_isAddFundamentalDomain L MeasureTheory.volume;
         · exact hf.norm;
       have h_abs_integrable : Summable (fun v : L.carrier => ∫ x in (Set.image (fun y => (v : 𝓔 n) + y) L.basis.fundamentalDomain), |f x|) := by
         contrapose! h_partition;
@@ -300,7 +300,7 @@ lemma summable_integral_abs_shift (f : 𝓔 n → ℝ) (L : GeometricLattice n n
 /-
 The integral of the periodization of `f` over the fundamental domain is equal to the sum of the integrals of `f(x + v)` over the fundamental domain.
 -/
-lemma integral_periodize_eq_tsum_integral_shifts (f : 𝓔 n → ℝ) (L : GeometricLattice n n) (hf : MeasureTheory.Integrable f) :
+lemma integral_periodize_eq_tsum_integral_shifts (f : 𝓔 n → ℝ) (L : EuclideanLattice n n) (hf : MeasureTheory.Integrable f) :
     ∫ x in L.basis.fundamentalDomain, periodize f L x = ∑' v : L.carrier, ∫ x in L.basis.fundamentalDomain, f (x + v) := by
       rw [ ← MeasureTheory.integral_tsum ];
       · rfl;
@@ -321,7 +321,7 @@ lemma integral_periodize_eq_tsum_integral_shifts (f : 𝓔 n → ℝ) (L : Geome
 /-
 The integral of `f(x + v)` over the fundamental domain is equal to the integral of `f(x)` over the shifted fundamental domain.
 -/
-lemma integral_shift_eq_integral_domain_real (f : 𝓔 n → ℝ) (L : GeometricLattice n n) (v : L.carrier) :
+lemma integral_shift_eq_integral_domain_real (f : 𝓔 n → ℝ) (L : EuclideanLattice n n) (v : L.carrier) :
     ∫ x in L.basis.fundamentalDomain, f (x + v) = ∫ x in Set.image (fun y => (v : 𝓔 n) + y) L.basis.fundamentalDomain, f x := by
       -- Since the function (v : 𝓔 n) + y is just a translation, which is a measure-preserving transformation, the integrals should be equal.
       have h_measure_preserving : MeasureTheory.MeasurePreserving (fun y => (v : 𝓔 n) + y) MeasureTheory.volume MeasureTheory.volume := by
@@ -335,7 +335,7 @@ lemma integral_shift_eq_integral_domain_real (f : 𝓔 n → ℝ) (L : Geometric
 /-
 The integral of the periodization of a real-valued function `f` over the fundamental domain of a lattice `L` is equal to the integral of `f` over the entire space, assuming `f` is integrable.
 -/
-lemma integral_periodize_eq_integral_real (f : 𝓔 n → ℝ) (L : GeometricLattice n n) (hf : MeasureTheory.Integrable f) :
+lemma integral_periodize_eq_integral_real (f : 𝓔 n → ℝ) (L : EuclideanLattice n n) (hf : MeasureTheory.Integrable f) :
     ∫ x in L.basis.fundamentalDomain, periodize f L x = ∫ x, f x := by
       -- Using the fact that $f$ is integrable, we can apply the result from the previous steps to rewrite the integral.
       have h_integral : (∫ x in L.basis.fundamentalDomain, periodize f L x) = ∑' v : L.carrier, (∫ x in L.basis.fundamentalDomain, f (x + v)) := by
@@ -362,13 +362,13 @@ lemma integral_periodize_eq_integral_real (f : 𝓔 n → ℝ) (L : GeometricLat
       (expose_names; exact integral_shift_eq_integral_domain_real f L x)
 
 /-! The Periodization Lemma: If `g = periodize f L` for some `Integrable f`, then g_FS(w) = f_FT(w) / L.det -/
-theorem fourierCoefficient_of_periodization_eq_fourierTransform (L : GeometricLattice n n) (f : 𝓔 n → ℂ) (hf : MeasureTheory.Integrable f) (w : L.dual.carrier) :
+theorem fourierCoefficient_of_periodization_eq_fourierTransform (L : EuclideanLattice n n) (f : 𝓔 n → ℂ) (hf : MeasureTheory.Integrable f) (w : L.dual.carrier) :
     fourierCoefficient L (fun x => periodize f L x) w = (1 / L.det : ℂ) * 𝓕 (fun v => f v) (w : 𝓔 n) := by
       -- By definition of the Fourier transform, we can rewrite the integral as the sum of the Fourier transforms of the shifted functions.
       have h_fourier_transform : ∫ x in L.basis.fundamentalDomain, (periodize f L x) * cexp (-2 * Real.pi * Complex.I * (inner ℝ x (w : 𝓔 n))) = ∑' v : L.carrier, ∫ x in L.basis.fundamentalDomain, f (x + v) * cexp (-2 * Real.pi * Complex.I * (inner ℝ x (w : 𝓔 n))) := by
         rw [ ← MeasureTheory.integral_tsum ];
         · simp +decide [ periodize ];
-          simp +decide only [GeometricLattice.latticeSum, ← tsum_mul_right];
+          simp +decide only [EuclideanLattice.latticeSum, ← tsum_mul_right];
         · intro i;
           field_simp;
           refine' MeasureTheory.AEStronglyMeasurable.mul _ _;
@@ -402,7 +402,7 @@ theorem fourierCoefficient_of_periodization_eq_fourierTransform (L : GeometricLa
       have h_integral_union : ∫ x, f x * cexp (-2 * Real.pi * Complex.I * (inner ℝ x (w : 𝓔 n))) = ∑' v : L.carrier, ∫ x in Set.image (fun y => (v : 𝓔 n) + y) L.basis.fundamentalDomain, f x * cexp (-2 * Real.pi * Complex.I * (inner ℝ x (w : 𝓔 n))) := by
         rw [ ← MeasureTheory.integral_iUnion ];
         · rw [ MeasureTheory.Measure.restrict_eq_self_of_ae_mem ];
-          have := GeometricLattice.partition_by_fundamentalDomain L;
+          have := EuclideanLattice.partition_by_fundamentalDomain L;
           filter_upwards [ ] with x using by obtain ⟨ y, hy₁, hy₂ ⟩ := this x; exact Set.mem_iUnion.mpr ⟨ y, by simpa [ Set.mem_vadd_set_iff_neg_vadd_mem ] using hy₁ ⟩ ;
         · -- The fundamental domain is measurable, and translations are measurable functions, so the image of the fundamental domain under translation is measurable.
           have h_measurable : MeasurableSet (L.basis.fundamentalDomain) := by
@@ -427,7 +427,7 @@ theorem fourierCoefficient_of_periodization_eq_fourierTransform (L : GeometricLa
         exact Or.inl ( by congr; ext; rw [ ← Complex.exp_neg ] )
 
 /-! Specialization of the periodization theorem for real-value `f` -/
-lemma fourierCoefficient_of_periodization_eq_fourierTransform_real (L : GeometricLattice n n) (f : 𝓔 n → ℝ) (hf : MeasureTheory.Integrable f) (w : L.dual.carrier) :
+lemma fourierCoefficient_of_periodization_eq_fourierTransform_real (L : EuclideanLattice n n) (f : 𝓔 n → ℝ) (hf : MeasureTheory.Integrable f) (w : L.dual.carrier) :
     fourierCoefficientReal L (fun x => periodize f L x) w = (1 / L.det : ℂ) * 𝓕 (fun v => (f v : ℂ)) (w : 𝓔 n) := by
   -- Apply the periodization theorem to the real function `f` by converting it to a complex function.
   have h_complex_periodization : fourierCoefficient L (fun x => periodize (fun v => (f v : ℂ)) L x) w = (1 / L.det : ℂ) * 𝓕 (fun v => (f v : ℂ)) (w : 𝓔 n) := by
@@ -439,12 +439,12 @@ lemma fourierCoefficient_of_periodization_eq_fourierTransform_real (L : Geometri
   simp [Gaussian.periodize];
   unfold Gaussian.fourierCoefficientReal Gaussian.fourierCoefficient; norm_num;
   congr!;
-  unfold GeometricLattice.latticeSum; norm_num;
+  unfold EuclideanLattice.latticeSum; norm_num;
   rw [ Complex.ofReal_tsum ]
 
 
 theorem fourierCoefficient_of_rhoST_periodize_eq_fourierTransform_rhoST
-  (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) (w : L.dual.carrier) :
+  (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) (w : L.dual.carrier) :
     fourierCoefficient L (fun x => (rhoST_periodize s T L x : ℂ)) w = (1 / L.det : ℂ) * 𝓕 (fun v => (rhoST s T v : ℂ)) (w : 𝓔 n) := by
   convert fourierCoefficient_of_periodization_eq_fourierTransform L _ _ _
   · convert Complex.ofReal_tsum _
@@ -482,7 +482,7 @@ def Zn_stdBasis : LatticeBasis n n :=
   )
 
 /-- The integer lattice Z^n -/
-def Zn : GeometricLattice n n :=
+def Zn : EuclideanLattice n n :=
   let b := Zn_stdBasis
   b.toLattice
 
@@ -490,7 +490,7 @@ def Zn : GeometricLattice n n :=
 The determinant of the integer lattice Zn is 1.
 -/
 theorem Zn_det : (Zn (n := n)).det = 1 := by
-  unfold GeometricLattice.det;
+  unfold EuclideanLattice.det;
   unfold LatticeBasis.volume;
   erw [ Matrix.det_one ] ; norm_num
 
@@ -500,7 +500,7 @@ The dual of Zn is itself.
 -- theorem Zn_dual_eq_Zn : (Zn (n := n)).dual ≡ᵤ Zn := by
 theorem Zn_dual_eq_Zn : (Zn (n := n)).dual = Zn := by
   -- The dual lattice of Zn is itself because the standard basis is orthonormal.
-  unfold LatticeCrypto.Foundations.Gaussian.Zn GeometricLattice.dual;
+  unfold LatticeCrypto.Foundations.Gaussian.Zn EuclideanLattice.dual;
   unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.dual;
   simp [Zn_stdBasis];
   unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.fromMatrix;
@@ -530,7 +530,7 @@ The volume of the fundamental domain of Zn is 1.
 -/
 lemma volume_Zn_fundamentalDomain_eq_one :
     MeasureTheory.volume (Zn.basis.fundamentalDomain : Set (𝓔 n)) = 1 := by
-      have := @GeometricLattice.det_eq_measure_fundamentalDomain;
+      have := @EuclideanLattice.det_eq_measure_fundamentalDomain;
       exact this Zn ▸ by norm_num [ Zn_det ] ;
 
 /-
@@ -934,7 +934,7 @@ variable {n : ℕ+}
 /-
 If the periodization of a function is continuous, then the induced function on the quotient space is continuous.
 -/
-lemma continuous_periodizeQuotient {f : 𝓔 n → ℂ} (L : GeometricLattice n n)
+lemma continuous_periodizeQuotient {f : 𝓔 n → ℂ} (L : EuclideanLattice n n)
   (h : Continuous (periodize f L)) :
   Continuous (periodizeQuotient f L) := by
     exact continuous_coinduced_dom.mpr h
@@ -1028,7 +1028,7 @@ theorem fourierSeries_Zn_eq_torus_sum (f : 𝓔 n → ℂ) (x : 𝓔 n) :
               intro x hx
               have h_span : x ∈ Submodule.span ℤ (Set.range (Zn.basis.asTopBasis)) := by
                 convert hx;
-                exact Eq.symm (GeometricLattice.full_rank_eq_module_span Zn)
+                exact Eq.symm (EuclideanLattice.full_rank_eq_module_span Zn)
               rw [ Finsupp.mem_span_range_iff_exists_finsupp ] at h_span;
               obtain ⟨ c, hc ⟩ := h_span; use c; simp_all +decide [ Finsupp.sum_fintype ] ;
             exact h_basis x x.2;

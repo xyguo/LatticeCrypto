@@ -23,8 +23,8 @@ This file defines the successive minima of a geometric lattice and some basic pr
 
 ## Main Definitions
 
-* `GeometricLattice.successiveMinima` - The i-th successive minimum λᵢ(L)
-* `GeometricLattice.shortestVectorLength` - The length of the shortest non-zero vector λ₁(L)
+* `EuclideanLattice.successiveMinima` - The i-th successive minimum λᵢ(L)
+* `EuclideanLattice.shortestVectorLength` - The length of the shortest non-zero vector λ₁(L)
 
 ## References
 
@@ -40,21 +40,21 @@ noncomputable section successive_minima_basics
 -/
 
 /-- The set of non-zero lattice vectors. -/
-def GeometricLattice.nonzeroVectors (L : GeometricLattice n n) : Set (𝓔 n) :=
+def EuclideanLattice.nonzeroVectors (L : EuclideanLattice n n) : Set (𝓔 n) :=
   { v | v ∈ L ∧ v ≠ 0 }
 
 /-- The set of lattice vectors with norm at most r. -/
-def GeometricLattice.ballIntersect (L : GeometricLattice n n) (r : ℝ) : Set (𝓔 n) :=
+def EuclideanLattice.ballIntersect (L : EuclideanLattice n n) (r : ℝ) : Set (𝓔 n) :=
   { v | v ∈ L ∧ ‖v‖ ≤ r }
 
 /-- The set of non-zero lattice vectors with norm at most r. -/
-def GeometricLattice.nonzeroBallIntersect (L : GeometricLattice n n) (r : ℝ) : Set (𝓔 n) :=
+def EuclideanLattice.nonzeroBallIntersect (L : EuclideanLattice n n) (r : ℝ) : Set (𝓔 n) :=
   { v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r }
 
 /-
 Helper lemma: Any non-empty subset of the norms of non-zero lattice vectors has a minimum element.
 -/
-lemma exists_min_norm_subset (L : GeometricLattice n n) (S : Set ℝ)
+lemma exists_min_norm_subset (L : EuclideanLattice n n) (S : Set ℝ)
     (h_subset : S ⊆ { ‖v‖ | v ∈ L.nonzeroVectors })
     (h_nonempty : S.Nonempty) :
     ∃ m ∈ S, ∀ s ∈ S, m ≤ s := by
@@ -84,7 +84,7 @@ lemma exists_min_norm_subset (L : GeometricLattice n n) (S : Set ℝ)
 
 
 /-- A lattice has a shortest non-zero vector (discreteness implies this infimum is attained). -/
-theorem GeometricLattice.exists_shortest_vector (L : GeometricLattice n n) :
+theorem EuclideanLattice.exists_shortest_vector (L : EuclideanLattice n n) :
     ∃ v ∈ L.nonzeroVectors, ∀ w ∈ L.nonzeroVectors, ‖v‖ ≤ ‖w‖ := by
   -- Discreteness means there exists ε > 0 such that B(0, ε) ∩ L = {0}
   have hdiscrete := discreteTopology_iff_isOpen_singleton_zero.mp L.discrete
@@ -135,7 +135,7 @@ theorem GeometricLattice.exists_shortest_vector (L : GeometricLattice n n) :
    -- Apply the hypothesis `finite_intersection_closedBall` with `r = ‖v₀‖`.
    have h_finite : Set.Finite {v ∈ L.carrier | ‖v‖ ≤ ‖v₀‖} := by
      -- Apply the hypothesis `finite_intersection_closedBall` with `r = ‖v₀‖` to conclude that the set is finite.
-     apply GeometricLattice.finite_intersection_closedBall L ‖v₀‖;
+     apply EuclideanLattice.finite_intersection_closedBall L ‖v₀‖;
    -- Since ball₀ is a subset of the finite set {v ∈ L.carrier | ‖v‖ ≤ ‖v₀‖}, it must also be finite.
    apply Set.Finite.subset h_finite; intro v hv; exact ⟨hv.left, hv.right.right⟩
 
@@ -164,11 +164,11 @@ theorem GeometricLattice.exists_shortest_vector (L : GeometricLattice n n) :
          _ < ‖w‖ := h)
 
 /-- The length of the shortest non-zero vector in the lattice (first successive minimum). -/
-noncomputable def GeometricLattice.shortestVectorLength (L : GeometricLattice n n) : ℝ :=
+noncomputable def EuclideanLattice.shortestVectorLength (L : EuclideanLattice n n) : ℝ :=
   iInf (fun v : L.nonzeroVectors => ‖(v : 𝓔 n)‖)
 
 /-- Alternative definition: λ₁(L) = inf { ‖v‖ : v ∈ L, v ≠ 0 } -/
-theorem GeometricLattice.shortestVectorLength_eq (L : GeometricLattice n n) :
+theorem EuclideanLattice.shortestVectorLength_eq (L : EuclideanLattice n n) :
     L.shortestVectorLength = sInf { r | ∃ v ∈ L.nonzeroVectors, ‖v‖ = r } := by
   simp only [shortestVectorLength]
   -- Both are infima over the same set of values
@@ -203,7 +203,7 @@ theorem GeometricLattice.shortestVectorLength_eq (L : GeometricLattice n n) :
       exact le_antisymm h_inf_ge <| ciInf_le_of_le ⟨ 0, Set.forall_mem_range.mpr fun _ => norm_nonneg _ ⟩ ⟨ v, hv ⟩ <| by aesop;
 
 /-- The shortest vector length is positive. -/
-theorem GeometricLattice.shortestVectorLength_pos (L : GeometricLattice n n) :
+theorem EuclideanLattice.shortestVectorLength_pos (L : EuclideanLattice n n) :
     0 < L.shortestVectorLength := by
   -- Since the lattice is discrete, there exists a shortest non-zero vector. Let's call this vector v. Then ‖v‖ is positive.
   obtain ⟨v, hv⟩ : ∃ v : L.nonzeroVectors, ∀ w : L.nonzeroVectors, ‖(v : 𝓔 n)‖ ≤ ‖(w : 𝓔 n)‖ := by
@@ -212,7 +212,7 @@ theorem GeometricLattice.shortestVectorLength_pos (L : GeometricLattice n n) :
   exact lt_of_lt_of_le ( norm_pos_iff.mpr v.2.2 ) ( le_csInf ⟨ _, Set.mem_range_self v ⟩ <| Set.forall_mem_range.mpr hv )
 
 /-- Any lattice point in the open ball of radius λ₀ is the origin. -/
-lemma GeometricLattice.lattice_point_in_lambda_zero_ball_is_zero (L : GeometricLattice n n)
+lemma EuclideanLattice.lattice_point_in_lambda_zero_ball_is_zero (L : EuclideanLattice n n)
     (v : 𝓔 n) (hv : v ∈ L) (hr : ‖v‖ < L.shortestVectorLength) :
     v = 0 := by
   by_contra hne
@@ -230,36 +230,36 @@ lemma GeometricLattice.lattice_point_in_lambda_zero_ball_is_zero (L : GeometricL
   Formally: λᵢ(L) = inf { r > 0 : dim(span_ℝ(L ∩ B(0,r))) ≥ i }
   In the literature, the index i is 1-based, but here we use 0-based indexing for Fin type.
 -/
-noncomputable def GeometricLattice.successiveMinima (L : GeometricLattice n n) (i : Fin n) : ℝ :=
+noncomputable def EuclideanLattice.successiveMinima (L : EuclideanLattice n n) (i : Fin n) : ℝ :=
   sInf { r : ℝ | 0 < r ∧
     ∃ (S : Finset (𝓔 n)),
       S.card = i.val + 1 ∧
       (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r) ∧
       LinearIndependent ℝ (fun v : S => (v : 𝓔 n)) }
 
-noncomputable abbrev GeometricLattice.succMin₁ (L : GeometricLattice n n) : ℝ :=
+noncomputable abbrev EuclideanLattice.succMin₁ (L : EuclideanLattice n n) : ℝ :=
   L.successiveMinima ⟨0, n.pos⟩
 
-noncomputable abbrev GeometricLattice.succMin₂ (L : GeometricLattice n n) (h : 1 < n := by decide) : ℝ :=
+noncomputable abbrev EuclideanLattice.succMin₂ (L : EuclideanLattice n n) (h : 1 < n := by decide) : ℝ :=
   L.successiveMinima ⟨1, h⟩
 
-noncomputable abbrev GeometricLattice.succMinₙ (L : GeometricLattice n n) : ℝ :=
+noncomputable abbrev EuclideanLattice.succMinₙ (L : EuclideanLattice n n) : ℝ :=
   L.successiveMinima ⟨n - 1, by
     have : 0 < (n : ℕ) := by exact n.pos
     exact Nat.sub_lt (Nat.pos_of_ne_zero (by exact n.pos.ne.symm)) (by decide)
   ⟩
 
 
-noncomputable def GeometricLattice.successiveMinima' (L : GeometricLattice n n) (i : Fin n) : ℝ :=
+noncomputable def EuclideanLattice.successiveMinima' (L : EuclideanLattice n n) (i : Fin n) : ℝ :=
   sInf { r : ℝ | 0 < r ∧
       (Module.rank ℝ (Submodule.span ℝ {v | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r})) ≥ i + 1}
 
 
-theorem GeometricLattice.successiveMinima_defs_eq (L : GeometricLattice n n) :
+theorem EuclideanLattice.successiveMinima_defs_eq (L : EuclideanLattice n n) :
   ∀ (i : Fin n), L.successiveMinima i = L.successiveMinima' i
 := by
   intro i
-  unfold GeometricLattice.successiveMinima GeometricLattice.successiveMinima'
+  unfold EuclideanLattice.successiveMinima EuclideanLattice.successiveMinima'
   congr 1
   ext r
   apply Iff.intro
@@ -287,8 +287,8 @@ theorem GeometricLattice.successiveMinima_defs_eq (L : GeometricLattice n n) :
   linearly independent lattice vectors with norms at most `r`, then the `i`-th successive
   minimum is at most `r`.
 -/
-corollary GeometricLattice.le_successiveMinima_of_exists_linearIndependent
-    (L : GeometricLattice n n)
+corollary EuclideanLattice.le_successiveMinima_of_exists_linearIndependent
+    (L : EuclideanLattice n n)
     {i : Fin n} {r : ℝ} (hr : 0 < r)
     (S : Finset (𝓔 n))
     (h_card : S.card = i.val + 1)
@@ -301,7 +301,7 @@ corollary GeometricLattice.le_successiveMinima_of_exists_linearIndependent
       · exact ⟨ hr, S, h_card, fun v hv => ⟨ h_mem v hv |>.1, h_mem v hv |>.2, h_norm v hv ⟩, h_li ⟩
 
 
-theorem GeometricLattice.exists_successiveMinima (L : GeometricLattice n n) (i : Fin n) :
+theorem EuclideanLattice.exists_successiveMinima (L : EuclideanLattice n n) (i : Fin n) :
   ∃ (r : ℝ), 0 < r ∧ ∃ (S : Finset (𝓔 n)),
       S.card = i.val + 1 ∧
       (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r) ∧
@@ -368,7 +368,7 @@ theorem GeometricLattice.exists_successiveMinima (L : GeometricLattice n n) (i :
 
 
 /-- The first successive minimum equals the shortest vector length. -/
-theorem GeometricLattice.successiveMinima_one (L : GeometricLattice n n) :
+theorem EuclideanLattice.successiveMinima_one (L : EuclideanLattice n n) :
     L.successiveMinima ⟨0, n.pos⟩ = L.shortestVectorLength := by
   simp only [successiveMinima, shortestVectorLength]
   apply le_antisymm
@@ -409,17 +409,17 @@ theorem GeometricLattice.successiveMinima_one (L : GeometricLattice n n) :
 /-
  Immediate corollary from the definition: The norm of any non-zero lattice vector is at least the first successive minimum.
 -/
-corollary GeometricLattice.norm_ge_successiveMinima_one (L : GeometricLattice n n) (v : 𝓔 n)
+corollary EuclideanLattice.norm_ge_successiveMinima_one (L : EuclideanLattice n n) (v : 𝓔 n)
     (hv : v ∈ L.nonzeroVectors) :
     L.successiveMinima ⟨0, n.pos⟩ ≤ ‖v‖ := by
       have := hv;
-      rw [ @GeometricLattice.successiveMinima_one ];
-      rw [ @GeometricLattice.shortestVectorLength_eq ];
+      rw [ @EuclideanLattice.successiveMinima_one ];
+      rw [ @EuclideanLattice.shortestVectorLength_eq ];
       exact csInf_le ⟨ 0, by rintro x ⟨ w, hw, rfl ⟩ ; exact norm_nonneg _ ⟩ ⟨ v, this, rfl ⟩
 
 
 /-- Successive minima are non-decreasing: λᵢ ≤ λⱼ for i ≤ j. -/
-theorem GeometricLattice.successiveMinima_mono (L : GeometricLattice n n)
+theorem EuclideanLattice.successiveMinima_mono (L : EuclideanLattice n n)
     {i j : Fin n} (hij : i ≤ j) :
     L.successiveMinima i ≤ L.successiveMinima j := by
   apply csInf_le_csInf
@@ -465,7 +465,7 @@ theorem GeometricLattice.successiveMinima_mono (L : GeometricLattice n n)
       exacts [ fun x => ⟨ x, hT_sub x.2 ⟩, fun x y hxy => by simpa [ Subtype.ext_iff ] using hxy, funext fun x => rfl ]
 
 /-- All successive minima are positive. -/
-theorem GeometricLattice.successiveMinima_pos (L : GeometricLattice n n) (i : Fin n) :
+theorem EuclideanLattice.successiveMinima_pos (L : EuclideanLattice n n) (i : Fin n) :
     0 < L.successiveMinima i := by
   -- λ₁ ≤ λᵢ and λ₁ > 0
   calc 0 < L.successiveMinima ⟨0, n.pos⟩ := by
@@ -474,7 +474,7 @@ theorem GeometricLattice.successiveMinima_pos (L : GeometricLattice n n) (i : Fi
        _ ≤ L.successiveMinima i := successiveMinima_mono L (Fin.zero_le i)
 
 /-- All successive minima are finite (bounded above). -/
-theorem GeometricLattice.successiveMinima_boundedAbove (L : GeometricLattice n n) (i : Fin n) :
+theorem EuclideanLattice.successiveMinima_boundedAbove (L : EuclideanLattice n n) (i : Fin n) :
     ∃ M : ℝ, L.successiveMinima i ≤ M := by
   -- Use the basis vectors: they are n linearly independent vectors
   -- M = max { ‖bⱼ‖ : j ∈ Fin n } works for all λᵢ
@@ -517,7 +517,7 @@ theorem GeometricLattice.successiveMinima_boundedAbove (L : GeometricLattice n n
           have := Classical.choose_spec ( Finset.mem_image.mp x.2 ) ; aesop;)
 
 /-- Scaling a geometric lattice by a positive scalar scales its successive minima by the same factor. -/
-theorem GeometricLattice.successiveMinima_scale (L : GeometricLattice n n) (i : Fin n) (s : ℝ) (hs : 0 < s) :
+theorem EuclideanLattice.successiveMinima_scale (L : EuclideanLattice n n) (i : Fin n) (s : ℝ) (hs : 0 < s) :
   (L.smul s hs.ne.symm).successiveMinima i = s * L.successiveMinima i := by
   generalize_proofs at *;
   -- Since scaling each vector by s scales the norms by s, the dimension of the span remains the same. Therefore, the successive minima of sL is s times the successive minima of L.
@@ -525,7 +525,7 @@ theorem GeometricLattice.successiveMinima_scale (L : GeometricLattice n n) (i : 
     intro r;
     -- By definition of scaling, we have that $v \in (L.smul s ‹_›)$ if and only if $v = s \cdot u$ for some $u \in L$.
     have h_scale : {v : 𝓔 n | v ∈ (L.smul s ‹_›) ∧ v ≠ 0 ∧ ‖v‖ ≤ r} = {s • u | u ∈ {v : 𝓔 n | v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ r / s}} := by
-      ext v; simp [GeometricLattice.smul];
+      ext v; simp [EuclideanLattice.smul];
       constructor;
       · intro hv
         obtain ⟨u, hu⟩ : ∃ u ∈ L, v = s • u := by
@@ -572,12 +572,12 @@ theorem GeometricLattice.successiveMinima_scale (L : GeometricLattice n n) (i : 
       specialize h_inf ( x / s ) ; simp_all +decide [ mul_div_cancel₀ _ hs.ne' ] ;
   convert congr_arg ( fun x => s * x ) h_inf_eq.symm using 1;
   · field_simp;
-    convert GeometricLattice.successiveMinima_defs_eq ( L.smul s ‹_› ) i using 1;
+    convert EuclideanLattice.successiveMinima_defs_eq ( L.smul s ‹_› ) i using 1;
   · congr! 2;
-    convert GeometricLattice.successiveMinima_defs_eq L i using 1
+    convert EuclideanLattice.successiveMinima_defs_eq L i using 1
 
 /-- Scaling a geometric lattice by a positive scalar will cause its dual's successive minima to shrink by the same factor. -/
-theorem GeometricLattice.successiveMinima_scale_dual (L : GeometricLattice n n) (i : Fin n) (s : ℝ) (hs : 0 < s) :
+theorem EuclideanLattice.successiveMinima_scale_dual (L : EuclideanLattice n n) (i : Fin n) (s : ℝ) (hs : 0 < s) :
   (L.smul s hs.ne.symm).dual.successiveMinima i = L.dual.successiveMinima i / s := by
   -- By definition of dual, scaling L by s scales its dual by 1/s.
   have h_dual_scale : (L.smul s hs.ne.symm).dual = L.dual.smul (1 / s) (by
@@ -601,7 +601,7 @@ theorem GeometricLattice.successiveMinima_scale_dual (L : GeometricLattice n n) 
     exact congr_arg _ h_dual_scale
   generalize_proofs at *;
   -- By definition of successive minima, we know that scaling the lattice by $1/s$ scales the successive minima by $1/s$.
-  have h_scale_succ_min : ∀ (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s), (L.smul s hs.ne.symm).successiveMinima i = s * L.successiveMinima i := by
+  have h_scale_succ_min : ∀ (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s), (L.smul s hs.ne.symm).successiveMinima i = s * L.successiveMinima i := by
     exact fun L s hs => successiveMinima_scale L i s hs
   generalize_proofs at *;
   rw [ h_dual_scale, h_scale_succ_min ] <;> ring_nf ; aesop
@@ -615,14 +615,14 @@ noncomputable section successive_minima_achievable
 ## In this section we prove that successive minima are achivable by n linearly independent vectors
 -/
 /-- Helper -/
-lemma LatticeCrypto.Foundations.Lattice.exists_min_norm_subset_proven {n : ℕ+} (L : GeometricLattice n n) (S : Set ℝ)
+lemma LatticeCrypto.Foundations.Lattice.exists_min_norm_subset_proven {n : ℕ+} (L : EuclideanLattice n n) (S : Set ℝ)
     (h_subset : S ⊆ { ‖v‖ | v ∈ L.nonzeroVectors })
     (h_nonempty : S.Nonempty) :
     ∃ m ∈ S, ∀ s ∈ S, m ≤ s := by
       exact exists_min_norm_subset L S h_subset h_nonempty
 
 /-- The successive minima are achieved by lattice vectors. -/
-theorem GeometricLattice.successiveMinima_attained (L : GeometricLattice n n) (i : Fin n) :
+theorem EuclideanLattice.successiveMinima_attained (L : EuclideanLattice n n) (i : Fin n) :
     ∃ v ∈ L.nonzeroVectors, ‖v‖ = L.successiveMinima i := by
   classical
   -- Abbreviate the defining set of λᵢ
@@ -713,7 +713,7 @@ theorem GeometricLattice.successiveMinima_attained (L : GeometricLattice n n) (i
       -- Larger set → smaller inf, so subset B ⊆ A gives sInf A ≤ sInf B
       apply_rules [ csInf_le_csInf ];
       · exact ⟨ 0, fun r hr => hr.1.le ⟩;
-      · obtain ⟨ r, hr ⟩ := GeometricLattice.exists_successiveMinima L i;
+      · obtain ⟨ r, hr ⟩ := EuclideanLattice.exists_successiveMinima L i;
         obtain ⟨ b, hb₁, hb₂ ⟩ := hA_to_B r ⟨ hr.1, hr.2 ⟩ ; exact ⟨ b, hb₁ ⟩
 
     -- (b) sInf B is a lower bound of A, hence ≤ sInf A
@@ -789,7 +789,7 @@ noncomputable section Aristotle_lemmas
 /-
 The i-th successive minimum is attained by a set of i+1 linearly independent lattice vectors.
 -/
-theorem successiveMinima_attained_set (L : GeometricLattice n n) (i : Fin n) :
+theorem successiveMinima_attained_set (L : EuclideanLattice n n) (i : Fin n) :
     ∃ S : Finset (𝓔 n),
       S.card = i.val + 1 ∧
       (∀ v ∈ S, v ∈ L ∧ v ≠ 0 ∧ ‖v‖ ≤ L.successiveMinima i) ∧
@@ -864,7 +864,7 @@ theorem successiveMinima_attained_set (L : GeometricLattice n n) (i : Fin n) :
     have h1 : sInf A ≤ sInf B := by
       apply_rules [csInf_le_csInf]
       · exact ⟨0, fun r hr => hr.1.le⟩
-      · obtain ⟨r, hr⟩ := GeometricLattice.exists_successiveMinima L i
+      · obtain ⟨r, hr⟩ := EuclideanLattice.exists_successiveMinima L i
         obtain ⟨b, hb₁, hb₂⟩ := hA_to_B r ⟨hr.1, hr.2⟩
         exact ⟨b, hb₁⟩
     have h2 : sInf B ≤ sInf A := by
@@ -880,14 +880,14 @@ theorem successiveMinima_attained_set (L : GeometricLattice n n) (i : Fin n) :
       · apply Classical.byContradiction
         intro hA_empty
         exact hA_empty <| by
-          obtain ⟨r, hr⟩ := GeometricLattice.exists_successiveMinima L i
+          obtain ⟨r, hr⟩ := EuclideanLattice.exists_successiveMinima L i
           exact ⟨r, ⟨hr.1, hr.2⟩⟩
       · exact h_lb
     exact le_antisymm h1 h2
 
   -- 4. Nonemptiness of B and that B ⊆ {‖v‖ | v ∈ L.nonzeroVectors}
   have hB_nonempty : B.Nonempty := by
-    obtain ⟨r, hr_pos, S, hS_card, hS_props, hS_li⟩ := GeometricLattice.exists_successiveMinima L i
+    obtain ⟨r, hr_pos, S, hS_card, hS_props, hS_li⟩ := EuclideanLattice.exists_successiveMinima L i
     have : r ∈ A := by
       refine ⟨hr_pos, S, hS_card, hS_props, hS_li⟩
     rcases hA_to_B r this with ⟨b, hbB, hb_le⟩
@@ -933,7 +933,7 @@ theorem successiveMinima_attained_set (L : GeometricLattice n n) (i : Fin n) :
 /-
 If a set of k+1 linearly independent lattice vectors exists, at least one must have norm >= lambda_k.
 -/
-theorem norm_ge_successiveMinima (L : GeometricLattice n n) (k : Fin n) (s : Finset (𝓔 n))
+theorem norm_ge_successiveMinima (L : EuclideanLattice n n) (k : Fin n) (s : Finset (𝓔 n))
     (h_card : s.card = k.val + 1)
     (h_li : LinearIndependent ℝ (fun v : s => (v : 𝓔 n)))
     (h_mem : ∀ v ∈ s, v ∈ L.nonzeroVectors) :
@@ -954,7 +954,7 @@ theorem norm_ge_successiveMinima (L : GeometricLattice n n) (k : Fin n) (s : Fin
 /-
 Helper lemma: A specific configuration of vectors with small norms leads to a contradiction.
 -/
-lemma contradiction_of_small_norm (L : GeometricLattice n n) (j : Fin n) (hj : j.val + 1 < n)
+lemma contradiction_of_small_norm (L : EuclideanLattice n n) (j : Fin n) (hj : j.val + 1 < n)
     (x : Fin (j.val + 1) → 𝓔 n) (v : 𝓔 n)
     (h_li : LinearIndependent ℝ (Fin.snoc x v))
     (h_mem_x : ∀ i, x i ∈ L.nonzeroVectors)
@@ -1013,7 +1013,7 @@ lemma contradiction_of_small_norm (L : GeometricLattice n n) (j : Fin n) (hj : j
 /-
 Given a vector with norm strictly between lambda_0 and lambda_k, there exists an index j < k such that lambda_j <= norm < lambda_{j+1}.
 -/
-lemma exists_index_between_norms (L : GeometricLattice n n) (k : ℕ) (hk : k < n)
+lemma exists_index_between_norms (L : EuclideanLattice n n) (k : ℕ) (hk : k < n)
     (v : 𝓔 n) (hv_mem : v ∈ L.nonzeroVectors) (hv_lt : ‖v‖ < L.successiveMinima ⟨k, hk⟩) :
     ∃ j : Fin k,
       L.successiveMinima (Fin.castLE (le_of_lt hk) j) ≤ ‖v‖ ∧
@@ -1031,7 +1031,7 @@ lemma exists_index_between_norms (L : GeometricLattice n n) (k : ℕ) (hk : k < 
 /-
 Helper lemma: If we find a vector with norm strictly less than lambda_k that is linearly independent of the first k vectors, we get a contradiction.
 -/
-lemma inductive_step_contradiction (L : GeometricLattice n n) (k : ℕ) (hk : k < n)
+lemma inductive_step_contradiction (L : EuclideanLattice n n) (k : ℕ) (hk : k < n)
   (x : Fin k → 𝓔 n)
   (h_li : LinearIndependent ℝ x)
   (h_x_mem : ∀ i, x i ∈ L.nonzeroVectors)
@@ -1089,7 +1089,7 @@ lemma inductive_step_contradiction (L : GeometricLattice n n) (k : ℕ) (hk : k 
       have hij : (Fin.castLE (le_of_lt hk) i') ≤ (Fin.castLE (le_of_lt hk) j) := by
         exact Fin.le_iff_val_le_val.mpr (Nat.le_of_lt_succ i.is_lt)
       have h_le : L.successiveMinima (Fin.castLE (le_of_lt hk) i') ≤ ‖v‖ :=
-        le_trans (GeometricLattice.successiveMinima_mono L hij) hj.1
+        le_trans (EuclideanLattice.successiveMinima_mono L hij) hj.1
       simpa [h_eq] using h_le
     · -- Final small-norm hypothesis.
       exact hj.2
@@ -1097,7 +1097,7 @@ lemma inductive_step_contradiction (L : GeometricLattice n n) (k : ℕ) (hk : k 
 /-
 Inductive step: given k linearly independent vectors with correct norms, we can find a (k+1)-th vector.
 -/
-lemma inductive_step_successiveMinima (L : GeometricLattice n n) (k : ℕ) (hk : k < n)
+lemma inductive_step_successiveMinima (L : EuclideanLattice n n) (k : ℕ) (hk : k < n)
   (x : Fin k → 𝓔 n)
   (h_li : LinearIndependent ℝ x)
   (h_x_mem : ∀ i, x i ∈ L.nonzeroVectors)
@@ -1123,7 +1123,7 @@ lemma inductive_step_successiveMinima (L : GeometricLattice n n) (k : ℕ) (hk :
 /-
 There exists a partial basis of size k satisfying the successive minima conditions.
 -/
-lemma exists_partial_basis (L : GeometricLattice n n) (k : ℕ) (hk : k ≤ n) :
+lemma exists_partial_basis (L : EuclideanLattice n n) (k : ℕ) (hk : k ≤ n) :
   ∃ x : Fin k → 𝓔 n,
     LinearIndependent ℝ x ∧
     ∀ i : Fin k, x i ∈ L.nonzeroVectors ∧ ‖x i‖ = L.successiveMinima (Fin.castLE hk i) := by
@@ -1138,8 +1138,8 @@ lemma exists_partial_basis (L : GeometricLattice n n) (k : ℕ) (hk : k ≤ n) :
 end Aristotle_lemmas
 
 /-! There are n linearly independent vectors in the lattice attaining the successive minima. -/
-theorem GeometricLattice.linearIndependent_successiveMinima_attained
-    (L : GeometricLattice n n) :
+theorem EuclideanLattice.linearIndependent_successiveMinima_attained
+    (L : EuclideanLattice n n) :
   ∃ (x : Fin n → 𝓔 n),
     (∀ i : Fin n, x i ∈ L.nonzeroVectors ∧ ‖x i‖ = L.successiveMinima i) ∧
     LinearIndependent ℝ x := by
@@ -1211,10 +1211,10 @@ The shortest non-zero vector in the lattice cannot be shorter than the shortest 
 -/
 theorem shortestVectorLength_ge_gramSchmidt_minNorm
   {n : ℕ+}
-  (L : GeometricLattice n n)
+  (L : EuclideanLattice n n)
   (B : SquareLatticeBasis n)
   (h : isBasisFor B L) :
-  minNorm (InnerProductSpace.gramSchmidt ℝ B.basis) ≤ GeometricLattice.shortestVectorLength L := by
+  minNorm (InnerProductSpace.gramSchmidt ℝ B.basis) ≤ EuclideanLattice.shortestVectorLength L := by
   refine le_csInf ?_ ?_
   · -- nonempty set of norms
     obtain ⟨v, hv, _⟩ := L.exists_shortest_vector
@@ -1222,10 +1222,10 @@ theorem shortestVectorLength_ge_gramSchmidt_minNorm
   · rintro b ⟨w, rfl⟩
     -- move membership to the lattice generated by `B`
     have h_carrier : B.toLattice.carrier = L.carrier := by
-      simpa [isBasisFor, GeometricLattice.CarrierEquiv] using h
+      simpa [isBasisFor, EuclideanLattice.CarrierEquiv] using h
     have hwB : (w : 𝓔 n) ∈ B.toLattice := by
       -- rewrite membership via carrier equality
-      rw [GeometricLattice.mem_def]
+      rw [EuclideanLattice.mem_def]
       -- goal: w ∈ B.toLattice.carrier
       rw [h_carrier]
       -- goal: w ∈ L.carrier
@@ -1233,7 +1233,7 @@ theorem shortestVectorLength_ge_gramSchmidt_minNorm
 
     -- extract integer coefficients in the basis `B`
     obtain ⟨c, hc⟩ : ∃ c : Fin n → ℤ, (w : 𝓔 n) = ∑ i, c i • B.basis i := by
-      rcases (GeometricLattice.mem_iff_exists_coeffs (B.toLattice) (w : 𝓔 n)).1 hwB with ⟨c, hc⟩
+      rcases (EuclideanLattice.mem_iff_exists_coeffs (B.toLattice) (w : 𝓔 n)).1 hwB with ⟨c, hc⟩
       refine ⟨c, ?_⟩
       simpa [LatticeBasis.cols] using hc
 

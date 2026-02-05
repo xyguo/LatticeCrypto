@@ -26,10 +26,10 @@ This file states some fundamental theorems relating successive minima to volume 
 
 ## Main Theorems
 
-* `GeometricLattice.blichfeldt` - Blichfeldt's theorem
-* `GeometricLattice.minkowski_convex_body` - Minkowski's convex body theorem
-* `GeometricLattice.minkowski_first` - Minkowski's first theorem (bound on λ₁)
-* `GeometricLattice.minkowski_second` - Minkowski's second theorem (bound on ∏ λᵢ)
+* `EuclideanLattice.blichfeldt` - Blichfeldt's theorem
+* `EuclideanLattice.minkowski_convex_body` - Minkowski's convex body theorem
+* `EuclideanLattice.minkowski_first` - Minkowski's first theorem (bound on λ₁)
+* `EuclideanLattice.minkowski_second` - Minkowski's second theorem (bound on ∏ λᵢ)
 
 ## References
 
@@ -51,7 +51,7 @@ noncomputable section blichfeldt
 
   This is a fundamental result in the geometry of numbers.
 -/
-theorem GeometricLattice.blichfeldt (L : GeometricLattice n n) (S : Set (𝓔 n))
+theorem EuclideanLattice.blichfeldt (L : EuclideanLattice n n) (S : Set (𝓔 n))
     (hS_meas : MeasurableSet S)
     (hS_vol : L.det < (lebesgueMeasure S).toReal) :
     ∃ x y : 𝓔 n, x ∈ S ∧ y ∈ S ∧ x ≠ y ∧ (x - y) ∈ L := by
@@ -285,7 +285,7 @@ theorem GeometricLattice.blichfeldt (L : GeometricLattice n n) (S : Set (𝓔 n)
     exact L.sub_mem x.property y.property
 
 /-- Corollary: If vol(S) > det(L), then S - S contains a non-zero lattice point. -/
-corollary GeometricLattice.blichfeldt_diff (L : GeometricLattice n n) (S : Set (𝓔 n))
+corollary EuclideanLattice.blichfeldt_diff (L : EuclideanLattice n n) (S : Set (𝓔 n))
     (hS_meas : MeasurableSet S)
     (hS_vol : L.det < (lebesgueMeasure S).toReal) :
     ∃ v ∈ L.nonzeroVectors, v ∈ S - S := by
@@ -309,7 +309,7 @@ corollary GeometricLattice.blichfeldt_diff (L : GeometricLattice n n) (S : Set (
 
   This is one of the most important results in the geometry of numbers.
 -/
-theorem GeometricLattice.minkowski_convex_body (L : GeometricLattice n n)
+theorem EuclideanLattice.minkowski_convex_body (L : EuclideanLattice n n)
     (S : Set (𝓔 n))
     (hS_convex : Convex ℝ S)
     (hS_symm : IsCentrallySymmetric S)
@@ -375,7 +375,7 @@ noncomputable section minkowski_1
 
   where Bⁿ is the unit ball.
 -/
-theorem GeometricLattice.minkowski_first (L : GeometricLattice n n) :
+theorem EuclideanLattice.minkowski_first (L : EuclideanLattice n n) :
     L.shortestVectorLength ≤ 2 * (L.det / unitBallVolume n) ^ (1 / (n : ℝ)) := by
   -- By defintion, the open ball B(0, λ₀) contains no nonzero lattice points.
   -- Thus by Minkowski's convex body theorem, vol(B(0,λ₀)) ≤ 2^n det(L)
@@ -468,7 +468,7 @@ theorem GeometricLattice.minkowski_first (L : GeometricLattice n n) :
   exact h_rpow_bound
 
 /-- Simpler bound using √n. -/
-theorem GeometricLattice.minkowski_first_sqrt (L : GeometricLattice n n) :
+theorem EuclideanLattice.minkowski_first_sqrt (L : EuclideanLattice n n) :
     L.shortestVectorLength ≤ Real.sqrt n * L.det ^ (1 / (n : ℝ)) := by
  -- This follows from minkowski_first and vol(Bⁿ) ≥ (2/√n)ⁿ
   have : unitBallVolume n ≥ (2 : ℝ) ^ (n : ℕ) / (Real.sqrt n) ^ (n : ℕ) := by
@@ -485,12 +485,12 @@ theorem GeometricLattice.minkowski_first_sqrt (L : GeometricLattice n n) :
       · simpa using inv_anti₀ ( by positivity ) h_root;
     · exact le_of_lt ( L.det_pos );
     · exact le_trans ( by positivity ) this;
-  exact le_trans ( GeometricLattice.minkowski_first L ) ( by linarith )
+  exact le_trans ( EuclideanLattice.minkowski_first L ) ( by linarith )
 
 /-- A simple upper bound on the shortest vector length using the geometric mean of the Gram-Schmidt vectors.
   This is a corollary of Minkowski's First Theorem.
 -/
-corollary shortestVectorLength_le_gramSchmidt_geometric_mean (L : GeometricLattice n n) (B: SquareLatticeBasis n)
+corollary shortestVectorLength_le_gramSchmidt_geometric_mean (L : EuclideanLattice n n) (B: SquareLatticeBasis n)
   (h: isBasisFor B L) : L.shortestVectorLength ≤ Real.sqrt n * (∏ i : Fin n, ‖InnerProductSpace.gramSchmidt ℝ B.basis i‖) ^ (1 / (n : ℝ)) := by
   have h_L_det := euc_gramSchmidt_matrix_det_abs L.basis.asMatrix
   have h_B_det := euc_gramSchmidt_matrix_det_abs B.asMatrix
@@ -502,11 +502,11 @@ corollary shortestVectorLength_le_gramSchmidt_geometric_mean (L : GeometricLatti
     -- Since L and B are unimodularly equivalent, their determinants are equal.
     have h_det_eq : L.det = B.toLattice.det := by
       have h_unimod : L ≡ᵤ B.toLattice := by
-        exact GeometricLattice.CarrierEquiv.symm h
-      exact GeometricLattice.det_eq_of_equiv h_unimod;
+        exact EuclideanLattice.CarrierEquiv.symm h
+      exact EuclideanLattice.det_eq_of_equiv h_unimod;
     exact h_det_eq
 
-  have mink_1 := GeometricLattice.minkowski_first_sqrt L
+  have mink_1 := EuclideanLattice.minkowski_first_sqrt L
   rw [h_L_B_det_eq, LatticeBasis.volume, h_B_det] at mink_1
   convert mink_1
 
@@ -538,7 +538,7 @@ open Module
 /-
 There exists a smallest index `j ≤ k` such that `λ_j = λ_k`. For all `i < j`, `λ_i < λ_k`.
 -/
-lemma exists_min_index_eq_successiveMinima (L : GeometricLattice n n) (k : Fin n) :
+lemma exists_min_index_eq_successiveMinima (L : EuclideanLattice n n) (k : Fin n) :
     ∃ j : Fin n, j ≤ k ∧ L.successiveMinima j = L.successiveMinima k ∧
     ∀ i : Fin n, i < j → L.successiveMinima i < L.successiveMinima k := by
       -- Since `L.successiveMinima` is monotonic, the set `S = {i | L.successiveMinima i = L.successiveMinima k}` is nonempty and has a least element.
@@ -691,7 +691,7 @@ Definition of the extremal basis for a geometric lattice.
 -/
 
 /-- The basis of vectors attaining the successive minima. -/
-noncomputable def GeometricLattice.extremalBasis (L : GeometricLattice n n) : Basis (Fin n) ℝ (𝓔 n) :=
+noncomputable def EuclideanLattice.extremalBasis (L : EuclideanLattice n n) : Basis (Fin n) ℝ (𝓔 n) :=
   let x := Classical.choose L.linearIndependent_successiveMinima_attained
   let h := Classical.choose_spec L.linearIndependent_successiveMinima_attained
   basisOfLinearIndependentOfCardEqFinrank h.2 (by simp [finrank_euclideanSpace])
@@ -775,9 +775,9 @@ lemma minkowski_ellipsoid_disjoint_ineq (b : Basis (Fin n) ℝ (𝓔 n)) (lambda
 If a lattice vector has norm less than the k-th successive minimum, it is in the span of the first k extremal basis vectors.
 -/
 
-lemma mem_span_of_norm_lt (L : GeometricLattice n n) (v : 𝓔 n) (hv : v ∈ L.nonzeroVectors) (k : Fin n)
+lemma mem_span_of_norm_lt (L : EuclideanLattice n n) (v : 𝓔 n) (hv : v ∈ L.nonzeroVectors) (k : Fin n)
     (h_lt : ‖v‖ < L.successiveMinima k) :
-    v ∈ Submodule.span ℝ (Set.image (GeometricLattice.extremalBasis L) (Finset.Iio k)) := by
+    v ∈ Submodule.span ℝ (Set.image (EuclideanLattice.extremalBasis L) (Finset.Iio k)) := by
       norm_num +zetaDelta at *;
       -- Suppose v is not in the span of x_0, ..., x_{k-1}. Then v is linearly independent of the set {x_i | i < k}.
       by_contra h_not_in_span
@@ -795,7 +795,7 @@ lemma mem_span_of_norm_lt (L : GeometricLattice n n) (v : 𝓔 n) (hv : v ∈ L.
           refine' Submodule.subset_span ⟨ Fin.castLE ( by aesop ) i, _, _ ⟩ <;> aesop
           all_goals generalize_proofs at *;
           · exact Fin.castSucc_lt_last i;
-          · unfold GeometricLattice.extremalBasis; aesop;
+          · unfold EuclideanLattice.extremalBasis; aesop;
       generalize_proofs at *;
       exact inductive_step_contradiction L k ( Fin.is_lt k ) ( fun i => Classical.choose ( L.linearIndependent_successiveMinima_attained ) ( Fin.castLE ( Nat.le_of_lt k.2 ) i ) ) ( by
         refine' linearIndependent_fin_snoc.mp h_lin_indep |>.1 ) ( by
@@ -806,45 +806,45 @@ lemma mem_span_of_norm_lt (L : GeometricLattice n n) (v : 𝓔 n) (hv : v ∈ L.
 The Minkowski ellipsoid contains no non-zero lattice points.
 -/
 
-theorem minkowski_ellipsoid_disjoint (L : GeometricLattice n n) :
-    ∀ v ∈ L.nonzeroVectors, v ∉ minkowski_ellipsoid (GeometricLattice.extremalBasis L) (L.successiveMinima) := by
+theorem minkowski_ellipsoid_disjoint (L : EuclideanLattice n n) :
+    ∀ v ∈ L.nonzeroVectors, v ∉ minkowski_ellipsoid (EuclideanLattice.extremalBasis L) (L.successiveMinima) := by
       -- Let's choose any non-zero lattice vector v and apply the two cases.
       intro v hv_nonzero
       by_cases hv_gt : ‖v‖ ≥ L.successiveMinima (Fin.mk (n - 1) (Nat.sub_lt n.pos one_pos));
-      · have h_sum_ge_one : ∑ i, (inner ℝ v (gramSchmidt ℝ (GeometricLattice.extremalBasis L) i) / (‖gramSchmidt ℝ (GeometricLattice.extremalBasis L) i‖ * L.successiveMinima i)) ^ 2 ≥ ‖v‖ ^ 2 / (L.successiveMinima (Fin.mk (n - 1) (Nat.sub_lt n.pos one_pos))) ^ 2 := by
+      · have h_sum_ge_one : ∑ i, (inner ℝ v (gramSchmidt ℝ (EuclideanLattice.extremalBasis L) i) / (‖gramSchmidt ℝ (EuclideanLattice.extremalBasis L) i‖ * L.successiveMinima i)) ^ 2 ≥ ‖v‖ ^ 2 / (L.successiveMinima (Fin.mk (n - 1) (Nat.sub_lt n.pos one_pos))) ^ 2 := by
           apply minkowski_ellipsoid_disjoint_ineq;
-          · have h_span : v ∈ Submodule.span ℝ (Set.range (GeometricLattice.extremalBasis L)) := by
+          · have h_span : v ∈ Submodule.span ℝ (Set.range (EuclideanLattice.extremalBasis L)) := by
               simp +zetaDelta at *;
             rw [ Finsupp.mem_span_range_iff_exists_finsupp ] at h_span;
             rcases h_span with ⟨ c, rfl ⟩ ; rw [ Finsupp.sum ] ; aesop;
             exact Submodule.sum_mem _ fun i hi => Submodule.smul_mem _ _ <| Submodule.subset_span <| Set.mem_image_of_mem _ <| Nat.le_sub_one_of_lt <| Fin.is_lt i;
-          · exact fun i => GeometricLattice.successiveMinima_pos L i;
+          · exact fun i => EuclideanLattice.successiveMinima_pos L i;
           · exact fun i j hij hj => L.successiveMinima_mono hij;
         contrapose! h_sum_ge_one;
-        exact lt_of_lt_of_le h_sum_ge_one <| by rw [ le_div_iff₀ ] <;> nlinarith [ show 0 < L.successiveMinima ( Fin.mk ( n - 1 ) ( Nat.sub_lt n.pos one_pos ) ) from GeometricLattice.successiveMinima_pos L _ ] ;
+        exact lt_of_lt_of_le h_sum_ge_one <| by rw [ le_div_iff₀ ] <;> nlinarith [ show 0 < L.successiveMinima ( Fin.mk ( n - 1 ) ( Nat.sub_lt n.pos one_pos ) ) from EuclideanLattice.successiveMinima_pos L _ ] ;
       · obtain ⟨ k, hk₁, hk₂ ⟩ := exists_index_between_norms L ( n - 1 ) ( Nat.sub_lt n.pos zero_lt_one ) v hv_nonzero ( by aesop );
         -- By mem_span_of_norm_lt, v is in the span of {x_i | i < k+1}, i.e., i ≤ k.
-        have h_span : v ∈ Submodule.span ℝ (Set.image (GeometricLattice.extremalBasis L) (Finset.Iio (⟨ k + 1, by
+        have h_span : v ∈ Submodule.span ℝ (Set.image (EuclideanLattice.extremalBasis L) (Finset.Iio (⟨ k + 1, by
           exact Nat.lt_pred_iff.mp k.2 ⟩ : Fin n))) := by
           apply mem_span_of_norm_lt;
           · assumption;
           · exact hk₂
         generalize_proofs at *;
         -- By minkowski_ellipsoid_disjoint_ineq with this k, the sum is ≥ ‖v‖^2 / λ_k^2 ≥ 1.
-        have h_sum_ge_one : ∑ i : Fin n, (inner ℝ v (gramSchmidt ℝ (GeometricLattice.extremalBasis L) i) / (‖gramSchmidt ℝ (GeometricLattice.extremalBasis L) i‖ * L.successiveMinima i)) ^ 2 ≥ ‖v‖ ^ 2 / (L.successiveMinima (Fin.castLE (Nat.le_of_lt ‹_›) k)) ^ 2 := by
+        have h_sum_ge_one : ∑ i : Fin n, (inner ℝ v (gramSchmidt ℝ (EuclideanLattice.extremalBasis L) i) / (‖gramSchmidt ℝ (EuclideanLattice.extremalBasis L) i‖ * L.successiveMinima i)) ^ 2 ≥ ‖v‖ ^ 2 / (L.successiveMinima (Fin.castLE (Nat.le_of_lt ‹_›) k)) ^ 2 := by
           apply minkowski_ellipsoid_disjoint_ineq;
           · refine' Submodule.span_mono _ h_span;
             simp +decide ;
             exact fun x hx => ⟨ x, Nat.le_of_lt_succ <| by aesop, rfl ⟩;
-          · exact fun i => GeometricLattice.successiveMinima_pos L i;
-          · exact fun i j a a_1 => GeometricLattice.successiveMinima_mono L a;
+          · exact fun i => EuclideanLattice.successiveMinima_pos L i;
+          · exact fun i j a a_1 => EuclideanLattice.successiveMinima_mono L a;
         -- Since ‖v‖ ≥ L.successiveMinima (Fin.castLE (Nat.le_of_lt ‹_›) k), we have ‖v‖^2 / (L.successiveMinima (Fin.castLE (Nat.le_of_lt ‹_›) k))^2 ≥ 1.
         have h_norm_ge_one : ‖v‖ ^ 2 / (L.successiveMinima (Fin.castLE (Nat.le_of_lt ‹_›) k)) ^ 2 ≥ 1 := by
           rw [ ge_iff_le, le_div_iff₀ ] <;>
             nlinarith [
               show 0 < L.successiveMinima ( Fin.castLE ( Nat.le_of_lt ‹_› ) k ) from by
                 (expose_names;
-                  exact GeometricLattice.successiveMinima_pos L (Fin.castLE (Nat.le_of_lt pf) k))
+                  exact EuclideanLattice.successiveMinima_pos L (Fin.castLE (Nat.le_of_lt pf) k))
               ];
         exact fun h => h_norm_ge_one.not_gt <| h_sum_ge_one.trans_lt <| by simpa using h;
 
@@ -852,13 +852,13 @@ theorem minkowski_ellipsoid_disjoint (L : GeometricLattice n n) :
 Minkowski's Second Theorem: The product of successive minima times the unit ball volume is bounded by 2^n times the lattice determinant.
 -/
 
-theorem GeometricLattice.minkowski_second (L : GeometricLattice n n) :
+theorem EuclideanLattice.minkowski_second (L : EuclideanLattice n n) :
     (∏ i : Fin n, L.successiveMinima i) * unitBallVolume n ≤ (2 : ℝ) ^ (n : ℕ) * L.det := by
       -- By Minkowski's Convex Body Theorem, if the volume of the ellipsoid is greater than $(2^n) \cdot \text{det}(L)$, then it would contain a non-zero lattice point.
       have h_minkowski : ∀ S : Set (𝓔 n), Convex ℝ S → IsCentrallySymmetric S → MeasurableSet S → (2 ^ (n : ℕ) * L.det < (lebesgueMeasure S).toReal) → ∃ v ∈ L.nonzeroVectors, v ∈ S := by
         exact fun S a a_1 a_2 a_3 => minkowski_convex_body L S a a_1 a_2 a_3;
       contrapose! h_minkowski;
-      refine' ⟨ minkowski_ellipsoid ( GeometricLattice.extremalBasis L ) ( L.successiveMinima ), minkowski_ellipsoid_convex _ _, minkowski_ellipsoid_symmetric _ _, _, _, _ ⟩;
+      refine' ⟨ minkowski_ellipsoid ( EuclideanLattice.extremalBasis L ) ( L.successiveMinima ), minkowski_ellipsoid_convex _ _, minkowski_ellipsoid_symmetric _ _, _, _, _ ⟩;
       · exact measurableSet_lt ( by measurability ) ( by measurability );
       · refine' lt_of_lt_of_le h_minkowski _;
         rw [ minkowski_ellipsoid_volume ];
@@ -869,16 +869,16 @@ theorem GeometricLattice.minkowski_second (L : GeometricLattice n n) :
 Minkowski's Second Theorem (sqrt form): The geometric mean of successive minima is bounded by sqrt(n) times the n-th root of the determinant.
 -/
 
-theorem GeometricLattice.minkowski_second_sqrt (L : GeometricLattice n n) :
+theorem EuclideanLattice.minkowski_second_sqrt (L : EuclideanLattice n n) :
     (∏ i : Fin n, L.successiveMinima i) ^ (1 / (n : ℝ)) ≤ Real.sqrt n * (L.det) ^ (1 / (n : ℝ)) := by
       rw [ mul_comm ];
       -- Taking the n-th root of both sides of the inequality from Minkowski's second theorem.
       have h_root : (∏ i : Fin n, L.successiveMinima i) ≤ (Real.sqrt n) ^ (n : ℕ) * L.det := by
-        have := @GeometricLattice.minkowski_second;
+        have := @EuclideanLattice.minkowski_second;
         have := @unitBallVolume_lb n;
         rw [ div_le_iff₀ ( by positivity ) ] at this;
-        nlinarith [ show 0 < L.det from L.det_pos, show 0 < ( 2 : ℝ ) ^ ( n : ℕ ) by positivity, show 0 < ( Real.sqrt n ) ^ ( n : ℕ ) by positivity, show 0 < ( ∏ i : Fin n, L.successiveMinima i ) by exact Finset.prod_pos fun i _ => L.successiveMinima_pos i, ‹∀ { n : ℕ+ } ( L : GeometricLattice n n ), ( ∏ i, L.successiveMinima i ) * unitBallVolume n ≤ 2 ^ ( n : ℕ ) * L.det› L ];
-      exact le_trans ( Real.rpow_le_rpow ( Finset.prod_nonneg fun _ _ => le_of_lt ( GeometricLattice.successiveMinima_pos L _ ) ) h_root ( by positivity ) ) ( by rw [ Real.mul_rpow ( by positivity ) ( by exact le_of_lt ( L.det_pos ) ), ← Real.rpow_natCast, ← Real.rpow_mul ( by positivity ), mul_one_div_cancel ( by positivity ), Real.rpow_one ] ; ring_nf; norm_num )
+        nlinarith [ show 0 < L.det from L.det_pos, show 0 < ( 2 : ℝ ) ^ ( n : ℕ ) by positivity, show 0 < ( Real.sqrt n ) ^ ( n : ℕ ) by positivity, show 0 < ( ∏ i : Fin n, L.successiveMinima i ) by exact Finset.prod_pos fun i _ => L.successiveMinima_pos i, ‹∀ { n : ℕ+ } ( L : EuclideanLattice n n ), ( ∏ i, L.successiveMinima i ) * unitBallVolume n ≤ 2 ^ ( n : ℕ ) * L.det› L ];
+      exact le_trans ( Real.rpow_le_rpow ( Finset.prod_nonneg fun _ _ => le_of_lt ( EuclideanLattice.successiveMinima_pos L _ ) ) h_root ( by positivity ) ) ( by rw [ Real.mul_rpow ( by positivity ) ( by exact le_of_lt ( L.det_pos ) ), ← Real.rpow_natCast, ← Real.rpow_mul ( by positivity ), mul_one_div_cancel ( by positivity ), Real.rpow_one ] ; ring_nf; norm_num )
 
 end minkowski_2
 

@@ -38,7 +38,7 @@ open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Foundations.Lattice
 open scoped FourierTransform
 
-variable {n : ℕ+} (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s)
+variable {n : ℕ+} (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s)
 
 /-- The open Euclidean ball centered at c with radius r -/
 abbrev 𝔅 {n : ℕ+} (c : 𝓔 n) (r : ℝ) := Metric.ball c r
@@ -185,7 +185,7 @@ lemma rho_le_rhoS_mul_factor {n : ℕ+} (v : 𝓔 n) (hv : ‖v‖ ≥ Real.sqrt
 /-
 Bound the mass of the Gaussian on a set by a factor times the mass of the scaled Gaussian on the same set.
 -/
-lemma rhoMassOn_le_factor_mul_rhoSMassOn (c : 𝓔 n) (L : GeometricLattice n n) :
+lemma rhoMassOn_le_factor_mul_rhoSMassOn (c : 𝓔 n) (L : EuclideanLattice n n) :
   rhoMassOn c L (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ ≤
   Real.exp (-3 * Real.pi * n / 4) * rhoSMassOn 2 c L (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ := by
     -- Apply the pointwise inequality to each term in the sum.
@@ -206,7 +206,7 @@ lemma rhoMassOn_le_factor_mul_rhoSMassOn (c : 𝓔 n) (L : GeometricLattice n n)
     rho(c + L \setminus \sqrt{n} B_n)  < 2^{−n} rho(L),
   where L \setminus \sqrt{n} B_n is the set of lattice points of norm no-shorter than √{n}.
 -/
-theorem rhoMass_outside_ball_stronger (c : 𝓔 n) (L : GeometricLattice n n) :
+theorem rhoMass_outside_ball_stronger (c : 𝓔 n) (L : EuclideanLattice n n) :
   rhoMassOn c L (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ < (0.2 : ℝ)^(n : ℝ) * (rhoMass 0 L) := by
     have := rhoMassOn_le_factor_mul_rhoSMassOn c L;
     -- Apply Lemma 2 to bound the mass outside the ball.
@@ -237,7 +237,7 @@ theorem rhoMass_outside_ball_stronger (c : 𝓔 n) (L : GeometricLattice n n) :
     rw [ rhoSMass_one_eq_rhoMass ]
 
 /-- Handy bound 2^{-n} on rhoMass on lattice points outside ball of radius √n -/
-corollary rhoMass_outside_ball (c : 𝓔 n) (L : GeometricLattice n n) :
+corollary rhoMass_outside_ball (c : 𝓔 n) (L : EuclideanLattice n n) :
   rhoMassOn c L (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ < (2 : ℝ)^(-n : ℝ) * (rhoMass 0 L) := by
   have : (0.2 : ℝ)^(n : ℝ) < (2 : ℝ)^(-(n : ℝ)) := by
     norm_num [ Real.rpow_def_of_pos ];
@@ -252,7 +252,7 @@ corollary rhoMass_outside_ball (c : 𝓔 n) (L : GeometricLattice n n) :
 
 
 /-- Corollary : lattices with long shortest vector have exponentially small Gaussian mass outside the origin -/
-theorem rhoMass_with_long_sv_stronger (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) :
+theorem rhoMass_with_long_sv_stronger (L : EuclideanLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) :
   rhoMassOn 0 L {0}ᶜ < 0.2 ^ (n : ℝ) / (1 - 0.2 ^ (n : ℝ)) := by
   have h_eq : (L.carrier : Set (𝓔 n)) ∩ {0}ᶜ = (L.carrier : Set (𝓔 n)) ∩ (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ := by
     have h_len : ∀ v : L.carrier, v ≠ 0 → ‖(v : 𝓔 n)‖ ≥ Real.sqrt (n : ℝ) := by
@@ -301,7 +301,7 @@ theorem rhoMass_with_long_sv_stronger (L : GeometricLattice n n) (h_svl : L.shor
   exact h_final
 
 /-- The weaker but handy bound that's less than 2^{-n} -/
-corollary rhoMass_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) :
+corollary rhoMass_with_long_sv (L : EuclideanLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) :
   rhoMassOn 0 L {0}ᶜ < (2 : ℝ)^(-n : ℝ) * (1 - (2 : ℝ)^(-n : ℝ)) := by
   have h_bound := rhoMass_with_long_sv_stronger L h_svl;
   have h_num_le : (0.2 : ℝ) ^ (n : ℝ) / (1 - (0.2 : ℝ) ^ (n : ℝ)) ≤ (1 / 2 : ℝ) ^ (n : ℝ) * (1 - (1 / 2 : ℝ) ^ (n : ℝ)) := by
@@ -316,15 +316,15 @@ corollary rhoMass_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVec
   exact lt_of_lt_of_le h_bound h_num_le
 
 /-- Corollary : lattices with long shortest vector have almost uniform rhoMass on the dual cosets -/
-corollary rhoMass_ub_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝓔 n) :
+corollary rhoMass_ub_on_dual_with_long_sv (L : EuclideanLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝓔 n) :
   rhoMass u L.dual ≤ (1 + 2 * (2 : ℝ)^(-n : ℝ)) * L.det := by
   have h_poisson := poisson_summation_rhoS_coset L.dual 1 (by positivity) u
-  unfold GeometricLattice.latticeSum at h_poisson
+  unfold EuclideanLattice.latticeSum at h_poisson
   have : L.dual.dual.carrier = L.carrier := by
     rw [ L.dual_dual ];
   rw [this] at h_poisson
   have : (1 / L.dual.det : ℂ) = L.det := by
-    rw [ GeometricLattice.dual_det_eq_inv ]; norm_num
+    rw [ EuclideanLattice.dual_det_eq_inv ]; norm_num
   rw [ this, rhoSMass_one_eq_rhoMass ] at h_poisson; norm_num at h_poisson;
   have h_sum_abs : ‖∑' v : L.carrier, cexp (-2 * Real.pi * Complex.I * ⟪u, v⟫) * rho v‖ ≤ ∑' v : L.carrier, rho v := by
     refine' le_trans ( norm_tsum_le_tsum_norm _ ) _;
@@ -359,15 +359,15 @@ corollary rhoMass_ub_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.
     exact rfl
 
 /-- Corollary : lattices with long shortest vector have almost uniform rhoMass on the dual cosets -/
-corollary rhoMass_lb_on_dual_with_long_sv (L : GeometricLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝓔 n) :
+corollary rhoMass_lb_on_dual_with_long_sv (L : EuclideanLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝓔 n) :
   rhoMass u L.dual ≥ (1 - 2 * (2 : ℝ)^(-n : ℝ)) * L.det := by
   have h_poisson := poisson_summation_rhoS_coset L.dual 1 (by positivity) u
-  unfold GeometricLattice.latticeSum at h_poisson
+  unfold EuclideanLattice.latticeSum at h_poisson
   have : L.dual.dual.carrier = L.carrier := by
     rw [ L.dual_dual ];
   rw [this] at h_poisson
   have : (1 / L.dual.det : ℂ) = L.det := by
-    rw [ GeometricLattice.dual_det_eq_inv ]; norm_num
+    rw [ EuclideanLattice.dual_det_eq_inv ]; norm_num
   rw [ this, rhoSMass_one_eq_rhoMass ] at h_poisson; norm_num at h_poisson;
   -- The term for `v = 0` is `exp(0) * rho(0) = 1`.
   have h_v_zero : (rhoMass u (L.dual) : ℝ) ≥ (L.det : ℝ) * (1 - rhoMassOn 0 L {0}ᶜ) := by
@@ -422,7 +422,7 @@ namespace LatticeCrypto.Foundations.Lattice
   # The covering radius
   * Definition of the covering radius of a lattice
   * Relation between the covering radius and the shortest vector length of the dual lattice
-  `GeometricLattice.coveringRadius_ge_half_succMinₙ (L : GeometricLattice n n) : L.μ ≥ L.succMinₙ / 2`
+  `EuclideanLattice.coveringRadius_ge_half_succMinₙ (L : EuclideanLattice n n) : L.μ ≥ L.succMinₙ / 2`
 -/
 section covering_radius
 
@@ -433,26 +433,26 @@ open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Foundations.Lattice
 open scoped FourierTransform
 
-variable {n : ℕ+} (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s)
+variable {n : ℕ+} (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s)
 
 /--
   The covering radius of a lattice L is defined as the smallest radius r such that
   every point in the ambient space is within distance r of some lattice point.
 -/
-noncomputable def GeometricLattice.coveringRadius (L : GeometricLattice n n) : ℝ :=
+noncomputable def EuclideanLattice.coveringRadius (L : EuclideanLattice n n) : ℝ :=
   sInf { r : ℝ | ∀ x : 𝓔 n, ∃ v ∈ L.carrier, ‖x - (v : 𝓔 n)‖ ≤ r }
 
 /--
   The distance from a point x to the lattice L is defined as the distances
   from x to the nearest lattice point(s).
 -/
-noncomputable def GeometricLattice.distanceToLattice (x : 𝓔 n) (L : GeometricLattice n n) : ℝ :=
+noncomputable def EuclideanLattice.distanceToLattice (x : 𝓔 n) (L : EuclideanLattice n n) : ℝ :=
   sInf { ‖x - (v : 𝓔 n)‖ | v ∈ L.carrier }
 
 /-
 The distance from any point to the lattice is bounded by some constant M.
 -/
-lemma distanceToLattice_bounded (L : GeometricLattice n n) :
+lemma distanceToLattice_bounded (L : EuclideanLattice n n) :
   ∃ M, ∀ x : 𝓔 n, L.distanceToLattice x ≤ M := by
     have := LatticeBasis.fundamentalDomain_isBounded L.basis;
     obtain ⟨ M, hM ⟩ := this.exists_pos_norm_le; use M; intro x; exact (by
@@ -464,12 +464,12 @@ lemma distanceToLattice_bounded (L : GeometricLattice n n) :
 /--
   Alternative definition of the covering radius as the maximum distance from any point to the lattice
 -/
-noncomputable def GeometricLattice.coveringRadius' (L : GeometricLattice n n) : ℝ :=
+noncomputable def EuclideanLattice.coveringRadius' (L : EuclideanLattice n n) : ℝ :=
   sSup { L.distanceToLattice x | x : 𝓔 n }
 
 
 /-- The two definitions are equivalent -/
-theorem GeometricLattice.coveringRadius_eq_alt_def (L : GeometricLattice n n) :
+theorem EuclideanLattice.coveringRadius_eq_alt_def (L : EuclideanLattice n n) :
   L.coveringRadius = L.coveringRadius' := by
   have h_sup : ∀ x : 𝓔 n, ∃ v ∈ L.carrier, ‖x - (v : 𝓔 n)‖ ≤ L.distanceToLattice x := by
     intro x;
@@ -498,11 +498,11 @@ theorem GeometricLattice.coveringRadius_eq_alt_def (L : GeometricLattice n n) :
     exact csSup_le ⟨ _, ⟨ 0, rfl ⟩ ⟩ fun x hx => by rcases hx with ⟨ x, rfl ⟩ ; exact le_trans ( csInf_le ⟨ 0, by rintro x ⟨ y, hy, rfl ⟩ ; positivity ⟩ ⟨ _, hr x |> Classical.choose_spec |> And.left, rfl ⟩ ) ( hr x |> Classical.choose_spec |> And.right ) ;
   · intro w hw;
     refine' ⟨ _, fun x => _, hw ⟩;
-    exact Exists.elim ( h_sup x ) fun v hv => ⟨ v, hv.1, le_csSup ( show BddAbove { GeometricLattice.distanceToLattice x L | x : LatticeCrypto.Utils.Vec.𝓔 n } from by
+    exact Exists.elim ( h_sup x ) fun v hv => ⟨ v, hv.1, le_csSup ( show BddAbove { EuclideanLattice.distanceToLattice x L | x : LatticeCrypto.Utils.Vec.𝓔 n } from by
                    obtain ⟨ M, hM ⟩ := distanceToLattice_bounded L; exact ⟨ M, by rintro _ ⟨ y, rfl ⟩ ; exact hM y ⟩ ; ) ( Set.mem_range_self x ) |> le_trans hv.2 ⟩
 
 /-- The covering radius is non-negative -/
-theorem GeometricLattice.coveringRadius_nonneg (L : GeometricLattice n n) : 0 ≤ L.coveringRadius := by
+theorem EuclideanLattice.coveringRadius_nonneg (L : EuclideanLattice n n) : 0 ≤ L.coveringRadius := by
   -- The covering radius is defined as the infimum of a set of radii, each of which is non-negative.
   apply Real.sInf_nonneg;
   -- If there exists a v in the lattice such that ‖x - v‖ ≤ r, then since the norm is non-negative, r must be non-negative.
@@ -513,14 +513,14 @@ theorem GeometricLattice.coveringRadius_nonneg (L : GeometricLattice n n) : 0 �
   exact h_nonneg
 
 /-- notation μ(L) as the covering radius of L -/
-noncomputable abbrev GeometricLattice.μ (L : GeometricLattice n n) : ℝ :=
+noncomputable abbrev EuclideanLattice.μ (L : EuclideanLattice n n) : ℝ :=
   L.coveringRadius
 
-theorem GeometricLattice.coveringRadius_scale (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s) :
+theorem EuclideanLattice.coveringRadius_scale (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) :
   (L.smul s hs.ne.symm).μ = s * L.μ := by
   -- By definition of μ, we have μ(L.smul s) = infimum {r | ∀ x, ∃ v ∈ L.smul s, ‖x - v‖ ≤ r}.
-  simp [GeometricLattice.μ];
-  unfold GeometricLattice.coveringRadius;
+  simp [EuclideanLattice.μ];
+  unfold EuclideanLattice.coveringRadius;
   rw [ ← smul_eq_mul, ← Real.sInf_smul_of_nonneg hs.le ];
   congr with r ; simp +decide ;
   -- To prove the equivalence, we show that the two conditions are equivalent by substituting $x$ with $s * x$ and $v$ with $s * v$.
@@ -548,13 +548,13 @@ theorem GeometricLattice.coveringRadius_scale (L : GeometricLattice n n) (s : �
       exact hv₁ fun y => by simpa [ Algebra.smul_def ] using hp y;
     · convert mul_le_mul_of_nonneg_left hv₂ hs.le using 1 ; rw [ ← norm_smul_of_nonneg hs.le ] ; simp +decide [ smul_sub, smul_smul, hs.ne' ]
 
-theorem GeometricLattice.coveringRadius_scale_dual (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s) :
+theorem EuclideanLattice.coveringRadius_scale_dual (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) :
   (L.smul s hs.ne.symm).dual.μ = L.dual.μ / s := by
   -- The dual of a scaled lattice is the dual lattice scaled by the inverse of the scalar.
   have h_dual_scale : (L.smul s hs.ne.symm).dual = L.dual.smul (1 / s) (by
   grind) := by
     all_goals generalize_proofs at *;
-    unfold LatticeCrypto.Foundations.Lattice.GeometricLattice.dual LatticeCrypto.Foundations.Lattice.GeometricLattice.smul
+    unfold LatticeCrypto.Foundations.Lattice.EuclideanLattice.dual LatticeCrypto.Foundations.Lattice.EuclideanLattice.smul
     generalize_proofs at *;
     -- By definition of matrix scaling, we have that $(s • A)^T⁻¹ = (1/s) • A^T⁻¹$.
     have h_dual_scale : (s • L.basis.asMatrix).transpose⁻¹ = (1 / s) • L.basis.asMatrix.transpose⁻¹ := by
@@ -570,10 +570,10 @@ theorem GeometricLattice.coveringRadius_scale_dual (L : GeometricLattice n n) (s
   generalize_proofs at *;
   -- Apply the definition of covering radius to the scaled lattice.
   rw [h_dual_scale];
-  convert GeometricLattice.coveringRadius_scale ( L.dual ) ( 1 / s ) ( one_div_pos.mpr hs ) using 1 ; ring
+  convert EuclideanLattice.coveringRadius_scale ( L.dual ) ( 1 / s ) ( one_div_pos.mpr hs ) using 1 ; ring
 
 /-- The dimension of all lattice vectors shorter than L.succMinₙ is less than n -/
-lemma span_lt_succMin_dim_lt_n (L : GeometricLattice n n) :
+lemma span_lt_succMin_dim_lt_n (L : EuclideanLattice n n) :
   Module.rank ℝ (Submodule.span ℝ { v : 𝓔 n | v ∈ L ∧ ‖v‖ < L.succMinₙ }) < n := by
     -- Consider the set of lattice vectors with length strictly smaller than the n-th successive minimum.
     set S := {v : L.carrier | ‖(v : 𝓔 n)‖ < L.succMinₙ};
@@ -650,7 +650,7 @@ lemma exists_norm_eq_orth_of_dim_lt (W : Submodule ℝ (𝓔 n)) (hW : Module.ra
 /-
 The covering radius of a lattice is at least half the length of its n-th successive minima.
 -/
-theorem GeometricLattice.coveringRadius_ge_half_succMinₙ (L : GeometricLattice n n) :
+theorem EuclideanLattice.coveringRadius_ge_half_succMinₙ (L : EuclideanLattice n n) :
   L.μ ≥ L.succMinₙ / 2 := by
     -- Let $S = \{ v \in L \mid \|v\| < L.succMinₙ \}$. By `span_lt_succMin_dim_lt_n`, $W = \text{span}(S)$ has rank $< n$.
     set S := {v : 𝓔 n | v ∈ L.carrier ∧ ‖v‖ < L.succMinₙ} with hS_def
@@ -706,7 +706,7 @@ open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Foundations.Lattice
 open scoped FourierTransform
 
-variable {n : ℕ+} (L : GeometricLattice n n) (s : ℝ) (hs : 0 < s)
+variable {n : ℕ+} (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s)
 
 /-- The number of dimensions where our proof of transference holds -/
 def Banaszczyk_transference_threshold_constant : ℕ+ := 2
@@ -715,29 +715,29 @@ def Banaszczyk_transference_threshold_constant : ℕ+ := 2
   If there's a lattice with L.dual.μ * L.succMin₁ > n, then WLOG one can assume there exists
   another lattice L' also satisfies L'.dual.μ * L'.succMin₁ > n, while at the same time having both L'.succMin₁ > Real.sqrt n ∧ L'.dual.μ > Real.sqrt n
 -/
-lemma transference_reduction_lemma {n : ℕ+} (L : GeometricLattice n n) (h : L.dual.μ * L.succMin₁ > n) :
+lemma transference_reduction_lemma {n : ℕ+} (L : EuclideanLattice n n) (h : L.dual.μ * L.succMin₁ > n) :
   ∃ (s : ℝ) (hs : 0 < s), let L' := L.smul s hs.ne.symm; L'.succMin₁ > Real.sqrt n ∧ L'.dual.μ > Real.sqrt n := by
     have h_bounds : ∃ s : ℝ, 0 < s ∧ Real.sqrt (n : ℝ) / L.succMin₁ < s ∧ s < L.dual.μ / Real.sqrt (n : ℝ) := by
       by_cases h_pos : 0 < L.succMin₁;
       · refine' exists_between _ |> fun ⟨ s, hs₁, hs₂ ⟩ => ⟨ s, by nlinarith [ show 0 < Real.sqrt n / L.succMin₁ by positivity ], hs₁, hs₂ ⟩;
         rw [ div_lt_div_iff₀ ] <;> nlinarith [ Real.sqrt_pos.mpr ( Nat.cast_pos.mpr n.pos ), Real.mul_self_sqrt ( Nat.cast_nonneg n ) ];
       · exact False.elim <| h_pos <| by exact
-        GeometricLattice.successiveMinima_pos L ⟨0, PNat.pos n⟩;
+        EuclideanLattice.successiveMinima_pos L ⟨0, PNat.pos n⟩;
     field_simp;
     rcases h_bounds with ⟨ s, hs₀, hs₁, hs₂ ⟩ ; exact ⟨ s, hs₀, by
       rw [ div_lt_iff₀ ] at hs₁;
       · convert hs₁ using 1;
-        exact GeometricLattice.successiveMinima_scale L ⟨0, PNat.pos n⟩ s hs₀;
-      · exact GeometricLattice.successiveMinima_pos L ⟨0, PNat.pos n⟩, by
+        exact EuclideanLattice.successiveMinima_scale L ⟨0, PNat.pos n⟩ s hs₀;
+      · exact EuclideanLattice.successiveMinima_pos L ⟨0, PNat.pos n⟩, by
       -- By definition of $L'$, we know that its dual covering radius is $L.dual.μ / s$.
       have h_dual_covering_radius : (L.smul s hs₀.ne.symm).dual.μ = L.dual.μ / s := by
-        exact GeometricLattice.coveringRadius_scale_dual L s hs₀;
+        exact EuclideanLattice.coveringRadius_scale_dual L s hs₀;
       rw [ h_dual_covering_radius, lt_div_iff₀ ] at * <;> first | positivity | linarith; ⟩
 
 /-
 If a lattice has first successive minimum greater than sqrt(n) and its dual has covering radius greater than sqrt(n), we derive a contradiction for n >= 2.
 -/
-lemma transference_contradiction (hn : n ≥ Banaszczyk_transference_threshold_constant) (L : GeometricLattice n n)
+lemma transference_contradiction (hn : n ≥ Banaszczyk_transference_threshold_constant) (L : EuclideanLattice n n)
   (h1 : L.succMin₁ > Real.sqrt n) (h2 : L.dual.μ > Real.sqrt n) : False := by
     -- By `rhoMass_outside_ball`, `rhoMass (-v) L.dual < 2^{-n} * rhoMass 0 L.dual`.
     obtain ⟨v, hv⟩ : ∃ v : 𝓔 n, L.dual.distanceToLattice v > Real.sqrt n := by
@@ -747,7 +747,7 @@ lemma transference_contradiction (hn : n ≥ Banaszczyk_transference_threshold_c
         have h_inf : M < sSup {L.dual.distanceToLattice x | x : 𝓔 n} := by
           convert hM using 1;
           convert L.dual.coveringRadius_eq_alt_def.symm using 1;
-        exact by rcases exists_lt_of_lt_csSup ( show { x : ℝ | ∃ x_1 : 𝓔 n, GeometricLattice.distanceToLattice x_1 L.dual = x }.Nonempty from ⟨ _, ⟨ 0, rfl ⟩ ⟩ ) h_inf with ⟨ x, ⟨ v, rfl ⟩, hx ⟩ ; exact ⟨ v, hx ⟩ ;
+        exact by rcases exists_lt_of_lt_csSup ( show { x : ℝ | ∃ x_1 : 𝓔 n, EuclideanLattice.distanceToLattice x_1 L.dual = x }.Nonempty from ⟨ _, ⟨ 0, rfl ⟩ ⟩ ) h_inf with ⟨ x, ⟨ v, rfl ⟩, hx ⟩ ; exact ⟨ v, hx ⟩ ;
       exact Exists.elim ( h_inf _ h2 ) fun v hv => ⟨ v, hv ⟩;
     have h_contradiction : rhoMass (-v) L.dual < (2 : ℝ)^(-n : ℝ) * rhoMass 0 L.dual := by
       have h_contradiction : rhoMass (-v) L.dual = rhoMassOn (-v) L.dual (𝔅 (0 : 𝓔 n) (Real.sqrt (n : ℝ)))ᶜ := by
@@ -777,7 +777,7 @@ lemma transference_contradiction (hn : n ≥ Banaszczyk_transference_threshold_c
 /-
 The product of the covering radius of the dual lattice and the first successive minimum of the lattice is at most n, for n >= 2.
 -/
-theorem transference_ub_μ_succMin₁ {n : ℕ+} (L : GeometricLattice n n) (hn : n ≥ Banaszczyk_transference_threshold_constant):
+theorem transference_ub_μ_succMin₁ {n : ℕ+} (L : EuclideanLattice n n) (hn : n ≥ Banaszczyk_transference_threshold_constant):
   L.dual.μ * L.succMin₁ ≤ n := by
     apply le_of_not_gt; intro h_prod_gt_n; (
     have := transference_reduction_lemma L h_prod_gt_n; obtain ⟨ s, hs_pos, hs_bounds ⟩ := this; exact transference_contradiction hn ( L.smul s hs_pos.ne.symm ) hs_bounds.left hs_bounds.right;)
@@ -785,23 +785,23 @@ theorem transference_ub_μ_succMin₁ {n : ℕ+} (L : GeometricLattice n n) (hn 
 /-
 The product of the n-th successive minimum of the dual lattice and the first successive minimum of the lattice is at most 2n.
 -/
-theorem transference_ub {n : ℕ+} (L : GeometricLattice n n) (hn : n ≥ Banaszczyk_transference_threshold_constant) :
+theorem transference_ub {n : ℕ+} (L : EuclideanLattice n n) (hn : n ≥ Banaszczyk_transference_threshold_constant) :
   L.dual.succMinₙ * L.succMin₁ ≤ 2 * n := by
     field_simp;
     -- We know from `transference_ub_μ_succMin₁` that `L.dual.μ * L.succMin₁ ≤ n`.
     have h1 : L.dual.μ * L.succMin₁ ≤ n := by
       exact transference_ub_μ_succMin₁ L hn;
-    -- We also know from `GeometricLattice.coveringRadius_ge_half_succMinₙ` applied to `L.dual` that `L.dual.μ ≥ L.dual.succMinₙ / 2`, which implies `L.dual.succMinₙ ≤ 2 * L.dual.μ`.
+    -- We also know from `EuclideanLattice.coveringRadius_ge_half_succMinₙ` applied to `L.dual` that `L.dual.μ ≥ L.dual.succMinₙ / 2`, which implies `L.dual.succMinₙ ≤ 2 * L.dual.μ`.
     have h2 : L.dual.succMinₙ ≤ 2 * L.dual.μ := by
       have := L.dual.coveringRadius_ge_half_succMinₙ; norm_num at *; linarith;
     refine le_trans ?_ ( mul_le_mul_of_nonneg_left h1 zero_le_two );
     convert mul_le_mul_of_nonneg_right h2 ( show 0 ≤ L.succMin₁ from le_of_lt ( show L.succMin₁ > 0 from ?_ ) ) using 1 ; ring;
-    exact GeometricLattice.successiveMinima_pos L ⟨0, PNat.pos n⟩
+    exact EuclideanLattice.successiveMinima_pos L ⟨0, PNat.pos n⟩
 
 /-
 There exists a basis of the dual lattice consisting of vectors with length at most the n-th successive minimum of the dual lattice.
 -/
-lemma exists_dual_basis_bounded {n : ℕ+} (L : GeometricLattice n n) :
+lemma exists_dual_basis_bounded {n : ℕ+} (L : EuclideanLattice n n) :
   ∃ b : Fin n → 𝓔 n, LinearIndependent ℝ b ∧ (∀ i, b i ∈ L.dual.carrier) ∧ (∀ i, ‖b i‖ ≤ L.dual.succMinₙ) := by
     have := L.dual.linearIndependent_successiveMinima_attained;
     obtain ⟨ x, hx₁, hx₂ ⟩ := this;
@@ -812,13 +812,13 @@ lemma exists_dual_basis_bounded {n : ℕ+} (L : GeometricLattice n n) :
       rw [ hx₁ i |>.2 ];
       -- Since the successive minima are non-decreasing, we have `L.dual.successiveMinima i ≤ L.dual.succMinₙ` for all `i`.
       have h_succ_min_le : ∀ i j : Fin n, i ≤ j → L.dual.successiveMinima i ≤ L.dual.successiveMinima j := by
-        exact fun i j a => GeometricLattice.successiveMinima_mono L.dual a;
+        exact fun i j a => EuclideanLattice.successiveMinima_mono L.dual a;
       exact h_succ_min_le i ( ⟨ n - 1, Nat.sub_lt n.pos zero_lt_one ⟩ : Fin n ) ( Nat.le_pred_of_lt i.2 )
 
 /-
 The inner product of a vector in the lattice and a vector in the dual lattice is an integer.
 -/
-lemma inner_lattice_dual_int {n : ℕ+} (L : GeometricLattice n n) (v : 𝓔 n) (w : 𝓔 n)
+lemma inner_lattice_dual_int {n : ℕ+} (L : EuclideanLattice n n) (v : 𝓔 n) (w : 𝓔 n)
   (hv : v ∈ L.carrier) (hw : w ∈ L.dual.carrier) : ∃ k : ℤ, inner ℝ v w = k := by
     -- Since $w \in L.dual.carrier$, we have $\langle v, w \rangle \in \mathbb{Z}$ for all $v \in L.carrier$.
     have h_inner_int : ∀ v ∈ L.carrier, ∃ k : ℤ, ⟪v, w⟫ = k := by
@@ -832,7 +832,7 @@ lemma inner_lattice_dual_int {n : ℕ+} (L : GeometricLattice n n) (v : 𝓔 n) 
 /-
 The product of the n-th successive minimum of the dual lattice and the first successive minimum of the lattice is at least 1.
 -/
-theorem transference_lb {n : ℕ+} (L : GeometricLattice n n) :
+theorem transference_lb {n : ℕ+} (L : EuclideanLattice n n) :
   1 ≤ L.dual.succMinₙ * L.succMin₁ := by
     -- Let `v` be a vector in `L` such that `‖v‖ = L.succMin₁` (exists by `successiveMinima_attained`).
     obtain ⟨v, hv⟩ : ∃ v ∈ L.carrier, ‖v‖ = L.succMin₁ := by
@@ -855,7 +855,7 @@ theorem transference_lb {n : ℕ+} (L : GeometricLattice n n) :
             rw [ finrank_span_eq_card ] <;> aesop;
           aesop
         exact absurd hv.2 ( by rw [ h_v_zero, norm_zero ] ; exact ne_of_lt <| by exact
-          (GeometricLattice.successiveMinima_pos L ⟨0, PNat.pos n⟩) );
+          (EuclideanLattice.successiveMinima_pos L ⟨0, PNat.pos n⟩) );
       exact not_forall.mp h_not_orthogonal;
     -- By `inner_lattice_dual_int`, `⟪v, b k⟫` is an integer.
     obtain ⟨k, hk⟩ : ∃ k, inner ℝ v (b k) ≠ 0 := hb.2.2.2

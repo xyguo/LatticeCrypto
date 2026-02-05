@@ -859,7 +859,7 @@ theorem swapAdjacent_equiv (B : LatticeBasis n k) (i : Fin k) (hi : i.1 + 1 < k)
       have h_swap_equiv : ∃ U : Matrix.GeneralLinearGroup (Fin k) ℤ, (swapAdjacent B i hi) = B ◾ U := by
         exact ⟨ ⟨ swappingMatrixU i ⟨ i + 1, hi ⟩, ( swappingMatrixU i ⟨ i + 1, hi ⟩ ) ⁻¹, by simp +decide, by simp +decide ⟩, swapAdjacent_eq_mul_unimodular B i hi ⟩;
       have := @LatticeBasis.span_eq_of_UnimodularEquiv;
-      exact GeometricLattice.CarrierEquiv.symm (this h_swap_equiv)
+      exact EuclideanLattice.CarrierEquiv.symm (this h_swap_equiv)
 
 /-- LLL step preserves the lattice. -/
 theorem LLLStep_equiv (B : LatticeBasis n k) (δ : ℝ) :

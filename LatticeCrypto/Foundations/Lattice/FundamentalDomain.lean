@@ -10,7 +10,7 @@ open scoped RealInnerProductSpace
 
 
 /-!
-  This file defines fundamental domains for `GeometricLattice` and `LatticeBasis`.
+  This file defines fundamental domains for `EuclideanLattice` and `LatticeBasis`.
 
   - `LatticeBasis.fundamentalDomain`
   - `LatticeBasis.centeredFundamentalDomain`
@@ -125,17 +125,17 @@ theorem LatticeBasis.volume_of_unimodularEquiv {B1 B2 : SquareLatticeBasis n}
   simp_all +decide [ Matrix.det_apply' ]
 
 /-- The determinant (covolume) of a geometric lattice. -/
-noncomputable def GeometricLattice.det (L : GeometricLattice n n) : ℝ :=
+noncomputable def EuclideanLattice.det (L : EuclideanLattice n n) : ℝ :=
   L.basis.volume
 
 /-- Well-definedness of lattice determinant. -/
-theorem GeometricLattice.det_def (L : GeometricLattice n n) :
+theorem EuclideanLattice.det_def (L : EuclideanLattice n n) :
     L.det = L.basis.volume := by rfl
 
-theorem GeometricLattice.det_pos (L : GeometricLattice n n) :
+theorem EuclideanLattice.det_pos (L : EuclideanLattice n n) :
     L.det > 0 := by exact L.basis.volume_pos
 
-theorem GeometricLattice.det_eq_of_equiv {L1 L2 : GeometricLattice n n}
+theorem EuclideanLattice.det_eq_of_equiv {L1 L2 : EuclideanLattice n n}
     (h : L1 ≡ᵤ L2) : L1.det = L2.det := by
   rw [eq_iff_basis_equiv] at h
   exact LatticeBasis.volume_of_unimodularEquiv h
@@ -147,7 +147,7 @@ theorem LatticeBasis.dual_volume_eq_inv (B : SquareLatticeBasis n) :
   rw [ LatticeBasis.dual_asMatrix ];
   simp +decide [ Matrix.det_transpose ]
 
-theorem GeometricLattice.dual_det_eq_inv (L : GeometricLattice n n) :
+theorem EuclideanLattice.dual_det_eq_inv (L : EuclideanLattice n n) :
     L.dual.det = 1 / L.det := by
   -- Apply the theorem that states the volume of the dual basis is the inverse of the volume of the original basis.
   have h_det_inv : L.basis.dual.volume = 1 / L.basis.volume := by
@@ -158,7 +158,7 @@ theorem GeometricLattice.dual_det_eq_inv (L : GeometricLattice n n) :
 /-- Theorem proving that `LatticeBasis.fundamentalDomain` is indeed a fundamental domain.
   over its ZSpan
  -/
-theorem GeometricLattice.fundamentalDomain_isAddFundamentalDomain (L : GeometricLattice n n) (μ : MeasureTheory.Measure (𝓔 n)) :
+theorem EuclideanLattice.fundamentalDomain_isAddFundamentalDomain (L : EuclideanLattice n n) (μ : MeasureTheory.Measure (𝓔 n)) :
 MeasureTheory.IsAddFundamentalDomain (↥L.carrier)
     (L.basis.fundamentalDomain) μ := by
   rw [L.full_rank_eq_module_span]
@@ -166,13 +166,13 @@ MeasureTheory.IsAddFundamentalDomain (↥L.carrier)
 
 
 /-- The det of a lattice equals the Lebesgue measure (converted to real) of its fundamental domain. -/
-theorem GeometricLattice.det_eq_real_measure_fundamentalDomain (L : GeometricLattice n n) :
+theorem EuclideanLattice.det_eq_real_measure_fundamentalDomain (L : EuclideanLattice n n) :
     L.det = (lebesgueMeasure L.basis.fundamentalDomain).toReal := by
   rw [LatticeBasis.volume_real_fundamentalDomain L.basis]
   bound
 
 /-- The det (on ENNReal) of a lattice equals the Lebesgue measure of its fundamental domain. -/
-theorem GeometricLattice.det_eq_measure_fundamentalDomain (L : GeometricLattice n n) :
+theorem EuclideanLattice.det_eq_measure_fundamentalDomain (L : EuclideanLattice n n) :
     ENNReal.ofReal L.det = lebesgueMeasure L.basis.fundamentalDomain := by
   rw [LatticeBasis.volume_fundamentalDomain L.basis]
   bound
@@ -206,7 +206,7 @@ theorem LatticeBasis.sub_mod_mem_lattice (B : SquareLatticeBasis n) (v : 𝓔 n)
   unfold ZSpan.floor; aesop;
 
 /-- Corollary: Any vector v can be decomposed into a lattice point and a point in the fundamental domain. -/
-theorem GeometricLattice.sub_mod_mem_lattice (L : GeometricLattice n n) (v : 𝓔 n) :
+theorem EuclideanLattice.sub_mod_mem_lattice (L : EuclideanLattice n n) (v : 𝓔 n) :
     v - L.basis.mod v ∈ L.carrier := by
   rw [L.carrier_eq]
   exact L.basis.sub_mod_mem_lattice v
@@ -218,7 +218,7 @@ theorem LatticeBasis.eq_lattice_add_mod (B : SquareLatticeBasis n) (v : 𝓔 n) 
   refine ⟨B.sub_mod_mem_lattice v, B.mod_mem_fundamentalDomain v, by abel⟩
 
 /-- The fundamental domain partitions the space into disjoint translates by lattice points. -/
-theorem GeometricLattice.partition_by_fundamentalDomain (L : GeometricLattice n n) :
+theorem EuclideanLattice.partition_by_fundamentalDomain (L : EuclideanLattice n n) :
     ∀ v : 𝓔 n, ∃! x : L.carrier, v ∈ ((x : 𝓔 n) +ᵥ L.basis.fundamentalDomain) := by
   intro v
 

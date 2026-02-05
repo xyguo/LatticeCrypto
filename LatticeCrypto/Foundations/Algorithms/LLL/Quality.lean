@@ -285,7 +285,7 @@ theorem LLLReduced_b1_le_alpha_pow_succMin₁
     exact LLLReduced_b1_le_alpha_pow_minBstar B δ hδ h;
   refine le_trans h_first_vector <| mul_le_mul_of_nonneg_left ?_ <| by exact Real.rpow_nonneg ( by unfold alpha; norm_num ; linarith [ hδ.1, hδ.2 ] ) _;
   convert shortestVectorLength_ge_gramSchmidt_minNorm _ _ _;
-  · funext; (expose_names; exact GeometricLattice.successiveMinima_one x_1);
+  · funext; (expose_names; exact EuclideanLattice.successiveMinima_one x_1);
   · exact rfl
 
 noncomputable section AristotleLemmas
@@ -367,7 +367,7 @@ theorem norm_bstar_last_le_succMin_last {n : ℕ+} (B : SquareLatticeBasis n) :
     (B.toLattice).succMinₙ := by
       -- By definition of $successiveMinima$, there exist $n$ linearly independent vectors $v_1, \ldots, v_n$ in the lattice such that $\|v_i\| = \text{successiveMinima}(i)$.
       obtain ⟨V, hV_mem, hV_ind⟩ : ∃ V : Fin n → 𝓔 n, (∀ i, V i ∈ B.toLattice ∧ V i ≠ 0 ∧ ‖V i‖ = (B.toLattice).successiveMinima i) ∧ LinearIndependent ℝ V := by
-        have := @GeometricLattice.linearIndependent_successiveMinima_attained;
+        have := @EuclideanLattice.linearIndependent_successiveMinima_attained;
         exact this B.toLattice |> fun ⟨ V, hV₁, hV₂ ⟩ => ⟨ V, fun i => ⟨ hV₁ i |>.1.1, hV₁ i |>.1.2, hV₁ i |>.2 ⟩, hV₂ ⟩;
       -- By `exists_lattice_vec_with_nonzero_last_coeff`, there exists an index $k$ such that $V_k$ has a non-zero coefficient for the last basis vector.
       obtain ⟨k, hk⟩ : ∃ k : Fin n, B.repr (V k) (hV_mem k |>.1) ⟨n - 1, Nat.sub_lt n.pos zero_lt_one⟩ ≠ 0 := by
@@ -377,7 +377,7 @@ theorem norm_bstar_last_le_succMin_last {n : ℕ+} (B : SquareLatticeBasis n) :
         exact norm_bstar_last_le_of_last_coeff_ne_zero B ( V k ) ( hV_mem k |>.1 ) hk;
       refine le_trans h_norm_bstar_le_norm_Vk ?_;
       convert hV_mem k |>.2.2.le.trans _;
-      convert GeometricLattice.successiveMinima_mono _ _;
+      convert EuclideanLattice.successiveMinima_mono _ _;
       exact Nat.le_pred_of_lt k.is_lt
 
 end AristotleLemmas
@@ -387,7 +387,7 @@ end AristotleLemmas
   The longest Gram-Schmidt vector bounded by last successive minimum.
 
 PROVIDED SOLUTION
-Using `GeometricLattice.linearIndependent_successiveMinima_attained` we get a set of n linearly independent vectors {v_1,...,v_n} that attain the n successive minima.
+Using `EuclideanLattice.linearIndependent_successiveMinima_attained` we get a set of n linearly independent vectors {v_1,...,v_n} that attain the n successive minima.
 Then there must be some v_k that's in span{b^*_1,...,b^*_n} but not in span{b^*_1,...,b^*_{n-1}}, then v_k when expressed as the linear combination of lattice basis {b_1,...,b_n}, must have a nonzero (integral) coefficient for b_n.
 In particular, this means that the projection of v_k onto b^*_n is some nonzero integer, and hence the norm of b^*_n is at most the norm of v_k, which is at most the last successive minimum.
 Now we just use `LLLReduced_bstar_pair_sq_le_alpha_pow` to chain the bounds from b^*_n to any b^*_i, and conclude.
