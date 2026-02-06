@@ -8,6 +8,7 @@ import LatticeCrypto.Foundations.Lattice.Integral
 import LatticeCrypto.Foundations.Lattice.Basic
 import LatticeCrypto.Foundations.Lattice.FundamentalDomain
 import LatticeCrypto.Foundations.Lattice.SuccessiveMinima
+import LatticeCrypto.Foundations.Lattice.Distance
 import LatticeCrypto.Foundations.Lattice.Minkowski
 
 -- Gaussian: Discrete Gaussian and Fourier analysis on lattices
