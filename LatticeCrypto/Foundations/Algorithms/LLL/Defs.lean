@@ -44,16 +44,50 @@ theorem bStarFun_orthogonal (B : Fin k → 𝓔 n) (i j : Fin k) (h : i ≠ j) :
     ⟪bStarFun B i, bStarFun B j⟫ = 0 := by
   convert InnerProductSpace.gramSchmidt_orthogonal ℝ B h using 1
 
+fact bStarFun_span_eq (B : Fin k → 𝓔 n) :
+  Submodule.span ℝ (Set.range (bStarFun B)) = Submodule.span ℝ (Set.range B) := by
+  simpa [bStarFun] using (InnerProductSpace.span_gramSchmidt ℝ B)
+
+/-- A restatement of Gram-Schmidt decomposition definition -/
+lemma bStarFun_def_eq (B : Fin k → 𝓔 n) (i : Fin k) :
+  bStarFun B i =
+    B i - ∑ t ∈ Finset.Iio i, (⟪B i, bStarFun B t⟫ / ⟪bStarFun B t, bStarFun B t⟫) • bStarFun B t := by
+      have h := InnerProductSpace.gramSchmidt_def ℝ B i
+      simpa [bStarFun, Submodule.starProjection_singleton, real_inner_self_eq_norm_sq,
+        real_inner_comm] using h
+
+/-- A simple corollary express the original basis as a sum of the Gram-Schmidt vectors -/
+corollary basis_eq_bStarFun_decomposition (B : Fin k → 𝓔 n) (i : Fin k) :
+  B i = bStarFun B i + ∑ t ∈ Finset.Iio i, (⟪B i, bStarFun B t⟫ / ⟪bStarFun B t, bStarFun B t⟫) • bStarFun B t := by
+    rw [bStarFun_def_eq]
+    simp [add_comm]
+
+/-- The inner product between `B i` and `bStarFun B i` equals the squared norm of `bStarFun B i`. -/
+lemma bStarFun_inner_self (B : Fin k → 𝓔 n) (i : Fin k) :
+  ⟪B i, bStarFun B i⟫ = ⟪bStarFun B i, bStarFun B i⟫ := by
+  have hsum : ⟪∑ t ∈ Finset.Iio i,
+        (⟪B i, bStarFun B t⟫ / ⟪bStarFun B t, bStarFun B t⟫) •
+          bStarFun B t,
+      bStarFun B i⟫ = 0 := by
+    rw [sum_inner]
+    refine Finset.sum_eq_zero ?_
+    intro t ht
+    have ht' : (t : Fin k) ≠ i := by
+      exact ne_of_lt (Finset.mem_Iio.mp ht)
+    simp [inner_smul_left, bStarFun_orthogonal B t i ht']
+  rw [basis_eq_bStarFun_decomposition B i]
+  simp [inner_add_left, hsum]
+
+
 /-- The signed length of projecting x to the direction of j-th component of B. -/
 noncomputable abbrev projCoeff (x : 𝓔 n) (B : Fin k → 𝓔 n) (j : Fin k) : ℝ :=
   ⟪x, B j⟫ / ⟪B j, B j⟫
 
-/-- Projection of x onto the j-th Gram-Schmidt vector, returning the vector component.
-This is the component of x in the direction of b*_j in the Gram-Schmidt orthogonal basis. -/
+/-- The vector component of projecting x to the direction of the j-th component of B. -/
 noncomputable abbrev projVec (x : 𝓔 n) (B : Fin k → 𝓔 n) (j : Fin k) : 𝓔 n :=
   projCoeff x B j • B j
 
-/-- The coefficient of x with respect to the j-th Gram-Schmidt vector.
+/-- The coefficient of x with respect to the j-th Gram-Schmidt vector (note this is usually **NOT** a orthonormal basis).
 This is the scalar c such that proj_j(x) = c • b*_j. -/
 noncomputable abbrev projGsCoeff (x : 𝓔 n) (B : Fin k → 𝓔 n) (j : Fin k) : ℝ :=
   ⟪x, bStarFun B j⟫ / ⟪bStarFun B j, bStarFun B j⟫
@@ -65,48 +99,48 @@ noncomputable abbrev projGsVec (x : 𝓔 n) (B : Fin k → 𝓔 n) (j : Fin k) :
 
 /-- Projection onto the trailing subspace span(b_i*, ..., b_{k-1}*).
 This subtracts the components in directions b_0*, ..., b_{i-1}*. -/
-noncomputable def projTrailingSubspace (B : LatticeBasis n k) (i : Fin k) (x : 𝓔 n) : 𝓔 n :=
-  x - ∑ j : Finset.Iio i, projGsVec x B.basis j
+noncomputable def projTrailingSubspace (B : Fin k → 𝓔 n) (i : Fin k) (x : 𝓔 n) : 𝓔 n :=
+  x - ∑ j : Finset.Iio i, projGsVec x B j
 
 /-- For full-rank lattices, the projection equals the sum over complementary indices.
 This requires n = k since we need the Gram-Schmidt vectors to span the entire space. -/
-theorem projTrailingSubspace_eq (B : SquareLatticeBasis n) (i : Fin n) (x : 𝓔 n) :
-    projTrailingSubspace B i x = ∑ j : Finset.Ici i, projGsVec x B.basis j := by
+theorem projTrailingSubspace_eq (B : Fin n → 𝓔 n) (h_li : LinearIndependent ℝ B) (i : Fin n) (x : 𝓔 n) :
+    projTrailingSubspace B i x = ∑ j : Finset.Ici i, projGsVec x B j := by
   unfold projTrailingSubspace projGsVec projGsCoeff
   -- Goal: x - ∑ j < i, projGsVec x B j = ∑ j ≥ i, projGsVec x B j
   -- Rewrite as: x = ∑ j < i, projGsVec x B j + ∑ j ≥ i, projGsVec x B j
   rw [sub_eq_iff_eq_add, add_comm]
   -- Key fact: For full-rank bases (n = k), Gram-Schmidt vectors form an orthogonal
   -- basis of the entire space, so any x ∈ 𝔼 n decomposes as x = ∑ j, projGsVec x B j
-  have h_decomp : x = ∑ j : Fin n, projGsVec x B.basis j := by
+  have h_decomp : x = ∑ j : Fin n, projGsVec x B j := by
     -- Follows from Gram-Schmidt orthogonality and completeness (n orthogonal vectors in 𝔼 n)
-    have h_decomp : ∀ (x : LatticeCrypto.Utils.Vec.𝓔 n), x = ∑ i : Fin n, (⟪x, bStarFun B.basis i⟫ / ‖bStarFun B.basis i‖ ^ 2) • bStarFun B.basis i := by
+    have h_decomp : ∀ (x : LatticeCrypto.Utils.Vec.𝓔 n), x = ∑ i : Fin n, (⟪x, bStarFun B i⟫ / ‖bStarFun B i‖ ^ 2) • bStarFun B i := by
       intro x
-      have h_subspace : Submodule.span ℝ (Set.range (bStarFun B.basis)) = ⊤ := by
-        have h_span : Submodule.span ℝ (Set.range B.basis) = ⊤ := by
+      have h_subspace : Submodule.span ℝ (Set.range (bStarFun B)) = ⊤ := by
+        have h_span : Submodule.span ℝ (Set.range B) = ⊤ := by
           refine' Submodule.eq_top_of_finrank_eq _;
           rw [ finrank_span_eq_card ] ; aesop;
-          exact B.li;
+          exact h_li;
         -- Since the Gram-Schmidt process preserves the span, the span of the Gram-Schmidt vectors is the same as the span of the original basis vectors.
-        have h_span_eq : Submodule.span ℝ (Set.range (InnerProductSpace.gramSchmidt ℝ B.basis)) = Submodule.span ℝ (Set.range B.basis) := by
-          exact InnerProductSpace.span_gramSchmidt ℝ B.basis;
+        have h_span_eq : Submodule.span ℝ (Set.range (InnerProductSpace.gramSchmidt ℝ B)) = Submodule.span ℝ (Set.range B) := by
+          exact InnerProductSpace.span_gramSchmidt ℝ B;
         exact h_span_eq.trans h_span
-      have h_decomp : ∀ (x : LatticeCrypto.Utils.Vec.𝓔 n), x ∈ Submodule.span ℝ (Set.range (bStarFun B.basis)) → x = ∑ j : Fin n, (⟪x, bStarFun B.basis j⟫ / ‖bStarFun B.basis j‖ ^ 2) • bStarFun B.basis j := by
+      have h_decomp : ∀ (x : LatticeCrypto.Utils.Vec.𝓔 n), x ∈ Submodule.span ℝ (Set.range (bStarFun B)) → x = ∑ j : Fin n, (⟪x, bStarFun B j⟫ / ‖bStarFun B j‖ ^ 2) • bStarFun B j := by
         intro x hx;
-        have h_decomp : ∀ (v : Fin n → ℝ), ∑ i, v i • bStarFun B.basis i = ∑ i, (⟪∑ j, v j • bStarFun B.basis j, bStarFun B.basis i⟫ / ‖bStarFun B.basis i‖ ^ 2) • bStarFun B.basis i := by
+        have h_decomp : ∀ (v : Fin n → ℝ), ∑ i, v i • bStarFun B i = ∑ i, (⟪∑ j, v j • bStarFun B j, bStarFun B i⟫ / ‖bStarFun B i‖ ^ 2) • bStarFun B i := by
           intro v
-          have h_decomp : ∀ (i : Fin n), ⟪∑ j, v j • bStarFun B.basis j, bStarFun B.basis i⟫ = v i * ‖bStarFun B.basis i‖ ^ 2 := by
+          have h_decomp : ∀ (i : Fin n), ⟪∑ j, v j • bStarFun B j, bStarFun B i⟫ = v i * ‖bStarFun B i‖ ^ 2 := by
             intro i
-            have h_inner : ∀ j, ⟪bStarFun B.basis j, bStarFun B.basis i⟫ = if j = i then ‖bStarFun B.basis i‖ ^ 2 else 0 := by
+            have h_inner : ∀ j, ⟪bStarFun B j, bStarFun B i⟫ = if j = i then ‖bStarFun B i‖ ^ 2 else 0 := by
               intro j; split_ifs <;> simp_all +decide [ inner_self_eq_norm_sq_to_K ] ;
-              have h_orthogonal : ∀ (i j : Fin n), i ≠ j → ⟪bStarFun B.basis i, bStarFun B.basis j⟫ = 0 := by
+              have h_orthogonal : ∀ (i j : Fin n), i ≠ j → ⟪bStarFun B i, bStarFun B j⟫ = 0 := by
                 intro i j hij; exact (by
-                convert InnerProductSpace.gramSchmidt_orthogonal ℝ B.basis hij.symm using 1;
-                exact real_inner_comm (bStarFun B.basis j) (bStarFun B.basis i));
+                convert InnerProductSpace.gramSchmidt_orthogonal ℝ B hij.symm using 1;
+                exact real_inner_comm (bStarFun B j) (bStarFun B i));
               (expose_names; exact h_orthogonal j i h);
             rw [ sum_inner, Finset.sum_congr rfl fun j hj => by rw [ inner_smul_left, h_inner j ] ] ; aesop;
           refine' Finset.sum_congr rfl fun i _ => _;
-          by_cases hi : bStarFun B.basis i = 0 <;> simp_all +decide [ div_eq_inv_mul, mul_comm ];
+          by_cases hi : bStarFun B i = 0 <;> simp_all +decide [ div_eq_inv_mul, mul_comm ];
         rw [ Finsupp.mem_span_range_iff_exists_finsupp ] at hx;
         obtain ⟨ c, rfl ⟩ := hx;
         convert h_decomp ( c : Fin n → ℝ ) using 1;
@@ -116,19 +150,19 @@ theorem projTrailingSubspace_eq (B : SquareLatticeBasis n) (i : Fin n) (x : 𝓔
     convert h_decomp x using 2;
     simp +decide [ projGsVec, projGsCoeff, real_inner_self_eq_norm_sq ]
   -- Split the sum into j < i and j ≥ i
-  have h_split : ∑ j : Fin n, projGsVec x B.basis j =
-      (∑ j : Finset.Iio i, projGsVec x B.basis j) +
-      (∑ j : Finset.Ici i, projGsVec x B.basis j) := by
+  have h_split : ∑ j : Fin n, projGsVec x B j =
+      (∑ j : Finset.Iio i, projGsVec x B j) +
+      (∑ j : Finset.Ici i, projGsVec x B j) := by
     -- Partition Fin n into {j < i} ∪ {j ≥ i}
     simp +zetaDelta at *;
-    convert Finset.sum_add_sum_compl ( Finset.Iio i ) ( fun j => projGsVec x B.basis j ) using 1;
+    convert Finset.sum_add_sum_compl ( Finset.Iio i ) ( fun j => projGsVec x B j ) using 1;
     · rw [ Finset.sum_add_sum_compl ];
-    · convert Finset.sum_add_sum_compl ( Finset.Iio i ) ( fun j => projGsVec x B.basis j ) using 1;
+    · convert Finset.sum_add_sum_compl ( Finset.Iio i ) ( fun j => projGsVec x B j ) using 1;
       congr! 1;
       · conv_rhs => rw [ ← Finset.sum_attach ] ;
       · refine' Finset.sum_bij ( fun j _ => j ) _ _ _ _ <;> simp +decide
   calc x
-    _ = ∑ j : Fin n, projGsVec x B.basis j := h_decomp
+    _ = ∑ j : Fin n, projGsVec x B j := h_decomp
     _ = _ := h_split
 
 /-- Gram-Schmidt coefficient μ[i,j] for a sequence of vectors.
@@ -182,8 +216,8 @@ def LovaszCondition (B : LatticeBasis n k) (δ : ℝ) : Prop :=
 /-- Lovasz condition (δ-LLL): equivalent form using projections. -/
 def LovaszCondition' (B : LatticeBasis n k) (δ : ℝ) : Prop :=
   ∀ i : Fin k, ∀ hi : i.1 + 1 < k,
-    δ * ‖projTrailingSubspace B i (B.basis i)‖ ^ 2 ≤
-      ‖projTrailingSubspace B i (B.basis ⟨i.1 + 1, hi⟩)‖ ^ 2
+    δ * ‖projTrailingSubspace B.basis i (B.basis i)‖ ^ 2 ≤
+      ‖projTrailingSubspace B.basis i (B.basis ⟨i.1 + 1, hi⟩)‖ ^ 2
 
 /-- Equivalence of Lovasz conditions -/
 theorem LovaszCondition_iff_LovaszCondition'
@@ -194,7 +228,7 @@ theorem LovaszCondition_iff_LovaszCondition'
   · -- Forward direction: LovaszCondition → LovaszCondition'
     specialize h i hi
     -- Key fact: projTrailingSubspace B i (B.basis i) = bStarFun B.basis i
-    have h_proj_i : projTrailingSubspace B i (B.basis i) = bStarFun B.basis i := by
+    have h_proj_i : projTrailingSubspace B.basis i (B.basis i) = bStarFun B.basis i := by
       unfold projTrailingSubspace projGsVec projGsCoeff
       -- B.basis i has no component in span of b*_0, ..., b*_{i-1} by Gram-Schmidt orthogonality
       unfold bStarFun;
@@ -205,7 +239,7 @@ theorem LovaszCondition_iff_LovaszCondition'
       simp +decide [ inner_self_eq_norm_sq_to_K ];
       rw [ real_inner_comm ]
     -- Key fact: projTrailingSubspace B i (B.basis (i+1)) = μ[i+1,i] • bStar_i + bStar_{i+1}
-    have h_proj_succ : projTrailingSubspace B i (B.basis ⟨i.1 + 1, hi⟩) =
+    have h_proj_succ : projTrailingSubspace B.basis i (B.basis ⟨i.1 + 1, hi⟩) =
         μ[B.basis; ⟨i.1 + 1, hi⟩, i] • bStarFun B.basis i + bStarFun B.basis ⟨i.1 + 1, hi⟩ := by
       unfold projTrailingSubspace projGsVec
       -- By Gram-Schmidt decomposition and orthogonality
@@ -226,14 +260,14 @@ theorem LovaszCondition_iff_LovaszCondition'
   · -- Backward direction: LovaszCondition' → LovaszCondition
     specialize h i hi
     -- Same key facts as forward direction
-    have h_proj_i : projTrailingSubspace B i (B.basis i) = bStarFun B.basis i := by
+    have h_proj_i : projTrailingSubspace B.basis i (B.basis i) = bStarFun B.basis i := by
       unfold projTrailingSubspace projGsVec projGsCoeff
       unfold bStarFun;
       rw [ InnerProductSpace.gramSchmidt ];
       congr! 2;
       rw [ Submodule.starProjection_singleton ];
       rw [ real_inner_self_eq_norm_sq ] ; rw [ real_inner_comm ] ; norm_num;
-    have h_proj_succ : projTrailingSubspace B i (B.basis ⟨i.1 + 1, hi⟩) =
+    have h_proj_succ : projTrailingSubspace B.basis i (B.basis ⟨i.1 + 1, hi⟩) =
         μ[B.basis; ⟨i.1 + 1, hi⟩, i] • bStarFun B.basis i + bStarFun B.basis ⟨i.1 + 1, hi⟩ := by
       unfold projTrailingSubspace projGsVec projGsCoeff
       rw [ show bStarFun B.basis ⟨ i + 1, hi ⟩ = B.basis ⟨ i + 1, hi ⟩ - ∑ j ∈ Finset.filter ( fun j => j < ⟨ i + 1, hi ⟩ ) Finset.univ, ( ⟪B.basis ⟨ i + 1, hi ⟩, bStarFun B.basis j⟫ / ⟪bStarFun B.basis j, bStarFun B.basis j⟫ ) • bStarFun B.basis j from ?_ ];
@@ -248,12 +282,7 @@ theorem LovaszCondition_iff_LovaszCondition'
           exact ⟨ fun hx => or_iff_not_imp_left.mpr fun hx' => lt_of_le_of_ne ( Nat.le_of_lt_succ hx ) hx', fun hx => hx.elim ( fun hx => hx.symm ▸ Nat.lt_succ_self _ ) fun hx => Nat.lt_succ_of_lt hx ⟩;
       · have h_projTrailingSubspace : ∀ (i : Fin k), bStarFun B.basis i = B.basis i - ∑ j ∈ Finset.Iio i, (⟪B.basis i, bStarFun B.basis j⟫ / ⟪bStarFun B.basis j, bStarFun B.basis j⟫) • bStarFun B.basis j := by
           intro i
-          rw [bStarFun];
-          rw [ InnerProductSpace.gramSchmidt_def ];
-          congr! 2;
-          rw [ Submodule.starProjection_singleton ];
-          simp +decide [ inner_self_eq_norm_sq_to_K, bStarFun ];
-          rw [ real_inner_comm ];
+          exact bStarFun_def_eq B.basis i
         convert h_projTrailingSubspace ⟨ i + 1, hi ⟩ using 1;
         rcongr j ; simp ( config := { decide := Bool.true } ) [ Fin.lt_iff_val_lt_val ];
         congr! 1;

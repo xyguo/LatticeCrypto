@@ -11,7 +11,6 @@ This module provides the implementation and analysis of the Lenstra-Lenstra-Lov√
 lattice basis reduction algorithm. The code is organized into several submodules:
 
 - **Defs**: Core definitions (Gram-Schmidt, LLL predicates, parameters)
-- **Matrix**: Matrix-based formulation of size reduction
 - **Algorithm**: Algorithm implementations
 - **Correctness**: Proofs that the algorithm preserves the lattice
 - **Quality**: Approximation bounds and quality guarantees
@@ -20,6 +19,6 @@ lattice basis reduction algorithm. The code is organized into several submodules
 ## References
 
 - Lenstra, Lenstra, Lov√°sz: "Factoring polynomials with rational coefficients"
-- Regev: Lecture notes on lattice-based cryptography
-- Peikert: Lecture notes on lattices in cryptography
+- Regev: Lecture notes on lattice-based cryptography: [Lecture 2: LLL Algorithm](https://cims.nyu.edu/~regev/teaching/lattices_fall_2004/ln/lll.pdf)
+- Peikert: Lecture notes on Lattices in cryptography: [Lecture 3: LLL Algorithm](https://github.com/cpeikert/LatticesInCryptography/blob/main/lec03%20-%20LLL%20Algorithm.pdf)
 -/

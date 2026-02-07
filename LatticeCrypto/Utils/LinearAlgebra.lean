@@ -222,6 +222,9 @@ lemma rank_span_ge_iff_subset {V : Type*} [AddCommGroup V] [Module ℝ V] (s : S
 
 end independence
 
+/-!
+# Results regarding Gram-Schmidt orthogonalization
+-/
 noncomputable section gram_schmidt
 
 open scoped InnerProductSpace

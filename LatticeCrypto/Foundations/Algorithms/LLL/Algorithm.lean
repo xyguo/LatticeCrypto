@@ -629,8 +629,8 @@ noncomputable section lll_spec
 
 noncomputable def lovaszViolationAt (B : LatticeBasis n k) (δ : ℝ) (i : Fin k) : Prop :=
   ∃ hi : i.1 + 1 < k,
-    δ * ‖projTrailingSubspace B i (B.basis i)‖ ^ 2 >
-      ‖projTrailingSubspace B i (B.basis ⟨i.1 + 1, hi⟩)‖ ^ 2
+    δ * ‖projTrailingSubspace B.basis i (B.basis i)‖ ^ 2 >
+      ‖projTrailingSubspace B.basis i (B.basis ⟨i.1 + 1, hi⟩)‖ ^ 2
 
 noncomputable def lovaszViolation (B : LatticeBasis n k) (δ : ℝ) : Prop :=
   ∃ i : Fin k, lovaszViolationAt B δ i
