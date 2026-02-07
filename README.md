@@ -40,14 +40,14 @@ rev = "main"
 - **Module**: `LatticeCrypto.Foundations.Algorithms`
 - [X] ~~Gram-Schmidt orthogonalization~~ (using Mathlib version)
 - [X] The LLL (Lenstra-Lenstra-Lovász) basis reduction algorithm
-- [ ] Babai's Nearest Plane
+- [X] Babai's Nearest Plane algorithm
 - [ ] Discrete Gaussian sampling
 - [ ] The BKZ (Block Korkine-Zolotarev) algorithm
 
 ### 1.4 Lattice Problems and Hardness
 - **Module**: `LatticeCrypto.Foundations.Hardness`
 - [ ] Computational complexity: asymptotics, reductions, query complexity
-- [ ] Definition of hard lattice problems (SVP, CVP, GapSVP, GapCVP, SIVP)
+- [X] Definition of hard lattice problems (SVP, CVP, GapSVP, GapCVP, SIVP)
 - [ ] Reduction between problems (?)
 - [ ] Formal statements of hardness assumptions (?)
 

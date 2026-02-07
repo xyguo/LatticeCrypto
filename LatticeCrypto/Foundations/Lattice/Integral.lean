@@ -1,4 +1,5 @@
 import LatticeCrypto.Foundations.Lattice.Defs
+import LatticeCrypto.Foundations.Lattice.Basic
 import LatticeCrypto.Utils.LinearAlgebra
 import LatticeCrypto.Utils.Geometry
 import LatticeCrypto.Utils.Vec
@@ -120,6 +121,89 @@ def IntegralLatticeBasis.toLattice (B : IntegralLatticeBasis n k) : IntegralLatt
         rw [ Finset.sum_apply, Finset.sum_eq_single i ] <;> aesop;
       exact h_col_int.elim fun c hc => hc.symm ▸ Submodule.sum_mem _ fun i _ => Submodule.smul_mem _ _ ( Submodule.subset_span ( Set.mem_range_self _ ) )
   }
+
+/-- Convert a EuclideanLattice with a proof of integrality into an IntegralLattice. -/
+def toIntegralLattice (L : EuclideanLattice n k) (h : IsIntegral L) : IntegralLattice n k :=
+  { toEuclideanLattice := L
+    integral := h }
+
+/-- We can extract an integral basis from an IntegralLattice. -/
+noncomputable def getIntegralBasis (L : IntegralLattice n k) : IntegralLatticeBasis n k :=
+  by
+    classical
+    -- Extract integer coordinates for each basis vector using integrality of the lattice.
+    have h_integral :
+        ∀ j, ∃ z : Fin n → ℤ, ∀ i : Fin n, (L.basis.cols j : 𝓔 n) i = (z i : ℝ) := by
+      have hL : IsIntegral (L : EuclideanLattice n k) := inferInstance
+      have h := (isIntegral_iff_vec_integral (L : EuclideanLattice n k)).1 hL
+      intro j
+      have hmem : (L.basis.cols j : 𝓔 n) ∈ (L : EuclideanLattice n k) := by
+        exact EuclideanLattice.basis_mem (L : EuclideanLattice n k) j
+      exact h (L.basis.cols j) (by simpa [EuclideanLattice.mem_def] using hmem)
+    refine
+      { matrix := fun i j => (Classical.choose (h_integral j)) i
+        le_dim := L.basis.le_dim
+        li := ?_ }
+    -- The chosen integer columns recover the original real basis columns.
+    have h_cols_eq :
+        (fun j => piToEuc (fun i => ((Classical.choose (h_integral j)) i : ℝ))) =
+          fun j => L.basis.cols j := by
+      funext j
+      apply LatticeCrypto.Utils.Vec.eucToPi.injective
+      funext i
+      have hz := (Classical.choose_spec (h_integral j)) i
+      have hz' : (Classical.choose (h_integral j) i : ℝ) = (L.basis.cols j : 𝓔 n) i := by
+        simp [hz]
+      have h_euc : (LatticeCrypto.Utils.Vec.eucToPi (L.basis.cols j)) i = (L.basis.cols j : 𝓔 n) i := rfl
+      simpa [LatticeCrypto.Utils.Vec.piToEuc_apply] using hz'.trans h_euc.symm
+    have h_li_real : LinearIndependent ℝ (fun j => L.basis.cols j) := L.basis.li
+    simpa [h_cols_eq] using h_li_real
+
+/-- The integral basis obtained from an IntegralLattice indeed spans the original lattice. -/
+theorem getIntegralBasis_toLattice (L : IntegralLattice n k) :
+    (getIntegralBasis L).toLattice = L := by
+  classical
+  cases L with
+  | mk L hL =>
+    -- First show the extracted real basis agrees with the original basis.
+    have h_basis_fun : (getIntegralBasis ⟨L, hL⟩).toRealBasis.basis = L.basis.basis := by
+      funext j
+      apply LatticeCrypto.Utils.Vec.eucToPi.injective
+      funext i
+      -- Unfold the definition to expose the chosen integer coordinates.
+      change (getIntegralBasis ⟨L, hL⟩).toRealBasis.basis j i = (L.basis.basis j) i
+      have h_integral :
+          ∀ j, ∃ z : Fin n → ℤ, ∀ i : Fin n, (L.basis.basis j : 𝓔 n) i = (z i : ℝ) := by
+        have h := (isIntegral_iff_vec_integral (L : EuclideanLattice n k)).1 hL
+        intro j
+        have hmem : (L.basis.basis j : 𝓔 n) ∈ (L : EuclideanLattice n k) := by
+          exact EuclideanLattice.basis_mem (L : EuclideanLattice n k) j
+        exact h (L.basis.basis j) (by simpa [EuclideanLattice.mem_def] using hmem)
+      have hz := (Classical.choose_spec (h_integral j)) i
+      simpa [getIntegralBasis, IntegralLatticeBasis.toRealBasis, h_integral] using hz.symm
+    have h_basis : (getIntegralBasis ⟨L, hL⟩).toRealBasis = L.basis := by
+      exact LatticeBasis.ext h_basis_fun
+    have h_euc : ((getIntegralBasis ⟨L, hL⟩).toLattice : EuclideanLattice n k) = (L.basis).toLattice := by
+      simpa using congrArg LatticeBasis.toLattice h_basis
+    have h_euc' : (L : EuclideanLattice n k) = (L.basis).toLattice :=
+      EuclideanLattice.eq_basis_toLattice (L : EuclideanLattice n k)
+    have h_euc_final : (getIntegralBasis ⟨L, hL⟩).toLattice.toEuclideanLattice = L := by
+      simpa using h_euc.trans h_euc'.symm
+    -- Lift the equality of Euclidean lattices to Integral lattices using proof irrelevance.
+    have h_ext :
+        ∀ {L1 L2 : IntegralLattice n k},
+          L1.toEuclideanLattice = L2.toEuclideanLattice → L1 = L2 := by
+      intro L1 L2 h
+      cases L1 with
+      | mk L1 h1 =>
+        cases L2 with
+        | mk L2 h2 =>
+          cases h
+          have : h1 = h2 := Subsingleton.elim _ _
+          cases this
+          rfl
+    apply h_ext
+    simpa using h_euc_final
 
 end Integral
 

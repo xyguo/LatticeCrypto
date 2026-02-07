@@ -26,6 +26,7 @@ noncomputable section correctness
   Ideally, there should be a theorem `LLL_LLLReduced` stating that the output of `LLL` is indeed LLL-reduced, but that would first require us to show that the algorithm terminates, which is done in `LatticeCrypto.Foundations.Algorithms.LLL.Runtime`.
 -/
 
+
 /- `sizeReduceStep` preserves the Gram-Schmidt of the basis being reduced. -/
 noncomputable section AristotleLemmas
 
@@ -205,15 +206,6 @@ theorem sizeReduce_preserve_GS (B : LatticeBasis n k) :
     bStarFun B'.basis = bStarFun B.basis := by
   -- Size reduction is a sequence of sizeReduceStep operations.
   simpa [sizeReduce] using (sizeReduceBasis_preserve_GS (B := B.basis))
-
-
-/-- Helper: The property that |x - round(x)| ≤ 1/2 for the rounding function. -/
-lemma roundZ_abs_sub_le (x : ℝ) : |x - (roundZ x : ℝ)| ≤ 1 / 2 := by
-  unfold roundZ
-  -- roundZ x = floor(x + 1/2)
-  -- Need to show: |x - floor(x + 1/2)| ≤ 1/2
-  -- This is a standard property of nearest-integer rounding
-  exact abs_le.mpr ⟨ by linarith [ Int.floor_le ( x + 1 / 2 ) ], by linarith [ Int.lt_floor_add_one ( x + 1 / 2 ) ] ⟩
 
 
 /-- Helper: After sizeReduceStep at (i,j) using fixed GS, the new coefficient μ[i,j] satisfies |μ[i,j]| ≤ 1/2.

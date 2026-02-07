@@ -97,6 +97,10 @@ This is the component of x in the direction of b*_j in the Gram-Schmidt orthogon
 noncomputable abbrev projGsVec (x : 𝓔 n) (B : Fin k → 𝓔 n) (j : Fin k) : 𝓔 n :=
   projGsCoeff x B j • bStarFun B j
 
+/-- Projection of x onto the subspace spanned by B using its Gram-Schmidt vectors as basis. -/
+noncomputable def projToSpace (B : Fin k → 𝓔 n) (x : 𝓔 n) : 𝓔 n :=
+  ∑ j : Fin k, projGsVec x B j
+
 /-- Projection onto the trailing subspace span(b_i*, ..., b_{k-1}*).
 This subtracts the components in directions b_0*, ..., b_{i-1}*. -/
 noncomputable def projTrailingSubspace (B : Fin k → 𝓔 n) (i : Fin k) (x : 𝓔 n) : 𝓔 n :=

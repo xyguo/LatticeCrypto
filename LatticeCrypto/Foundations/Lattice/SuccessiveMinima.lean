@@ -244,10 +244,7 @@ noncomputable abbrev EuclideanLattice.succMin₂ (L : EuclideanLattice n n) (h :
   L.successiveMinima ⟨1, h⟩
 
 noncomputable abbrev EuclideanLattice.succMinₙ (L : EuclideanLattice n n) : ℝ :=
-  L.successiveMinima ⟨n - 1, by
-    have : 0 < (n : ℕ) := by exact n.pos
-    exact Nat.sub_lt (Nat.pos_of_ne_zero (by exact n.pos.ne.symm)) (by decide)
-  ⟩
+  L.successiveMinima ⟨n - 1, Nat.sub_lt n.pos zero_lt_one⟩
 
 
 noncomputable def EuclideanLattice.successiveMinima' (L : EuclideanLattice n n) (i : Fin n) : ℝ :=

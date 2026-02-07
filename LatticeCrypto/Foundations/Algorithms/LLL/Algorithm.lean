@@ -35,6 +35,21 @@ This module contains the actual LLL algorithm implementation and helper function
 noncomputable def roundZ (x : ℝ) : ℤ :=
   Int.floor (x + (1 / 2 : ℝ))
 
+/-- Helper: The property that |x - round(x)| ≤ 1/2 for the rounding function. -/
+lemma roundZ_abs_sub_le (x : ℝ) : |x - (roundZ x : ℝ)| ≤ 1 / 2 := by
+  unfold roundZ
+  -- roundZ x = floor(x + 1/2)
+  -- Need to show: |x - floor(x + 1/2)| ≤ 1/2
+  -- This is a standard property of nearest-integer rounding
+  exact abs_le.mpr ⟨ by linarith [ Int.floor_le ( x + 1 / 2 ) ], by linarith [ Int.lt_floor_add_one ( x + 1 / 2 ) ] ⟩
+
+lemma roundZ_eq_zero_of_mem_Icc_Iio (x : ℝ) (hx₁ : -(1 / 2 : ℝ) ≤ x) (hx₂ : x < (1 / 2 : ℝ)) :
+    roundZ x = 0 := by
+  unfold roundZ
+  rw [Int.floor_eq_iff]
+  constructor <;> nlinarith
+
+
 noncomputable section size_reduction
 /-!
 ### SizeReduce
@@ -273,6 +288,87 @@ noncomputable section size_reduction_impl
 noncomputable def reduceAt (B : Fin k → 𝓔 n) (BStar : Fin k → 𝓔 n) (v : 𝓔 n) (j : Fin k) : 𝓔 n :=
   let coeff := ⟪v, BStar j⟫ / ⟪BStar j, BStar j⟫
   v - (roundZ coeff : ℝ) • B j
+
+
+/-- Each `reduceAt` operation reduces the coefficient of `t` at the corresponding `b*_i` direction to ≤ 1/2 ‖b*_i‖, where b*_i is the i-th Gram-Schmidt vector. This is the key property that enables size reduction.
+-/
+lemma abs_projGsCoeff_of_reduceAt_le_half (B : Fin k → 𝓔 n) (t : 𝓔 n) (i : Fin k) :
+    let t_reduced := reduceAt B (bStarFun B) t i
+    |projGsCoeff t_reduced B i| ≤ (1 / 2) := by
+  classical
+  intro t_reduced
+  let coeff := projGsCoeff t B i
+  by_cases h0 : ⟪bStarFun B i, bStarFun B i⟫ = 0
+  · have : projGsCoeff t_reduced B i = 0 := by
+      simp [projGsCoeff, h0]
+    simp [this]
+  · have h_inner : ⟪B i, bStarFun B i⟫ =
+        ⟪bStarFun B i, bStarFun B i⟫ := by
+      simpa using (bStarFun_inner_self (B := B) i)
+    have hproj : projGsCoeff t_reduced B i = coeff - (roundZ coeff : ℝ) := by
+      unfold projGsCoeff
+      have hnum : ⟪t_reduced, bStarFun B i⟫ =
+          ⟪t, bStarFun B i⟫ - (roundZ coeff : ℝ) * ⟪B i, bStarFun B i⟫ := by
+        calc
+          ⟪t_reduced, bStarFun B i⟫ =
+              ⟪t - (roundZ coeff : ℝ) • B i, bStarFun B i⟫ := by
+            simp [t_reduced, reduceAt, coeff]
+          _ = ⟪t, bStarFun B i⟫ - ⟪(roundZ coeff : ℝ) • B i, bStarFun B i⟫ := by
+            simp [inner_sub_left]
+          _ = ⟪t, bStarFun B i⟫ - (roundZ coeff : ℝ) * ⟪B i, bStarFun B i⟫ := by
+            simp [inner_smul_left]
+      have hnum' : ⟪t_reduced, bStarFun B i⟫ =
+          ⟪t, bStarFun B i⟫ - (roundZ coeff : ℝ) * ⟪bStarFun B i, bStarFun B i⟫ := by
+        simpa [h_inner] using hnum
+      have : (⟪t, bStarFun B i⟫ - (roundZ coeff : ℝ) * ⟪bStarFun B i, bStarFun B i⟫) /
+          ⟪bStarFun B i, bStarFun B i⟫ =
+          (⟪t, bStarFun B i⟫ / ⟪bStarFun B i, bStarFun B i⟫) - (roundZ coeff : ℝ) := by
+        field_simp [h0]
+      simpa [hnum', coeff] using this
+    simpa [hproj] using roundZ_abs_sub_le coeff
+
+
+/-- One application of reduceAt makes the selected GS coefficient strictly less than 1/2. -/
+lemma projGsCoeff_of_reduceAt_lt_half (B : Fin k → 𝓔 n) (t : 𝓔 n) (i : Fin k) :
+    let t_reduced := reduceAt B (bStarFun B) t i
+    projGsCoeff t_reduced B i < (1 / 2) := by
+  classical
+  intro t_reduced
+  let coeff := projGsCoeff t B i
+  by_cases h0 : ⟪bStarFun B i, bStarFun B i⟫ = 0
+  · have : projGsCoeff t_reduced B i = 0 := by
+      simp [projGsCoeff, h0]
+    nlinarith [this]
+  · have h_inner : ⟪B i, bStarFun B i⟫ =
+        ⟪bStarFun B i, bStarFun B i⟫ := by
+      simpa using (bStarFun_inner_self (B := B) i)
+    have hproj : projGsCoeff t_reduced B i = coeff - (roundZ coeff : ℝ) := by
+      unfold projGsCoeff
+      have hnum : ⟪t_reduced, bStarFun B i⟫ =
+          ⟪t, bStarFun B i⟫ - (roundZ coeff : ℝ) * ⟪B i, bStarFun B i⟫ := by
+        calc
+          ⟪t_reduced, bStarFun B i⟫ =
+              ⟪t - (roundZ coeff : ℝ) • B i, bStarFun B i⟫ := by
+            simp [t_reduced, reduceAt, coeff]
+          _ = ⟪t, bStarFun B i⟫ - ⟪(roundZ coeff : ℝ) • B i, bStarFun B i⟫ := by
+            simp [inner_sub_left]
+          _ = ⟪t, bStarFun B i⟫ - (roundZ coeff : ℝ) * ⟪B i, bStarFun B i⟫ := by
+            simp [inner_smul_left]
+      have hnum' : ⟪t_reduced, bStarFun B i⟫ =
+          ⟪t, bStarFun B i⟫ - (roundZ coeff : ℝ) * ⟪bStarFun B i, bStarFun B i⟫ := by
+        simpa [h_inner] using hnum
+      have : (⟪t, bStarFun B i⟫ - (roundZ coeff : ℝ) * ⟪bStarFun B i, bStarFun B i⟫) /
+          ⟪bStarFun B i, bStarFun B i⟫ =
+          (⟪t, bStarFun B i⟫ / ⟪bStarFun B i, bStarFun B i⟫) - (roundZ coeff : ℝ) := by
+        field_simp [h0]
+      simpa [hnum', coeff] using this
+    have hlt : coeff + (1 / 2 : ℝ) < (roundZ coeff : ℝ) + 1 := by
+      unfold roundZ
+      exact Int.lt_floor_add_one (coeff + (1 / 2 : ℝ))
+    have hlt' : coeff - (roundZ coeff : ℝ) < (1 / 2 : ℝ) := by
+      nlinarith [hlt]
+    simpa [hproj] using hlt'
+
 
 /--
   Essientiall applying `reduceAt` to the i-th basis vector of B

@@ -8,6 +8,85 @@ namespace LatticeCrypto.Foundations.Lattice
   * Relation between the covering radius and the shortest vector length of the dual lattice
   `EuclideanLattice.coveringRadius_ge_half_succMinₙ (L : EuclideanLattice n n) : L.μ ≥ L.succMinₙ / 2`
 -/
+open LatticeCrypto.Utils.Vec
+
+variable {n k : ℕ+}
+
+/-!
+## Distance to a lattice
+-/
+
+/--
+  The distance from a point x to the lattice L is defined as the distances
+  from x to the nearest lattice point(s).
+-/
+noncomputable def EuclideanLattice.distanceToLattice (x : 𝓔 n) (L : EuclideanLattice n k) : ℝ :=
+  sInf { ‖x - (v : 𝓔 n)‖ | v ∈ L.carrier }
+
+/-- Any lattice point gives an upper bound on `distanceToLattice`. -/
+lemma distanceToLattice_le_norm_sub_of_mem
+    (L : EuclideanLattice n k) (t v : 𝓔 n) (hv : v ∈ L) :
+    L.distanceToLattice t ≤ ‖t - v‖ := by
+  unfold EuclideanLattice.distanceToLattice
+  exact csInf_le
+    ⟨0, by
+      rintro r ⟨w, hw, rfl⟩
+      exact norm_nonneg _⟩
+    ⟨v, hv, rfl⟩
+
+/-- Existence of a closest lattice point to `t` (for the lattice model used in this development). -/
+theorem exists_closest_lattice_point
+    (L : EuclideanLattice n k) (t : 𝓔 n) :
+    ∃ y : 𝓔 n, y ∈ L ∧ ‖t - y‖ = L.distanceToLattice t := by
+  have hne : (L.carrier : Set (𝓔 n)).Nonempty := ⟨0, L.zero_mem⟩
+  have hclosed : IsClosed (L.carrier : Set (𝓔 n)) := by
+    simpa using (EuclideanLattice.isClosed (L := L))
+  obtain ⟨y, hy, hyDist⟩ := hclosed.exists_infDist_eq_dist hne t
+  refine ⟨y, ?_, ?_⟩
+  · simpa [EuclideanLattice.mem_def] using hy
+  · have hyL : y ∈ L := by
+      simpa [EuclideanLattice.mem_def] using hy
+    have hy_min : ∀ v : 𝓔 n, v ∈ L.carrier → ‖t - y‖ ≤ ‖t - v‖ := by
+      intro v hv
+      have h_inf_le : Metric.infDist t (L.carrier : Set (𝓔 n)) ≤ dist t v :=
+        Metric.infDist_le_dist_of_mem hv
+      calc
+        ‖t - y‖ = dist t y := by simp [dist_eq_norm]
+        _ = Metric.infDist t (L.carrier : Set (𝓔 n)) := hyDist.symm
+        _ ≤ dist t v := h_inf_le
+        _ = ‖t - v‖ := by simp [dist_eq_norm]
+    have h_lower : ‖t - y‖ ≤ L.distanceToLattice t := by
+      unfold EuclideanLattice.distanceToLattice
+      refine le_csInf ?_ ?_
+      · exact ⟨‖t - y‖, ⟨y, hyL, rfl⟩⟩
+      · intro r hr
+        rcases hr with ⟨v, hv, rfl⟩
+        exact hy_min v hv
+    have h_upper : L.distanceToLattice t ≤ ‖t - y‖ := by
+      exact distanceToLattice_le_norm_sub_of_mem (L := L) (t := t) (v := y) hyL
+    exact le_antisymm h_lower h_upper
+
+/-- The distance to lattice is invariant under translation by a lattice vector -/
+theorem distanceToLattice_translation_invariant (L : EuclideanLattice n k) (t v : 𝓔 n) (hv : v ∈ L) :
+    L.distanceToLattice (t + v) = L.distanceToLattice t := by
+  apply le_antisymm
+  · refine le_csInf ?_ ?_
+    · exact ⟨‖t - 0‖, ⟨0, L.zero_mem, rfl⟩⟩
+    · intro r hr
+      rcases hr with ⟨w, hw, rfl⟩
+      have hw' : w + v ∈ L := L.add_mem hw hv
+      have h_le : L.distanceToLattice (t + v) ≤ ‖(t + v) - (w + v)‖ :=
+        distanceToLattice_le_norm_sub_of_mem (L := L) (t := t + v) (v := w + v) hw'
+      simpa [sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using h_le
+  · refine le_csInf ?_ ?_
+    · exact ⟨‖t + v - 0‖, ⟨0, L.zero_mem, rfl⟩⟩
+    · intro r hr
+      rcases hr with ⟨w, hw, rfl⟩
+      have hw' : w - v ∈ L := L.sub_mem hw hv
+      have h_le : L.distanceToLattice t ≤ ‖t - (w - v)‖ :=
+        distanceToLattice_le_norm_sub_of_mem (L := L) (t := t) (v := w - v) hw'
+      simpa [sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using h_le
+
 section covering_radius
 
 open scoped Real Complex MeasureTheory
@@ -23,13 +102,6 @@ variable {n : ℕ+} (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s)
 -/
 noncomputable def EuclideanLattice.coveringRadius (L : EuclideanLattice n n) : ℝ :=
   sInf { r : ℝ | ∀ x : 𝓔 n, ∃ v ∈ L.carrier, ‖x - (v : 𝓔 n)‖ ≤ r }
-
-/--
-  The distance from a point x to the lattice L is defined as the distances
-  from x to the nearest lattice point(s).
--/
-noncomputable def EuclideanLattice.distanceToLattice (x : 𝓔 n) (L : EuclideanLattice n n) : ℝ :=
-  sInf { ‖x - (v : 𝓔 n)‖ | v ∈ L.carrier }
 
 /-
 The distance from any point to the lattice is bounded by some constant M.
