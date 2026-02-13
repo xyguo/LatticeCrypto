@@ -510,6 +510,55 @@ corollary shortestVectorLength_le_gramSchmidt_geometric_mean (L : EuclideanLatti
   rw [h_L_B_det_eq, LatticeBasis.volume, h_B_det] at mink_1
   convert mink_1
 
+/-- The product of shortest vectors' length of a lattice and its dual is no more than n -/
+corollary EuclideanLattice.succMin₁_mul_dual_succMin₁_le_n (L : EuclideanLattice n n) :
+    L.succMin₁ * L.dual.succMin₁ ≤ n := by
+  have h : L.succMin₁ ≤ Real.sqrt n * L.det ^ (1 / (n : ℝ)) := by
+    have h' := EuclideanLattice.minkowski_first_sqrt L
+    rw [← EuclideanLattice.successiveMinima_one (L := L)] at h'
+    simpa [EuclideanLattice.succMin₁] using h'
+  have h_dual : L.dual.succMin₁ ≤ Real.sqrt n * L.dual.det ^ (1 / (n : ℝ)) := by
+    have h' := EuclideanLattice.minkowski_first_sqrt L.dual
+    rw [← EuclideanLattice.successiveMinima_one (L := L.dual)] at h'
+    simpa [EuclideanLattice.succMin₁] using h'
+  have h_mul :
+      L.succMin₁ * L.dual.succMin₁ ≤
+        (Real.sqrt n * L.det ^ (1 / (n : ℝ))) * (Real.sqrt n * L.dual.det ^ (1 / (n : ℝ))) := by
+    have h_nonneg : 0 ≤ Real.sqrt n * L.det ^ (1 / (n : ℝ)) := by
+      exact mul_nonneg (Real.sqrt_nonneg _) (Real.rpow_nonneg (le_of_lt L.det_pos) _)
+    have h_dual_nonneg : 0 ≤ L.dual.succMin₁ := by
+      have hpos : 0 < L.dual.succMin₁ := by
+        simpa [EuclideanLattice.succMin₁] using
+          (EuclideanLattice.successiveMinima_pos (L := L.dual) (i := ⟨0, n.pos⟩))
+      exact le_of_lt hpos
+    exact mul_le_mul h h_dual h_dual_nonneg h_nonneg
+  have h_det_mul : L.det * L.dual.det = 1 := by
+    have hdet_ne : (L.det : ℝ) ≠ 0 := ne_of_gt L.det_pos
+    rw [EuclideanLattice.dual_det_eq_inv, mul_one_div, div_self hdet_ne]
+  have h_rhs :
+      (Real.sqrt n * L.det ^ (1 / (n : ℝ))) * (Real.sqrt n * L.dual.det ^ (1 / (n : ℝ))) = n := by
+    have h_sqrt : (Real.sqrt n) * (Real.sqrt n) = (n : ℝ) := by
+      have hnn : 0 ≤ (n : ℝ) := by positivity
+      simp
+    have h_dual_det_pos : 0 < L.dual.det := (L.dual).det_pos
+    have h_rpow : L.det ^ (1 / (n : ℝ)) * L.dual.det ^ (1 / (n : ℝ)) =
+        (L.det * L.dual.det) ^ (1 / (n : ℝ)) := by
+      symm
+      exact Real.mul_rpow (le_of_lt L.det_pos) (le_of_lt h_dual_det_pos)
+    calc
+      (Real.sqrt n * L.det ^ (1 / (n : ℝ))) * (Real.sqrt n * L.dual.det ^ (1 / (n : ℝ)))
+          = (Real.sqrt n * Real.sqrt n) * (L.det ^ (1 / (n : ℝ)) * L.dual.det ^ (1 / (n : ℝ))) := by
+              ring
+      _ = (n : ℝ) * (L.det * L.dual.det) ^ (1 / (n : ℝ)) := by
+              rw [h_sqrt, h_rpow]
+      _ = (n : ℝ) := by
+              simp [h_det_mul]
+  calc
+    L.succMin₁ * L.dual.succMin₁
+        ≤ (Real.sqrt n * L.det ^ (1 / (n : ℝ))) * (Real.sqrt n * L.dual.det ^ (1 / (n : ℝ))) := h_mul
+    _ = n := h_rhs
+
+
 end minkowski_1
 
 noncomputable section minkowski_2
