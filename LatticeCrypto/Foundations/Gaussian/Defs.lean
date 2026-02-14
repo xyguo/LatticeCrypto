@@ -235,7 +235,7 @@ noncomputable def rhoMassOn
   L.latticeSum (fun v => (S.indicator rho) (v + c))
 
 scoped notation "ρMass" => rhoMass
-scoped notation "ρMassOn" => rhoMass
+scoped notation "ρMassOn" => rhoMassOn
 
 theorem rhoMassOn_univ (c : 𝓔 n) (L : EuclideanLattice n n) :
   rhoMassOn c L Set.univ = rhoMass c L := by
