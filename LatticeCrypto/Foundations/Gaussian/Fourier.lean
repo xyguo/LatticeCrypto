@@ -211,8 +211,8 @@ lemma fourierCoefficientReal_apply
   Define the Fourier series of a function `g` as the sum of its Fourier coefficients multiplied by complex exponentials.
   Note here both `g` and its Fourier coeff will be bundled in `coeffs`.
 -/
-noncomputable def fourierSeries (L : EuclideanLattice n n) (coeffs : L.dual.carrier → ℂ) (x : 𝓔 n) : ℂ :=
-  ∑' w : L.dual.carrier, coeffs w * cexp (2 * π * Complex.I * (inner ℝ x (w : 𝓔 n)))
+noncomputable def fourierSeries (L : EuclideanLattice n n) (g : 𝓔 n → ℂ) (x : 𝓔 n) : ℂ :=
+  ∑' w : L.dual.carrier, fourierCoefficient L g w * cexp (2 * π * Complex.I * (inner ℝ x (w : 𝓔 n)))
 
 
 /--
@@ -247,8 +247,8 @@ theorem fourierCoefficient_eq_quotient (L : EuclideanLattice n n) (f : 𝓔 n �
   are naturally periodic over L.
 -/
 noncomputable def fourierSeriesOnQuotient (L : EuclideanLattice n n)
-    (coeffs : L.dual.carrier → ℂ) (x_quot : L.Quotient) : ℂ :=
-  fourierSeries L coeffs (Quot.out x_quot)
+    (g : 𝓔 n → ℂ) (x_quot : L.Quotient) : ℂ :=
+  fourierSeries L g (Quot.out x_quot)
 
 /-
 The complex exponential term involving the inner product with a dual lattice vector is periodic with respect to the lattice.
@@ -1005,7 +1005,7 @@ lemma continuous_periodizeZnToTorus {f : 𝓔 n → ℂ}
 The Fourier series on Zn is equal to the Fourier series on the torus evaluated at the mapped point.
 -/
 theorem fourierSeries_Zn_eq_torus_sum (f : 𝓔 n → ℂ) (x : 𝓔 n) :
-  fourierSeries Zn (fourierCoefficient Zn (periodize f Zn)) x =
+  fourierSeries Zn (periodize f Zn) x =
   ∑' w : Fin n → ℤ, UnitAddTorus.mFourierCoeff (periodizeZnToTorus f) w * UnitAddTorus.mFourier w (mapToTorus x) := by
     -- By definition of `fourierSeries`, we can rewrite the left-hand side.
     simp [fourierSeries];
@@ -1055,7 +1055,7 @@ theorem fourier_series_inversion_Zn_for_periodization {f : 𝓔 n → ℂ}
   (hf_cont : Continuous (periodize f Zn) )
   (h_sum : Summable (fourierCoefficient Zn (periodize f Zn)))
   (x : 𝓔 n):
-  fourierSeries Zn (fourierCoefficient Zn (periodize f Zn)) x = periodize f Zn x := by
+  fourierSeries Zn (periodize f Zn) x = periodize f Zn x := by
     have := @UnitAddTorus.hasSum_mFourier_series_apply_of_summable;
     specialize @this ( Fin n ) _ ⟨ periodizeZnToTorus f, ?_ ⟩ _ <;> norm_num at *;
     exact continuous_periodizeZnToTorus hf_cont;
