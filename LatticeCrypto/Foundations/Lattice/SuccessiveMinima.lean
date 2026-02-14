@@ -19,7 +19,7 @@ variable {n : ℕ+}
 /-!
 # Successive Minima definitions
 
-This file defines the successive minima of a geometric lattice and some basic properties they satisfy.
+This file defines the successive minima of a lattice and some basic properties they satisfy.
 
 ## Main Definitions
 
@@ -422,7 +422,7 @@ theorem EuclideanLattice.successiveMinima_mono (L : EuclideanLattice n n)
   apply csInf_le_csInf
   · -- Lower bound exists for λᵢ
     exact ⟨0, fun r ⟨hr, _⟩ => le_of_lt hr⟩
-  · -- Since $L$ is a geometric lattice, it has a basis $B$ with $n$ elements.
+  · -- Since $L$ is a lattice, it has a basis $B$ with $n$ elements.
     obtain ⟨B, hB⟩ : ∃ B : SquareLatticeBasis n, L = B.toLattice := by
       cases L ; aesop;
     -- Let $r$ be a positive real number such that $r \geq \max_{i} \|B_i\|$.
@@ -513,7 +513,7 @@ theorem EuclideanLattice.successiveMinima_boundedAbove (L : EuclideanLattice n n
           funext x; exact (by
           have := Classical.choose_spec ( Finset.mem_image.mp x.2 ) ; aesop;)
 
-/-- Scaling a geometric lattice by a positive scalar scales its successive minima by the same factor. -/
+/-- Scaling a lattice by a positive scalar scales its successive minima by the same factor. -/
 theorem EuclideanLattice.successiveMinima_scale (L : EuclideanLattice n n) (i : Fin n) (s : ℝ) (hs : 0 < s) :
   (L.smul s hs.ne.symm).successiveMinima i = s * L.successiveMinima i := by
   generalize_proofs at *;
@@ -573,7 +573,7 @@ theorem EuclideanLattice.successiveMinima_scale (L : EuclideanLattice n n) (i : 
   · congr! 2;
     convert EuclideanLattice.successiveMinima_defs_eq L i using 1
 
-/-- Scaling a geometric lattice by a positive scalar will cause its dual's successive minima to shrink by the same factor. -/
+/-- Scaling a lattice by a positive scalar will cause its dual's successive minima to shrink by the same factor. -/
 theorem EuclideanLattice.successiveMinima_scale_dual (L : EuclideanLattice n n) (i : Fin n) (s : ℝ) (hs : 0 < s) :
   (L.smul s hs.ne.symm).dual.successiveMinima i = L.dual.successiveMinima i / s := by
   -- By definition of dual, scaling L by s scales its dual by 1/s.

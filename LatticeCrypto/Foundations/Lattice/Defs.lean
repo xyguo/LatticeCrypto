@@ -120,13 +120,13 @@ def LatticeBasis.asZSpanBasis (B : LatticeBasis n k) :
   Module.Basis.span li_z
 
 /-!
-## Geometric Lattice
+## Euclidean Lattice
 
-A geometric lattice is defined by its basis, with the carrier being the ℤ-span of the basis.
+A lattice is defined by its basis, with the carrier being the ℤ-span of the basis.
 -/
 
 /--
-  A geometric lattice in ℝⁿ, defined by a basis of k linearly independent vectors.
+  A lattice in ℝⁿ, defined by a basis of k linearly independent vectors.
   The carrier is the ℤ-span of the basis.
 -/
 structure EuclideanLattice (n k : ℕ+) where
@@ -137,7 +137,7 @@ structure EuclideanLattice (n k : ℕ+) where
   /-- Proof that carrier equals the span (automatically true by default) -/
   carrier_eq : carrier = Submodule.span ℤ (Set.range basis.cols) := by rfl
 
-/-- Two geometric lattices with the same carrier are equivalent (though their bases may differ). -/
+/-- Two lattices with the same carrier are equivalent (though their bases may differ). -/
 def EuclideanLattice.CarrierEquiv (L1 L2 : EuclideanLattice n k) : Prop :=
   L1.carrier = L2.carrier
 
@@ -161,7 +161,7 @@ instance EuclideanLattice.carrierSetoid : Setoid (EuclideanLattice n k) where
   r := CarrierEquiv
   iseqv := ⟨CarrierEquiv.refl, CarrierEquiv.symm, CarrierEquiv.trans⟩
 
-/-- Notation for carrier equivalence of geometric lattices. -/
+/-- Notation for carrier equivalence of lattices. -/
 infix:50 " ≡ᵤ " => EuclideanLattice.CarrierEquiv
 
 /-- Construct a EuclideanLattice from a LatticeBasis -/
@@ -182,18 +182,47 @@ def isBasisFor (B: SquareLatticeBasis n) (L: EuclideanLattice n n) : Prop :=
 ## Properties of Geometric Lattices
 -/
 
-/-- The carrier of a geometric lattice is finitely generated. -/
+/-- The carrier of a lattice is finitely generated. -/
 theorem EuclideanLattice.fg (L : EuclideanLattice n k) : L.carrier.FG := by
   rw [L.carrier_eq]
   have h_fin : (Set.range L.basis.cols).Finite := Set.finite_range _
   exact Submodule.fg_span h_fin
 
-/-- The carrier of a geometric lattice has discrete topology. -/
+/-- The carrier of a lattice has discrete topology. -/
 theorem EuclideanLattice.discrete (L : EuclideanLattice n k) : DiscreteTopology L.carrier := by
   rw [L.carrier_eq]
   exact discrete_zspan L.basis.li
 
-/-- The carrier of a geometric lattice is a countable set. -/
+/-- The carrier of a lattice is infinite. -/
+theorem EuclideanLattice.infinite (L : EuclideanLattice n k) : Infinite L.carrier := by
+  rw [L.carrier_eq]
+  let i0 : Fin k := ⟨0, k.pos⟩
+  have hv0 : (L.basis.cols i0 : 𝓔 n) ≠ 0 := L.basis.li.ne_zero i0
+  let f : ℤ → Submodule.span ℤ (Set.range L.basis.cols) := fun z =>
+    ⟨z • L.basis.cols i0,
+      Submodule.smul_mem (Submodule.span ℤ (Set.range L.basis.cols)) z
+        (Submodule.subset_span (Set.mem_range_self i0))⟩
+  have hf : Function.Injective f := by
+    intro a b hab
+    have hsmul : (a : ℤ) • L.basis.cols i0 = (b : ℤ) • L.basis.cols i0 := by
+      exact congrArg Subtype.val hab
+    have hsub' : (a - b : ℤ) • L.basis.cols i0 = 0 := by
+      simpa [sub_eq_add_neg, add_smul] using sub_eq_zero.mpr hsmul
+    have hsub : ((a - b : ℤ) : ℝ) • L.basis.cols i0 = 0 := by
+      calc
+        ((a - b : ℤ) : ℝ) • L.basis.cols i0 = (a - b : ℤ) • L.basis.cols i0 := by
+          simpa using (Int.cast_smul_eq_zsmul ℝ (a - b) (L.basis.cols i0))
+        _ = 0 := hsub'
+    have hreal : ((a - b : ℤ) : ℝ) = 0 := (smul_eq_zero.mp hsub).resolve_right hv0
+    exact sub_eq_zero.mp (Int.cast_eq_zero.mp hreal)
+  exact Infinite.of_injective f hf
+
+instance EuclideanLattice.instInfiniteAdditive (L : EuclideanLattice n k) : Infinite (Additive L.carrier) := by
+  letI : Infinite L.carrier := L.infinite
+  infer_instance
+
+
+/-- The carrier of a lattice is a countable set. -/
 instance EuclideanLattice.instCountable (L : EuclideanLattice n k) : Countable L.carrier := by
   rw [L.carrier_eq]
   exact Finsupp.instCountableSubtypeMemSubmoduleSpanRange L.basis.cols
@@ -552,7 +581,7 @@ theorem LatticeBasis.span_eq_iff {B1 B2 : LatticeBasis n k} :
 ## Lattice Equivalence via Bases
 -/
 
-/-- Two geometric lattices are equal iff their bases are unimodularly equivalent. -/
+/-- Two lattices are equal iff their bases are unimodularly equivalent. -/
 theorem EuclideanLattice.eq_iff_basis_equiv {L1 L2 : EuclideanLattice n k} :
     L1 ≡ᵤ L2 ↔ L1.basis =ᵤ L2.basis := by
   constructor

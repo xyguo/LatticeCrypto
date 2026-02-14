@@ -736,7 +736,7 @@ theorem minkowski_ellipsoid_volume (b : Basis (Fin n) ℝ (𝓔 n)) (lambdas : F
       exact Or.inl rfl
 
 /-
-Definition of the extremal basis for a geometric lattice.
+Definition of the extremal basis for a lattice.
 -/
 
 /-- The basis of vectors attaining the successive minima. -/

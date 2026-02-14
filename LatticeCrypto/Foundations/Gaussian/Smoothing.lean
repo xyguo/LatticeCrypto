@@ -92,23 +92,6 @@ lemma sum_rhoS_inv_tendsto_card (L : EuclideanLattice n n) (S : Finset L.dual.ca
   simpa using tendsto_finset_sum _ h_sum
 
 /-
-The dual lattice is infinite (since n >= 1).
--/
-lemma infinite_dual (L : EuclideanLattice n n) : Set.Infinite (L.dual.carrier : Set (𝓔 n)) := by
-  -- Since the dual lattice is full rank, there exists a non-zero vector in the dual lattice.
-  obtain ⟨v, hv⟩ : ∃ v : 𝓔 n, v ∈ L.dual.carrier ∧ v ≠ 0 := by
-    have h_dual_basis : ∃ b : Fin n → 𝓔 n, LinearIndependent ℝ b ∧ (∀ i, b i ∈ L.dual.carrier) ∧ (∀ i, b i ≠ 0) := by
-      have := exists_dual_basis_bounded L;
-      exact ⟨ this.choose, this.choose_spec.1, this.choose_spec.2.1, fun i => by intro hi; simpa [ hi ] using this.choose_spec.1.ne_zero i ⟩;
-    exact ⟨ h_dual_basis.choose ⟨ 0, PNat.pos n ⟩, h_dual_basis.choose_spec.2.1 _, h_dual_basis.choose_spec.2.2 _ ⟩;
-  have h_dual_infinite : Set.Infinite (Set.range (fun k : ℤ => (k : ℝ) • v)) := by
-    exact Set.infinite_range_of_injective fun a b h => by simpa [ hv.2 ] using smul_left_injective ℝ hv.2 h;
-  refine h_dual_infinite.mono ?_;
-  rintro _ ⟨ k, rfl ⟩;
-  convert L.dual.carrier.smul_mem k hv.1 using 1;
-  exact Int.cast_smul_eq_zsmul ℝ k v
-
-/-
 The Gaussian mass rho_{1/s}(L*) tends to infinity as s tends to 0 from the right.
 -/
 theorem rhoSMass_inv_tendsto_atTop (L : EuclideanLattice n n) :
@@ -116,8 +99,7 @@ theorem rhoSMass_inv_tendsto_atTop (L : EuclideanLattice n n) :
       -- By Lemma `sum_rhoS_inv_tendsto_card`, for any finite subset S of L.dual, the sum of rho_{1/s}(v) over v in S tends to the cardinality of S as s -> 0+.
       have h_finite_subset : ∀ M > 0, ∃ S : Finset L.dual.carrier, S.card > M := by
         intro M hMpos;
-        have h_infinite : Infinite (L.dual.carrier : Set (𝓔 n)) := by
-          exact Set.infinite_coe_iff.mpr ( infinite_dual L );
+        have h_infinite : Infinite L.dual.carrier := L.dual.infinite
         have := h_infinite.natEmbedding;
         exact ⟨ Finset.image ( fun i => this i ) ( Finset.range ( M + 1 ) ), by rw [ Finset.card_image_of_injective _ this.injective ] ; simp +arith +decide ⟩;
       -- By Lemma `summable_rhoSMassOn`, for any finite subset S of L.dual, the sum over S is less than or equal to the total mass.
@@ -1025,28 +1007,6 @@ lemma rhoMass_dual_bound {n : ℕ+} (L : EuclideanLattice n n) (t : ℝ) (ht : t
   convert rhoMass_nonzero_bound_of_covering L.dual u hu.1 t ht.le h_cover using 1
 
 /-
-The dual of a lattice scaled by c is equivalent to the dual of the original lattice scaled by 1/c.
--/
-lemma dual_smul_eq_smul_inv {n : ℕ+} (L : EuclideanLattice n n) (c : ℝ) (hc : c ≠ 0) :
-    (L.smul c hc).dual ≡ᵤ L.dual.smul (1 / c) (by simp [hc]) := by
-      unfold EuclideanLattice.dual;
-      unfold LatticeBasis.dual;
-      -- The dual of a diagonal matrix is the diagonal matrix with the reciprocals of the diagonal entries.
-      have h_dual_diag : ∀ (d : ℝ), (Matrix.diagonal (fun _ => d) : Matrix (Fin n) (Fin n) ℝ).transpose⁻¹ = Matrix.diagonal (fun _ => 1 / d) := by
-        simp +decide [ Matrix.inv_def ];
-        intro d; by_cases hd : d = 0 <;> simp +decide [ hd, Matrix.smul_eq_diagonal_mul ] ;
-        cases n using PNat.recOn <;> simp +decide [ pow_succ', mul_comm, hd ];
-      simp_all +decide ;
-      -- By definition of matrix multiplication and the properties of diagonal matrices, we can show that the two lattices are equivalent.
-      have h_equiv : (L.smul c hc).basis.asMatrix = c • L.basis.asMatrix := by
-        exact rfl;
-      -- By definition of matrix multiplication and the properties of diagonal matrices, we can show that the two lattices are equivalent. Specifically, multiplying the basis matrix by c and then taking the inverse is the same as taking the inverse first and then multiplying by 1/c.
-      have h_equiv : ((c • L.basis.asMatrix).transpose)⁻¹ = (1 / c) • (L.basis.asMatrix.transpose)⁻¹ := by
-        simp +decide [ Matrix.smul_eq_diagonal_mul ];
-        rw [ Matrix.mul_inv_rev, h_dual_diag ];
-      unfold LatticeBasis.toLattice; aesop;
-
-/-
 If the scaled n-th successive minimum is small enough, the Gaussian mass of the dual tail is bounded.
 -/
 lemma rhoSMass_dual_bound_scaled {n : ℕ+} (L : EuclideanLattice n n) (s t : ℝ) (hs : s > 0) (ht : t > 0)
@@ -1056,7 +1016,7 @@ lemma rhoSMass_dual_bound_scaled {n : ℕ+} (L : EuclideanLattice n n) (s t : �
       · rw [ rhoSMassOn_scale ];
         -- Since the dual of a lattice scaled by $c$ is the dual of the original lattice scaled by $1/c$, we have:
         have h_dual_smul : (L.smul (1 / s) (by positivity)).dual ≡ᵤ L.dual.smul s (by positivity) := by
-          convert dual_smul_eq_smul_inv L ( 1 / s ) ( by positivity ) using 1;
+          convert L.dual_of_smul_eq_dual_smul_inv ( 1 / s ) ( by positivity ) using 1;
           norm_num;
         have h_dual_smul : ∀ (L L' : EuclideanLattice n n) (S : Set (𝓔 n)), L ≡ᵤ L' → rhoMassOn 0 L S = rhoMassOn 0 L' S := by
           intros L L' S hL_L'
@@ -1071,7 +1031,7 @@ lemma rhoSMass_dual_bound_scaled {n : ℕ+} (L : EuclideanLattice n n) (s t : �
         exact ⟨ fun hx => ⟨ ( 1 / s ) • ‹_›, by simpa [ hs.ne' ] using hx, by simp +decide [ hs.ne' ] ⟩, by rintro ⟨ y, hy, rfl ⟩ ; simpa [ hs.ne' ] using hy ⟩;
       · congr! 1;
         have h_dual_smul : (L.smul (1 / s) (by positivity)).dual ≡ᵤ L.dual.smul s (by positivity) := by
-          convert dual_smul_eq_smul_inv L ( 1 / s ) ( by positivity ) using 1;
+          convert L.dual_of_smul_eq_dual_smul_inv ( 1 / s ) ( by positivity ) using 1;
           norm_num;
         have h_dual_smul : ∀ (L L' : EuclideanLattice n n), L ≡ᵤ L' → rhoMass 0 L = rhoMass 0 L' := by
           intros L L' h_equiv;
@@ -1093,7 +1053,7 @@ lemma rhoSMass_dual_bound_scaled {n : ℕ+} (L : EuclideanLattice n n) (s t : �
 /-
 Helper lemma to simplify the exponential term in the Micciancio-Regev bound.
 -/
-lemma exp_neg_pi_t_sq (n : ℕ+) (ε : ℝ) (hε : ε > 0) (hn : 1 ≤ (n : ℝ)) :
+private lemma exp_neg_pi_t_sq (n : ℕ+) (ε : ℝ) (hε : ε > 0) (hn : 1 ≤ (n : ℝ)) :
     let t := Real.sqrt (Real.log (2 * n * (1 + 1 / ε)) / Real.pi)
     Real.exp (-Real.pi * t^2) = ε / (2 * n * (1 + ε)) := by
       field_simp;

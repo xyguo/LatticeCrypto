@@ -124,7 +124,7 @@ theorem LatticeBasis.volume_of_unimodularEquiv {B1 B2 : SquareLatticeBasis n}
     rcases Int.isUnit_iff.mp h_det_U with ( h | h ) <;> norm_num [ h ];
   simp_all +decide [ Matrix.det_apply' ]
 
-/-- The determinant (covolume) of a geometric lattice. -/
+/-- The determinant (covolume) of a lattice. -/
 noncomputable def EuclideanLattice.det (L : EuclideanLattice n n) : ℝ :=
   L.basis.volume
 
