@@ -16,7 +16,14 @@ namespace Integral
 variable {n k : ℕ+}
 
 /-!
-## Bridge to Euclidean Lattice
+## Definitions for integral lattices and bases
+  - `ZnSubmodule n`: The standard integer lattice ℤⁿ as a submodule of 𝓔 n.
+  - `IsIntegralBasis`: A predicate asserting that a lattice basis is integral, i.e, each basis vector lies in ℤⁿ.
+  - `IsIntegralLattice`: A predicate asserting that a Euclidean lattice is integral, i.e., its carrier is a subset of ℤⁿ.
+  - `IntegralLattice.ofIntegralBasis`: Construct an integral lattice from an integral basis.
+  - `IntegralBasis.ofIntegralLattice`: Extract an integral basis from an integral lattice.
+  - `stdBasisZ`: The standard integral basis of ℤⁿ.
+  - `Z n`: The standard integer lattice ℤⁿ as a Euclidean lattice.
 -/
 
 /-- The standard integer lattice ℤⁿ inside 𝓔 n = ℝⁿ. -/
