@@ -1,10 +1,6 @@
-import LatticeCrypto.Foundations.Lattice.Integral
-import LatticeCrypto.Foundations.Lattice.SuccessiveMinima
-import LatticeCrypto.Foundations.Algorithms.LLL
-import Mathlib.Algebra.Order.Floor.Defs
-import LatticeCrypto.Utils.Geometry
+import LatticeCrypto.Foundations.Algorithms.LLL.Algorithm
+import LatticeCrypto.Foundations.Algorithms.LLL.Runtime
 import LatticeCrypto.Utils.LinearAlgebra
-import LatticeCrypto.Utils.Vec
 
 
 namespace LatticeCrypto.Foundations.Algorithms

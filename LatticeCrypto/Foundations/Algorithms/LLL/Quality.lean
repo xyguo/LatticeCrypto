@@ -1,4 +1,6 @@
 import LatticeCrypto.Foundations.Algorithms.LLL.Defs
+import LatticeCrypto.Foundations.Lattice.FundamentalDomain
+import LatticeCrypto.Foundations.Lattice.SuccessiveMinima
 
 namespace LatticeCrypto.Foundations.Algorithms
 

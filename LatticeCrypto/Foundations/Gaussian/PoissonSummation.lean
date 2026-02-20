@@ -3,6 +3,7 @@ import LatticeCrypto.Foundations.Gaussian.Fourier
 import LatticeCrypto.Foundations.Lattice.Defs
 import LatticeCrypto.Foundations.Lattice.Basic
 import LatticeCrypto.Foundations.Lattice.FundamentalDomain
+import LatticeCrypto.Foundations.Lattice.Integral
 import LatticeCrypto.Utils.Geometry
 import LatticeCrypto.Utils.Vec
 
@@ -11,6 +12,7 @@ open scoped Real RealInnerProductSpace
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Foundations.Lattice
+open LatticeCrypto.Foundations.Lattice.Integral
 open scoped FourierTransform
 
 namespace LatticeCrypto.Foundations.Gaussian
@@ -20,9 +22,11 @@ namespace LatticeCrypto.Foundations.Gaussian
 -/
 noncomputable section poisson_summation
 
+open LatticeCrypto.Foundations.Lattice.Integral
 open scoped Real Complex MeasureTheory
-variable {n : ℕ+}
 
+variable {n : ℕ+}
+private noncomputable abbrev Zn : EuclideanLattice n n := Z n
 
 /-- Poisson Summation Formula on Z^n -/
 theorem poisson_summation_Zn (f : 𝓔 n → ℂ)
@@ -37,7 +41,7 @@ theorem poisson_summation_Zn (f : 𝓔 n → ℂ)
     unfold LatticeCrypto.Foundations.Gaussian.periodize; aesop;
   · have h_fourier_coeff : ∀ w : Zn.dual.carrier, fourierCoefficient Zn (periodize f Zn) w = 𝓕 f w := by
       have := @fourierCoefficient_of_periodization_eq_fourierTransform;
-      have := @Zn_det n; aesop;
+      have := @Zn_det_one n; aesop;
     convert this using 1;
     rw [ tsum_congr h_fourier_coeff ];
     rw [ Zn_dual_eq_Zn ];
@@ -70,16 +74,20 @@ lemma periodize_comp_basis (L : EuclideanLattice n n) (f : 𝓔 n → ℂ) (x : 
           obtain ⟨ c, rfl ⟩ := ha;
           use fun i => c i;
           ext i; simp +decide [ Zn ] ;
-          simp +decide [ Zn_stdBasis, LatticeBasis.toLattice, LatticeBasis.fromMatrix ];
-          simp +decide [ Matrix.col ];
-          rw [ Finset.sum_apply, Finset.sum_eq_single i ] <;> aesop;
+          have h_proj : (∑ x : Fin n, c x • (EuclideanSpace.single x 1 : 𝓔 n)) i = c i := by
+            rw [Finset.sum_apply, Finset.sum_eq_single i] <;> aesop
+          have hsum : (∑ x : Fin n, c x • (Z n).basis.basis x) i = (c i : ℝ) := by
+            simpa [Z, stdBasisZ, LatticeBasis.toLattice, stdBasis] using h_proj
+          exact hsum.symm
         · -- Since $z$ is an integer vector, $zToE z$ is a linear combination of the basis vectors with integer coefficients.
           have h_comb : ∃ (c : Fin n → ℤ), zToE z = ∑ i, c i • (Zn.basis.basis i : 𝓔 n) := by
             use fun i => z i;
-            ext i; simp +decide [ Zn, Zn_stdBasis ];
-            simp +decide [ LatticeBasis.fromMatrix ];
-            simp +decide [ LatticeBasis.toLattice, Matrix.col ];
-            rw [ Finset.sum_apply, Finset.sum_eq_single i ] <;> aesop;
+            ext i; simp +decide [ Zn ];
+            have h_proj : (∑ x : Fin n, z x • (EuclideanSpace.single x 1 : 𝓔 n)) i = z i := by
+              rw [Finset.sum_apply, Finset.sum_eq_single i] <;> aesop
+            have hsum : (∑ x : Fin n, z x • (Z n).basis.basis x) i = (z i : ℝ) := by
+              simpa [Z, stdBasisZ, LatticeBasis.toLattice, stdBasis] using h_proj
+            exact hsum.symm
           exact h_comb.elim fun c hc => hc ▸ Submodule.sum_mem _ fun i _ => Submodule.smul_mem _ _ ( Submodule.subset_span ( Set.mem_range_self _ ) );
     -- By definition of periodization, we can rewrite the right-hand side using the sum over the lattice vectors.
     have h_rhs : periodize f L (L.basis.asLinearEquiv x) = ∑' v : L.carrier, f (L.basis.asLinearEquiv x + v) := by
@@ -144,28 +152,29 @@ lemma image_fundamentalDomain_eq (L : EuclideanLattice n n) :
         rw [ LinearEquiv.apply_symm_apply ]
 
 /-
-The dual basis linear equivalence maps dual integer vectors to the dual lattice.
+The basis linear equivalence maps integer vectors to the lattice.
 -/
-lemma dual_basis_map_mem_dual (L : EuclideanLattice n n) (k : Zn.dual.carrier) :
-  L.basis.dual.asLinearEquiv k.1 ∈ L.dual.carrier := by
-    -- Since `k` is in the dual of `Zn`, it is an integer linear combination of the standard basis vectors.
-    obtain ⟨a, ha⟩ : ∃ a : Fin n → ℤ, k.val = ∑ i, a i • (Zn.dual.basis.asTopBasis i) := by
-      have h_dual_basis : ∀ (k : Zn.dual.carrier), ∃ a : Fin n → ℤ, k.val = ∑ i, a i • (Zn.dual.basis.asTopBasis i) := by
+lemma basis_map_mem (L : EuclideanLattice n n) (k : ZVec n) :
+  L.basis.asLinearEquiv (zToE k) ∈ L.carrier := by
+    -- Since `k` is in `Zn`, it is an integer linear combination of the standard basis vectors.
+    obtain ⟨a, ha⟩ : ∃ a : Fin n → ℤ, k = ∑ i, a i • (Zn.basis.asTopBasis i) := by
+      have h_basis : ∀ (k : Zn.carrier), ∃ a : Fin n → ℤ, k.val = ∑ i, a i • (Zn.basis.asTopBasis i) := by
         norm_num +zetaDelta at *;
         intro a ha; rw [ Submodule.mem_span_range_iff_exists_fun ] at ha; tauto;
-      exact h_dual_basis k;
-    -- Since `L.basis.dual.asLinearEquiv` maps the standard basis vectors to the basis vectors of `L.dual`, the image of `k` is an integer linear combination of the basis vectors of `L.dual`.
-    have h_image : L.basis.dual.asLinearEquiv k.val = ∑ i, a i • (L.basis.dual.asTopBasis i) := by
+      have hk : (zToE k) ∈ Zn.carrier := zVec_mem_Zn_carrier (n := n) k
+      simpa using (h_basis ⟨zToE k, hk⟩)
+    -- Since `L.basis.asLinearEquiv` maps the standard basis vectors to the basis vectors of `L`, the image of `k` is an integer linear combination of the basis vectors of `L`.
+    have h_image : L.basis.asLinearEquiv k = ∑ i, a i • (L.basis.asTopBasis i) := by
       rw [ ha, map_sum ];
-      simp +decide [ Zn_dual_eq_Zn ];
-      congr;
-      ext i; simp +decide [ Zn ] ;
-      simp +decide [ Zn_stdBasis, LatticeBasis.toLattice ];
-      simp +decide [ LatticeBasis.fromMatrix, LatticeBasis.asLinearEquiv ];
-      simp +decide [ Matrix.toLin_apply, Matrix.col ];
-      simp +decide [ Matrix.mulVec, dotProduct, stdBasis ];
-      simp +decide [ Matrix.one_apply ];
-      rw [ Finset.sum_apply, Finset.sum_eq_single ‹_› ] <;> aesop;
+      refine Finset.sum_congr rfl ?_
+      intro i hi
+      have hmap : L.basis.asLinearEquiv ((Z n).basis.basis i) = L.basis.basis i := by
+        ext j
+        simp [Z, stdBasisZ, LatticeBasis.toLattice, LatticeBasis.asLinearEquiv,
+          LatticeBasis.asMatrix, Matrix.toLin_apply, Matrix.mulVec, dotProduct, stdBasis]
+        rw [Finset.sum_apply, Finset.sum_eq_single j] <;> aesop
+      simpa [Zn, Z, stdBasisZ, LatticeBasis.toLattice, LatticeBasis.asTopBasis] using
+        congrArg (fun v : 𝓔 n => a i • v) hmap
     simp_all +decide [ Submodule.mem_span ];
     exact fun p hp => Submodule.sum_mem _ fun i _ => Submodule.smul_mem _ _ ( hp <| Set.mem_range_self _ )
 
@@ -210,7 +219,7 @@ The Fourier coefficient of the composed function on Zn corresponds to the Fourie
 lemma fourierCoefficient_comp_basis_eq (L : EuclideanLattice n n) (f : 𝓔 n → ℂ) (k : Zn.dual.carrier) :
   fourierCoefficient Zn (periodize (f ∘ L.basis.asLinearEquiv.toContinuousLinearEquiv) Zn) k =
   fourierCoefficient L (periodize f L) ⟨L.basis.dual.asMatrix.mulVec (k : 𝓔 n), by
-    convert dual_basis_map_mem_dual L k⟩ := by
+    convert basis_map_mem L.dual (Zn.toZVec k); simp⟩ := by
     -- Expand the definition of `fourierCoefficient` on the LHS.
     simp [fourierCoefficient];
     -- Apply the integral_comp_basis_eq lemma with `g(y) = periodize f L y * cexp (-2πi * <B⁻¹ y, k>)`.
@@ -223,7 +232,7 @@ lemma fourierCoefficient_comp_basis_eq (L : EuclideanLattice n n) (f : 𝓔 n �
       rw [ inner_comp_basis_dual ];
       congr!;
     simp_all +decide [ periodize_comp_basis ];
-    erw [ Zn_det ] ; norm_num;
+    erw [ Zn_det_one ] ; norm_num;
     exact Or.inl rfl
 
 /-
@@ -268,31 +277,13 @@ lemma latticeSum_comp_basis_eq (L : EuclideanLattice n n) (f : 𝓔 n → ℂ) :
       use fun i => c i;
       simp +decide [ Zn ];
       congr! 2;
-      simp +decide [ Zn_stdBasis ];
-      simp +decide [ LatticeBasis.toLattice, LatticeBasis.fromMatrix ];
-      simp +decide [ Matrix.col, LatticeBasis.asLinearEquiv ];
-      simp +decide [ Matrix.toLin_apply, LatticeBasis.asMatrix ];
-      simp +decide [ Matrix.mulVec, dotProduct, stdBasis ];
-      ext i; simp +decide [ Matrix.one_apply, Finset.sum_ite_eq ] ;
-      rw [ Finset.sum_apply, Finset.sum_eq_single i ] <;> aesop
-
-/-
-The lattice sum of the Fourier transform of the composed function over Zn is equal to the scaled lattice sum of the Fourier transform of the original function over the dual lattice.
--/
-lemma poisson_rhs_eq (L : EuclideanLattice n n) (f : 𝓔 n → ℂ) :
-  Zn.latticeSum (fun w => 𝓕 (f ∘ L.basis.asLinearEquiv.toContinuousLinearEquiv) w) =
-  (1 / L.det : ℂ) * L.dual.latticeSum (fun w => 𝓕 f w) := by
-    have h_fourier_transform_comp_linear_map : ∀ w : 𝓔 n, 𝓕 (f ∘ L.basis.asLinearEquiv.toContinuousLinearEquiv) w = (1 / L.det : ℂ) * 𝓕 f (L.basis.dual.asMatrix.mulVec w) := by
-      intro w;
-      convert fourier_transform_comp_linear_map_from_lattice L _ _ using 1;
-      aesop;
-    -- By `latticeSum_comp_basis_eq` applied to `L.dual`, we have:
-    have h_latticeSum_comp_basis_dual : L.dual.latticeSum (fun w => 𝓕 f w) = Zn.latticeSum (fun w => 𝓕 f (L.basis.dual.asMatrix.mulVec w)) := by
-      convert latticeSum_comp_basis_eq ( L.dual ) ( fun w => 𝓕 f w ) using 1;
-      · exact Eq.symm (latticeSum_comp_basis_eq L.dual fun w => 𝓕 f w);
-      · convert latticeSum_comp_basis_eq ( L.dual ) ( fun w => 𝓕 f w ) using 1;
-    simp_all +decide [ Zn, EuclideanLattice.latticeSum ];
-    rw [ tsum_mul_left ]
+      rename_i x hx
+      have hmap : L.basis.asLinearEquiv ((Z n).basis.basis x) = L.basis.basis x := by
+        ext i
+        simp [Z, stdBasisZ, LatticeBasis.toLattice, LatticeBasis.asLinearEquiv,
+          LatticeBasis.asMatrix, Matrix.toLin_apply, Matrix.mulVec, dotProduct, stdBasis]
+        rw [Finset.sum_apply, Finset.sum_eq_single i] <;> aesop
+      exact hmap.symm
 
 /-
 Poisson Summation Formula for a general lattice L. The sum of f over L equals (1/det L) times the sum of the Fourier transform of f over the dual lattice L*.
@@ -329,7 +320,7 @@ theorem poisson_summation (L : EuclideanLattice n n) (f : 𝓔 n → ℂ)
       convert h_cont_comp using 1;
       ext; simp [periodize_comp_basis];
     · have h_fourier_coeff : ∀ k : Zn.dual.carrier, fourierCoefficient Zn (periodize (f ∘ L.basis.asLinearEquiv.toContinuousLinearEquiv) Zn) k = fourierCoefficient L (periodize f L) ⟨L.basis.dual.asMatrix.mulVec (k : 𝓔 n), by
-        convert dual_basis_map_mem_dual L k⟩ := by
+        convert basis_map_mem L.dual (Zn.toZVec k); simp⟩ := by
         exact fun k => fourierCoefficient_comp_basis_eq L f k
       generalize_proofs at *;
       rw [ summable_congr h_fourier_coeff ];

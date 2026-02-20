@@ -1,4 +1,3 @@
-import LatticeCrypto.Foundations.Algorithms.LLL.Defs
 import LatticeCrypto.Foundations.Algorithms.LLL.Algorithm
 
 namespace LatticeCrypto.Foundations.Algorithms

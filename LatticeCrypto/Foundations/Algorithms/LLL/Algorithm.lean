@@ -1,9 +1,6 @@
 import LatticeCrypto.Foundations.Lattice.Defs
-import LatticeCrypto.Foundations.Lattice.Basic
 import LatticeCrypto.Foundations.Algorithms.LLL.Defs
-import LatticeCrypto.Utils.Geometry
 import LatticeCrypto.Utils.LinearAlgebra
-import LatticeCrypto.Utils.Vec
 
 namespace LatticeCrypto.Foundations.Algorithms
 
@@ -173,6 +170,7 @@ noncomputable def sizeReduceBasisSpec (B : Matrix (Fin n) (Fin k) ℝ) (BStar : 
     sizeReduceVectorSpec acc BStar ⟨i.val, i.isLt⟩) B
 
 
+-- TODO: define a predicate for "upper triangular" and prove that the sizeReduction matrix is not only unimodular but also upper triangular.
 /-- The `sizeReduceVectorSpec` is an unimodular transform. -/
 theorem sizeReduceVectorSpec_eq_matrix_mul (B : Matrix (Fin n) (Fin k) ℝ) (BStar : Fin k → 𝓔 n) (i : Fin k) :
   let RM := sizeReduceVectorSpec B BStar i

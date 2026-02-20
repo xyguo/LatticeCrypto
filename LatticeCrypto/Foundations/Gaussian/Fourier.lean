@@ -5,6 +5,7 @@ import LatticeCrypto.Foundations.Gaussian.Defs
 import LatticeCrypto.Foundations.Lattice.Defs
 import LatticeCrypto.Foundations.Lattice.Basic
 import LatticeCrypto.Foundations.Lattice.FundamentalDomain
+import LatticeCrypto.Foundations.Lattice.Integral
 import LatticeCrypto.Utils.Geometry
 import LatticeCrypto.Utils.Vec
 
@@ -15,6 +16,7 @@ open scoped FourierTransform
 open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Foundations.Lattice
+open LatticeCrypto.Foundations.Lattice.Integral
 
 namespace LatticeCrypto.Foundations.Gaussian
 
@@ -457,114 +459,6 @@ end fourier_series
 -/
 section fourier_series_inversion_on_Zn
 
-/-
- ### Definition and basic properties of the integer lattice Z^n.
--/
-section Zn_def
-
-open scoped Real Complex MeasureTheory
-open LatticeCrypto.Foundations.Lattice LatticeCrypto.Utils.Vec LatticeCrypto.Foundations.Gaussian
-open scoped FourierTransform
-
-
-variable {n : ℕ+}
-
-def Zn_stdBasis : LatticeBasis n n :=
-  LatticeBasis.fromMatrix (1 : Matrix (Fin n) (Fin n) ℝ) (le_refl n) (by
-  refine' Fintype.linearIndependent_iff.2 _;
-  -- Since the standard basis vectors are linearly independent, the only solution to the equation ∑ i, g i • e_i = 0 is g i = 0 for all i.
-  intros g hg
-  have h_eq : ∀ i : Fin n, g i = 0 := by
-    intro i; replace hg := congr_arg ( fun x => x i ) hg; simp_all +decide ;
-    simp_all +decide [ Matrix.col, piToEuc ];
-    erw [ Finset.sum_apply, Finset.sum_eq_single i ] at hg <;> aesop
-  exact h_eq
-  )
-
-/-- The integer lattice Z^n -/
-def Zn : EuclideanLattice n n :=
-  let b := Zn_stdBasis
-  b.toLattice
-
-/-
-The determinant of the integer lattice Zn is 1.
--/
-theorem Zn_det : (Zn (n := n)).det = 1 := by
-  unfold EuclideanLattice.det;
-  unfold LatticeBasis.volume;
-  erw [ Matrix.det_one ] ; norm_num
-
-/-
-The dual of Zn is itself.
--/
--- theorem Zn_dual_eq_Zn : (Zn (n := n)).dual ≡ᵤ Zn := by
-theorem Zn_dual_eq_Zn : (Zn (n := n)).dual = Zn := by
-  -- The dual lattice of Zn is itself because the standard basis is orthonormal.
-  unfold LatticeCrypto.Foundations.Gaussian.Zn EuclideanLattice.dual;
-  unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.dual;
-  simp [Zn_stdBasis];
-  unfold LatticeCrypto.Foundations.Lattice.LatticeBasis.fromMatrix;
-  congr;
-  erw [ Matrix.inv_eq_left_inv ] ; aesop
-
-/-
-The basis of Zn is the standard basis.
--/
-lemma Zn_basis_eq_stdBasis : Zn.basis.asTopBasis = stdBasis (n := n) := by
-  -- By definition of $Zn$, its basis is the standard basis.
-  ext; simp [Zn, Zn_stdBasis];
-  unfold LatticeBasis.fromMatrix stdBasis; aesop;
-
-/-
-The fundamental domain of Zn is the unit hypercube.
--/
-lemma Zn_fundamentalDomain_eq_pi_Ico :
-    Zn.basis.fundamentalDomain = Set.pi Set.univ (fun _ : Fin n => Set.Ico 0 1) := by
-      unfold LatticeBasis.fundamentalDomain;
-      ext; simp [Zn_basis_eq_stdBasis];
-      simp +decide [ Set.pi, stdBasis ];
-      rfl
-
-/-
-The volume of the fundamental domain of Zn is 1.
--/
-lemma volume_Zn_fundamentalDomain_eq_one :
-    MeasureTheory.volume (Zn.basis.fundamentalDomain : Set (𝓔 n)) = 1 := by
-      have := @EuclideanLattice.det_eq_measure_fundamentalDomain;
-      exact this Zn ▸ by norm_num [ Zn_det ] ;
-
-/-
-Relate the Fourier basis functions on the torus to the complex exponentials on Euclidean space.
--/
--- Integer vectors
-abbrev ZVec (n : ℕ) := Fin n → ℤ
-
--- Coe: Z^n → R^n
-def zToE (z : ZVec n) : 𝓔 n := fun i => (z i : ℝ)
-
-@[simp] lemma zToE_apply (z : ZVec n) (i : Fin n) : zToE (n:=n) z i = (z i : ℝ) := rfl
-
-lemma zVec_mem_Zn_carrier (z : ZVec n) :
-  zToE z ∈ (Zn (n:=n)).carrier := by
-  -- Since the basis is the identity matrix, the sum of zᵢ times the basis vectors is just z.
-  simp;
-  rw [ Submodule.mem_span ];
-  intro p hp
-  have h_submodule : ∀ i : Fin n, (fun j => if j = i then 1 else 0 : Fin n → ℝ) ∈ p := by
-    intro i; specialize hp ( Set.mem_range_self i ) ; aesop;
-  -- Since p is closed under finite sums and scalar multiplication by integers, we can express zToE z as a finite sum of scalar multiples of the basis vectors.
-  have h_sum : zToE z = ∑ i : Fin n, (z i : ℤ) • (fun j => if j = i then 1 else 0 : Fin n → ℝ) := by
-    ext i; simp [LatticeCrypto.Foundations.Gaussian.zToE];
-  exact h_sum.symm ▸ p.sum_mem fun i _ => p.smul_mem _ ( h_submodule i )
-
-def ZVec.toZn (z : ZVec n) : Zn (n:=n).carrier :=
-  ⟨ zToE z, zVec_mem_Zn_carrier (n:=n) z ⟩
-
-def ZVec.toZnDual (z : ZVec n) : Zn (n:=n).dual.carrier := by
-  -- rewrite Zn.dual.carrier to Zn.carrier
-  simpa [Zn_dual_eq_Zn] using (ZVec.toZn (n:=n) z)
-
-end Zn_def
 
 /-
   ### Relating Fourier coefficients on UnitAddTorus to that on R^n / Z^n.
@@ -577,6 +471,7 @@ open scoped FourierTransform
 
 
 variable {n : ℕ+}
+private noncomputable abbrev Zn : EuclideanLattice n n := Z n
 
 /-
 Isomorphism between R^n / Z^n and the torus (R/Z)^n.
@@ -601,17 +496,24 @@ noncomputable def quotientZnIsoUnitAddTorus : (𝓔 n) ⧸ Zn.carrier ≃+ UnitA
     constructor <;> intro h <;> simp_all +decide [ funext_iff, Submodule.mem_span_range_iff_exists_fun ];
     · choose c hc using fun i => h i;
       use c; ext i; simp +decide [ Zn ] ;
-      simp [Zn_stdBasis]
-      simp +decide [ ← hc i, LatticeBasis.fromMatrix ];
-      simp +decide [ LatticeBasis.toLattice ];
-      simp +decide [ Matrix.col ];
-      rw [ Finset.sum_apply, Finset.sum_eq_single i ] <;> aesop;
+      have h_comp : (∑ x : Fin n, c x • (EuclideanSpace.single x 1 : 𝓔 n)) i = c i := by
+        rw [Finset.sum_apply, Finset.sum_eq_single i] <;> aesop
+      have hsum : (∑ y : Fin n, c y • (Z n).basis.basis y) i = (c i : ℝ) := by
+        simpa [Z, stdBasisZ, LatticeBasis.toLattice, stdBasis] using h_comp
+      have hci : (c i : ℝ) = x i := by simpa using hc i
+      exact hsum.trans hci
     · obtain ⟨ c, rfl ⟩ := h; simp_all +decide [ Zn ] ;
-      simp [Zn_stdBasis]
-      simp +decide [ AddSubgroup.mem_zmultiples_iff, LatticeBasis.fromMatrix ];
-      intro i; use c i; simp +decide [ LatticeBasis.toLattice ] ;
-      simp +decide [ Matrix.col ];
-      rw [ Finset.sum_apply, Finset.sum_eq_single i ] <;> aesop
+      intro x
+      refine ⟨c x, ?_⟩
+      have h_ortho : ∀ a : Fin n → ℤ,
+          (∑ j : Fin n, a j • (EuclideanSpace.single j 1 : 𝓔 n)) x = a x := by
+        intro a
+        rw [Finset.sum_apply, Finset.sum_eq_single x] <;> aesop
+      have hsum : (∑ y : Fin n, c y • (Z n).basis.basis y) x = (c x : ℝ) := by
+        simpa [Z, stdBasisZ, LatticeBasis.toLattice, stdBasis] using h_ortho c
+      have hzsmul : (fun z : ℤ => z • (1 : ℝ)) (c x) = (c x : ℝ) := by
+        norm_num
+      exact hzsmul.trans hsum.symm
   let iso := QuotientAddGroup.quotientKerEquivOfSurjective f h_surj
   -- We need to cast the domain from (𝓔 n) ⧸ f.ker to (𝓔 n) ⧸ Zn.carrier
   -- Since f.ker = Zn.carrier.toAddSubgroup, the quotients are the same.
@@ -911,7 +813,7 @@ theorem mFourierCoeff_eq_fourierCoefficient_for_periodization (f : 𝓔 n → �
   fourierCoefficient Zn ( periodize f Zn ) (ZVec.toZnDual w) := by
     rw [ torusFourierCoeff_torusIntegrand, integral_torus_eq_integral_fundamentalDomain_final ];
     unfold torusIntegrand fourierCoefficient;
-    rw [ Zn_det ] ; norm_num [ mul_comm ] ;
+    rw [ Zn_det_one ] ; norm_num [ mul_comm ] ;
     refine' MeasureTheory.setIntegral_congr_fun ( by exact LatticeBasis.fundamentalDomain_measurableSet _ ) fun x hx => _;
     convert integrand_eq f w x using 1;
     ring_nf
@@ -1034,9 +936,13 @@ theorem fourierSeries_Zn_eq_torus_sum (f : 𝓔 n → ℂ) (x : 𝓔 n) :
             exact h_basis x x.2;
           use a; ext i; simp [ha, ZVec.toZn];
           simp +decide [ Zn ];
-          simp +decide [ Zn_stdBasis, LatticeBasis.fromMatrix ];
-          simp +decide [ LatticeBasis.toLattice, Matrix.col ];
-          rw [ Finset.sum_apply, Finset.sum_eq_single i ] <;> aesop;
+          have h_proj : ∀ i : Fin n,
+              (∑ x : Fin n, a x • (EuclideanSpace.single x 1 : 𝓔 n)) i = a i := by
+            intro i
+            rw [Finset.sum_apply, Finset.sum_eq_single i] <;> aesop
+          have hsum : (∑ x : Fin n, a x • (Z n).basis.basis x) i = (a i : ℝ) := by
+            simpa [Z, stdBasisZ, LatticeBasis.toLattice, stdBasis] using h_proj i
+          exact hsum.symm
       convert h_bijection using 1;
       · rw [ Zn_dual_eq_Zn ];
       · congr! 1;

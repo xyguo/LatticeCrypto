@@ -1,10 +1,5 @@
-import LatticeCrypto.Foundations.Lattice.Integral
-import LatticeCrypto.Foundations.Lattice.SuccessiveMinima
 import LatticeCrypto.Foundations.Algorithms.Babai.Algorithm
 import LatticeCrypto.Foundations.Lattice.Distance
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Data.Fin.SuccPred
-import Mathlib.Data.Nat.Log
 import LatticeCrypto.Utils.Geometry
 import LatticeCrypto.Utils.LinearAlgebra
 import LatticeCrypto.Utils.Vec
