@@ -1,6 +1,7 @@
 import LatticeCrypto.Foundations.Algorithms.LLL.Defs
 import LatticeCrypto.Foundations.Algorithms.LLL.Algorithm
 import LatticeCrypto.Foundations.Algorithms.LLL.Correctness
+import LatticeCrypto.Foundations.Lattice.Integral
 
 namespace LatticeCrypto.Foundations.Algorithms
 
@@ -10,6 +11,7 @@ open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Utils.LinearAlgebra
 open LatticeCrypto.Foundations.Lattice
+open LatticeCrypto.Foundations.Lattice.Integral
 
 variable {n k : ℕ+}
 
@@ -83,15 +85,15 @@ theorem prefixGramDet_eq_prefixGramDet' (B : LatticeBasis n k) (i : Fin k) :
   simpa [prefixGramDet, prefixGramDet', vecs, Matrix.gram, bStarFun, m] using hgram'.symm
 
 /-- For integral bases, the Gram determinants are integers. -/
-noncomputable def prefixGramDetInt (B : Integral.IntegralLatticeBasis n k) (i : Fin k) : ℤ :=
+noncomputable def prefixGramDetInt (B : LatticeBasis n k) [hb: IsIntegralBasis B] (i : Fin k) : ℤ :=
   let vecs : Fin (i.1 + 1) → Fin n → ℤ :=
-    fun j r => B.matrix r ⟨j, Nat.lt_of_lt_of_le j.2 (Nat.succ_le_of_lt i.2)⟩
+    fun j r => (IntegralBasis.toMatrixZ B) r ⟨j, Nat.lt_of_lt_of_le j.2 (Nat.succ_le_of_lt i.2)⟩
   let G : Matrix (Fin (i.1 + 1)) (Fin (i.1 + 1)) ℤ := fun r c =>
     ∑ t : Fin n, vecs r t * vecs c t
   Matrix.det G
 
 /-- The integer Gram determinants coerce to the real Gram determinants. -/
-theorem prefixGramDetInt_coe (B : Integral.IntegralLatticeBasis n k) (i : Fin k) :
+theorem prefixGramDetInt_coe (B : LatticeBasis n k) [hb: IsIntegralBasis B] (i : Fin k) :
     (prefixGramDetInt B i : ℝ) = prefixGramDet (B : LatticeBasis n k) i := by
   classical
   -- Reduce to the Gram determinant over ℝ.
@@ -99,16 +101,29 @@ theorem prefixGramDetInt_coe (B : Integral.IntegralLatticeBasis n k) (i : Fin k)
     -- Unfold the integer Gram matrix and compare to the real Gram matrix.
     let m : ℕ+ := ⟨i.1 + 1, Nat.succ_pos _⟩
     let vecsZ : Fin m → Fin n → ℤ :=
-      fun j r => B.matrix r ⟨j, Nat.lt_of_lt_of_le j.2 (Nat.succ_le_of_lt i.2)⟩
+      fun j r => (IntegralBasis.toMatrixZ B) r ⟨j, Nat.lt_of_lt_of_le j.2 (Nat.succ_le_of_lt i.2)⟩
     let Gz : Matrix (Fin m) (Fin m) ℤ := fun r c =>
       ∑ t : Fin n, vecsZ r t * vecsZ c t
     let vecsR : Fin m → 𝓔 n := fun j =>
       (B : LatticeBasis n k).basis ⟨j, Nat.lt_of_lt_of_le j.2 (Nat.succ_le_of_lt i.2)⟩
     have hG : (fun r c => (Gz r c : ℝ)) = fun r c => ⟪vecsR r, vecsR c⟫ := by
+      have hcoord : ∀ j : Fin m, ∀ t : Fin n, vecsR j t = (vecsZ j t : ℝ) := by
+        intro j t
+        have hj := congrArg
+          (fun f : Fin k → 𝓔 n => f ⟨j, Nat.lt_of_lt_of_le j.2 (Nat.succ_le_of_lt i.2)⟩)
+          (IntegralBasis.toMatrixZ_cols (B := B))
+        have hjt := congrArg (fun v : 𝓔 n => v t) hj
+        simpa [vecsR, vecsZ, LatticeBasis.cols] using hjt.symm
       ext r c
-      -- Inner product in Euclidean space is the sum of coordinate products.
-      simp [vecsR, vecsZ, Gz, PiLp.inner_apply,
-        Integral.IntegralLatticeBasis.toRealBasis, mul_comm]
+      change ((∑ t : Fin n, vecsZ r t * vecsZ c t : ℤ) : ℝ) = ⟪vecsR r, vecsR c⟫
+      rw [Int.cast_sum]
+      have hsum :
+          ∑ t : Fin n, ((vecsZ r t * vecsZ c t : ℤ) : ℝ)
+            = ∑ t : Fin n, vecsR r t * vecsR c t := by
+        refine Finset.sum_congr rfl ?_
+        intro t ht
+        rw [Int.cast_mul, ← hcoord r t, ← hcoord c t]
+      simpa [PiLp.inner_apply, mul_comm, mul_left_comm, mul_assoc] using hsum
     -- Cast the determinant entrywise.
     have hdet : ((Matrix.det (R := ℤ) Gz) : ℝ) = Matrix.det (fun r c => (Gz r c : ℝ)) := by
       -- Expand determinant as sum over permutations and cast termwise.
@@ -171,7 +186,7 @@ theorem LLLPotential_pos (B : LatticeBasis n k) :
   For integral bases, the LLL potential is at least 1.
   This is the only condition we need to prove the number of iterations is bounded.
 -/
-theorem LLLPotential_pos_of_integral (B : Integral.IntegralLatticeBasis n k) :
+theorem LLLPotential_pos_of_integral (B : LatticeBasis n k) [hb : IsIntegralBasis B] :
     1 ≤ LLLPotential (B : LatticeBasis n k) := by
   classical
   -- Rewrite the potential as an integer-valued product.
@@ -730,10 +745,9 @@ theorem LLLStep_progress (B : LatticeBasis n k) (δ : ℝ) (hδ : IsDelta δ) :
       simpa [LatticeCrypto.Foundations.Algorithms.LLL.LLLStep, h'] using hdec'
 
 /-- The sizeReduce function preserves integrality of the lattice basis. -/
-lemma sizeReduce_preserve_integrality (B : Integral.IntegralLatticeBasis n k) :
+lemma sizeReduce_preserve_integrality (B : LatticeBasis n k) [IsIntegralBasis B] :
     let B' := (sizeReduce (B : LatticeBasis n k))
-    ∃ B'' : Integral.IntegralLatticeBasis n k,
-      B' = (B'' : LatticeBasis n k) := by
+    IsIntegralBasis B' := by
   classical
   dsimp
   -- Work with the real basis associated to the integral one.
@@ -755,50 +769,8 @@ lemma sizeReduce_preserve_integrality (B : Integral.IntegralLatticeBasis n k) :
       _ = matrixToEucBasis ((eucBasisToMatrix Breal.basis) * U.real) := by
             simp [hU]
   -- Define the swapped integer matrix.
-  let Mz : Matrix (Fin n) (Fin k) ℤ := B.matrix * (U : Matrix (Fin k) (Fin k) ℤ)
-  -- Build the integral basis and show it matches the size-reduced basis.
-  refine ⟨
-    { matrix := Mz
-      le_dim := B.le_dim
-      li := by
-        -- Transfer linear independence from the size-reduced basis.
-        have hli : LinearIndependent ℝ (sizeReduce Breal).basis := (sizeReduce Breal).li
-        -- Show the bases coincide after casting to ℝ.
-        have hcast : (sizeReduce Breal).basis =
-            (fun c : Fin k => piToEuc (fun r => (Mz r c : ℝ))) := by
-          -- Compare via `eucToPi` on each coordinate.
-          apply funext; intro c
-          apply LatticeCrypto.Utils.Vec.eucToPi.injective
-          funext r
-          -- Left side via `hbasis`.
-          have hleft :
-              LatticeCrypto.Utils.Vec.eucToPi ((sizeReduce Breal).basis c) r =
-                ((eucBasisToMatrix Breal.basis) * U.real) r c := by
-            simp [hbasis, LatticeCrypto.Utils.Vec.eucToPi,
-              LatticeCrypto.Utils.Vec.matrixToEucBasis_apply]
-          -- Right side is just the cast of the integer product.
-          have hright :
-              LatticeCrypto.Utils.Vec.eucToPi (piToEuc (fun r => (Mz r c : ℝ))) r =
-                (Mz r c : ℝ) := by
-            simp [LatticeCrypto.Utils.Vec.piToEuc_apply]
-          -- Combine.
-          calc
-            LatticeCrypto.Utils.Vec.eucToPi ((sizeReduce Breal).basis c) r
-                = ((eucBasisToMatrix Breal.basis) * U.real) r c := hleft
-            _ = (Mz r c : ℝ) := by
-                -- Expand both sides.
-                simp [Mz, Breal, Integral.IntegralLatticeBasis.toRealBasis,
-                  LatticeCrypto.Utils.Vec.eucBasisToMatrix_apply, Matrix.mul_apply,
-                  UnimodularMatrix.real, Matrix.map_apply, Int.cast_sum, Int.cast_mul]
-            _ = LatticeCrypto.Utils.Vec.eucToPi (piToEuc (fun r => (Mz r c : ℝ))) r := by
-                simp [hright]
-        simpa [hcast] using hli
-    }, ?_⟩
-  -- Final equality of bases.
-  apply LatticeBasis.ext
-  funext c
-  funext r
-  -- Reuse the basis equality established above.
+  let Mz : Matrix (Fin n) (Fin k) ℤ := (IntegralBasis.toMatrixZ B) * (U : Matrix (Fin k) (Fin k) ℤ)
+  -- Show the size-reduced basis equals the real cast of `Mz`.
   have hcast : (sizeReduce Breal).basis =
       (fun c : Fin k => piToEuc (fun r => (Mz r c : ℝ))) := by
     apply funext; intro c
@@ -813,139 +785,105 @@ lemma sizeReduce_preserve_integrality (B : Integral.IntegralLatticeBasis n k) :
         LatticeCrypto.Utils.Vec.eucToPi (piToEuc (fun r => (Mz r c : ℝ))) r =
           (Mz r c : ℝ) := by
       simp [LatticeCrypto.Utils.Vec.piToEuc_apply]
+    have hcoord : ∀ x : Fin k, Breal.basis x r = ((IntegralBasis.toMatrixZ B) r x : ℝ) := by
+      intro x
+      have hx := congrArg (fun f : Fin k → 𝓔 n => f x) (IntegralBasis.toMatrixZ_cols (B := B))
+      have hxr := congrArg (fun v : 𝓔 n => v r) hx
+      simpa [LatticeBasis.cols] using hxr.symm
     calc
       LatticeCrypto.Utils.Vec.eucToPi ((sizeReduce Breal).basis c) r
           = ((eucBasisToMatrix Breal.basis) * U.real) r c := hleft
       _ = (Mz r c : ℝ) := by
-          simp [Mz, Breal, Integral.IntegralLatticeBasis.toRealBasis,
+          simp [Mz, Breal,
             LatticeCrypto.Utils.Vec.eucBasisToMatrix_apply, Matrix.mul_apply,
-            UnimodularMatrix.real, Matrix.map_apply, Int.cast_sum, Int.cast_mul]
+            UnimodularMatrix.real, Matrix.map_apply, Int.cast_sum, Int.cast_mul,
+            hcoord]
       _ = LatticeCrypto.Utils.Vec.eucToPi (piToEuc (fun r => (Mz r c : ℝ))) r := by
           simp [hright]
-  -- Use the pointwise consequence of `hcast`.
-  have hcast' := congrArg (fun f => f c r) hcast
-  simpa [Breal, Integral.IntegralLatticeBasis.toRealBasis,
-    LatticeCrypto.Utils.Vec.piToEuc_apply] using hcast'
+  let C : { B' : LatticeBasis n k // IsIntegralBasis B' } :=
+    IntegralBasis.fromMatrixZ Mz B.le_dim (by simpa [hcast] using (sizeReduce Breal).li)
+  have hEq : C.1 = sizeReduce Breal := by
+    apply LatticeBasis.ext
+    calc
+      C.1.basis = (fun c : Fin k => piToEuc (fun r => (Mz r c : ℝ))) := by rfl
+      _ = (sizeReduce Breal).basis := hcast.symm
+  exact hEq.symm ▸ C.2
 
 /-- The swapAdjacent function preserves integrality of the lattice basis. -/
 lemma swapAdjacent_preserve_integrality
-    (B : Integral.IntegralLatticeBasis n k) (i : Fin k) (hi : i.1 + 1 < k) :
+    (B : LatticeBasis n k) [IsIntegralBasis B] (i : Fin k) (hi : i.1 + 1 < k) :
     let B' := swapAdjacent (B : LatticeBasis n k) i hi
-    ∃ B'' : Integral.IntegralLatticeBasis n k,
-      B' = (B'' : LatticeBasis n k) := by
-    classical
-    -- Unfold the `let` and construct the swapped integer basis explicitly.
-    dsimp
-    let j : Fin k := ⟨i.1 + 1, hi⟩
-    let M : Matrix (Fin n) (Fin k) ℤ :=
-      fun r c => if c = i then B.matrix r j else if c = j then B.matrix r i else B.matrix r c
-    -- Define the swapped integral basis.
-    refine ⟨
-      { matrix := M
-        le_dim := B.le_dim
-        li := by
-          -- Linear independence is preserved by swapping columns.
-          let σ : Equiv.Perm (Fin k) := Equiv.swap i j
-          have hliB : LinearIndependent ℝ (fun c : Fin k => piToEuc (fun r => (B.matrix r c : ℝ))) := B.li
-          have hcomp : (fun c : Fin k => piToEuc (fun r => (M r c : ℝ))) =
-              (fun c : Fin k => piToEuc (fun r => (B.matrix r c : ℝ))) ∘ σ := by
-            funext c
-            -- `σ` swaps the two adjacent columns.
-            -- Compare by applying `eucToPi` and using coordinatewise equality.
-            apply (LatticeCrypto.Utils.Vec.eucToPi.injective)
-            funext r
-            have hji : j ≠ i := by
-              intro h
-              have := congrArg Fin.val h
-              have h' : i.1 + 1 = i.1 := by
-                simp [j] at this
-              have h'' : Nat.succ i.1 = i.1 := by
-                simp at h'
-              exact (Nat.succ_ne_self i.1) h''
-            by_cases hci : c = i
-            · subst hci
-              simp [σ, M, j, LatticeCrypto.Utils.Vec.piToEuc_apply]
-            · by_cases hcj : c = j
-              · subst hcj
-                simp [σ, M, j, hji, LatticeCrypto.Utils.Vec.piToEuc_apply]
-              · simp [σ, M, j, Equiv.swap_apply_def, hci, hcj, LatticeCrypto.Utils.Vec.piToEuc_apply]
-          have hli' : LinearIndependent ℝ ((fun c : Fin k => piToEuc (fun r => (B.matrix r c : ℝ))) ∘ σ) := by
-            refine (LinearIndependent.comp hliB σ ?_)
-            intro a b h
-            exact (Equiv.swap i j).injective h
-          simpa [hcomp]
-      }, ?_⟩
-    -- Show the real basis is exactly the swapped basis.
-    apply LatticeBasis.ext
-    funext c
-    funext r
-    have hji : j ≠ i := by
-      intro h
-      have := congrArg Fin.val h
-      have h' : i.1 + 1 = i.1 := by
-        simp [j] at this
-      have h'' : Nat.succ i.1 = i.1 := by
-        simp at h'
-      exact (Nat.succ_ne_self i.1) h''
-    by_cases hci : c = i
-    · subst hci
-      simp [Integral.IntegralLatticeBasis.toRealBasis, swapAdjacent, swapAdjacentVectors, M, j]
-    · by_cases hcj : c = j
-      · subst hcj
-        simp [Integral.IntegralLatticeBasis.toRealBasis, swapAdjacent, swapAdjacentVectors, M, j, hji]
-      · simp [Integral.IntegralLatticeBasis.toRealBasis, swapAdjacent, swapAdjacentVectors, M, j, hci, hcj]
+    IsIntegralBasis B' := by
+  classical
+  dsimp
+  let B' : LatticeBasis n k := swapAdjacent (B : LatticeBasis n k) i hi
+  refine ⟨?_⟩
+  intro t
+  let j : Fin k := ⟨i.1 + 1, hi⟩
+  have hji : j ≠ i := by
+    intro h
+    have := congrArg Fin.val h
+    have h' : i.1 + 1 = i.1 := by
+      simp [j] at this
+    have h'' : Nat.succ i.1 = i.1 := by
+      simp at h'
+    exact (Nat.succ_ne_self i.1) h''
+  dsimp [B', swapAdjacent, swapAdjacentVectors, j]
+  by_cases hti : t = i
+  · subst hti
+    simpa [B', swapAdjacent, swapAdjacentVectors, j, LatticeBasis.cols] using
+      (IsIntegralBasis.integral (B := B) j)
+  · by_cases htj : t = j
+    · subst htj
+      simpa [B', swapAdjacent, swapAdjacentVectors, j, hji, LatticeBasis.cols] using
+        (IsIntegralBasis.integral (B := B) i)
+    · simpa [B', swapAdjacent, swapAdjacentVectors, j, hti, htj, LatticeBasis.cols] using
+        (IsIntegralBasis.integral (B := B) t)
 
 /-- The LLLStep function preserves integrality of the lattice basis. -/
 lemma LLLStep_preserve_integrality
-    (B : Integral.IntegralLatticeBasis n k) (δ : ℝ) :
+    (B : LatticeBasis n k) [IsIntegralBasis B] (δ : ℝ) :
     let B' := LLLStep (B : LatticeBasis n k) δ
-    ∃ B'' : Integral.IntegralLatticeBasis n k,
-      B' = (B'' : LatticeBasis n k) := by
+    IsIntegralBasis B' := by
   classical
   -- Unfold one LLL step and use integrality preservation of its components.
   unfold LLLStep
   -- Name the size-reduced basis.
-  set Bsr : LatticeBasis n k := sizeReduce (B : LatticeBasis n k) with hBsr
+  set Bsr : LatticeBasis n k := sizeReduce B with hBsr
   -- Size reduction preserves integrality.
-  rcases (by
-    simpa [hBsr] using (sizeReduce_preserve_integrality (B := B))
-  ) with ⟨Bint, hBint⟩
+  have hsr : IsIntegralBasis (sizeReduce B) := by
+    simpa using (sizeReduce_preserve_integrality (B := B))
+  have hBint : IsIntegralBasis Bsr := by simpa [hBsr] using hsr
   -- Case split on whether we swap.
   cases h : firstLovaszViolation Bsr δ with
   | none =>
-      refine ⟨Bint, ?_⟩
       have h' : firstLovaszViolation (sizeReduce (B : LatticeBasis n k)) δ = none := by
         simpa [hBsr] using h
       -- Reduce the match and use the size-reduction equality.
-      simpa [h'] using hBint
+      simpa [h', hBsr] using hBint
   | some bad =>
       -- Swapping also preserves integrality.
-      rcases (by
+      have hswap : IsIntegralBasis (swapAdjacent Bsr bad.1 (Classical.choose bad.2)) := by
         simpa using
-          (swapAdjacent_preserve_integrality (B := Bint) (i := bad.1)
+          (swapAdjacent_preserve_integrality (B := Bsr) (i := bad.1)
             (hi := Classical.choose bad.2))
-      ) with ⟨Bswap, hBswap⟩
-      refine ⟨Bswap, ?_⟩
       have h' : firstLovaszViolation (sizeReduce (B : LatticeBasis n k)) δ = some bad := by
         simpa [hBsr] using h
       -- Reduce the match and rewrite the size-reduced basis to `Bint`.
-      simpa [h', hBint] using hBswap
+      simpa [h', hBsr] using hswap
 
 /-- The LLLStep function preserves the lower bound of LLLPotential for integral lattice bases. -/
 lemma LLLStep_preserve_LLLPotential_lb
-    (B : Integral.IntegralLatticeBasis n k) (δ : ℝ) :
+    (B : LatticeBasis n k) [IsIntegralBasis B] (δ : ℝ) :
     let B' := LLLStep (B : LatticeBasis n k) δ
     LLLPotential B' ≥ 1 := by
   classical
   -- Reduce the `let` and use integrality preservation, then apply the lower bound.
   dsimp
-  rcases (by
+  have hstep : IsIntegralBasis (LLLStep B δ) := by
     simpa using (LLLStep_preserve_integrality (B := B) (δ := δ))
-  ) with ⟨B'', hB''⟩
-  have hpot : 1 ≤ LLLPotential (B'' : LatticeBasis n k) := by
-    simpa using (LLLPotential_pos_of_integral (B := B''))
-  -- Rewrite the goal using the integral basis `B''`.
-  simpa [hB''] using hpot
+  letI : IsIntegralBasis (LLLStep B δ) := hstep
+  simpa using (LLLPotential_pos_of_integral (B := (LLLStep B δ)))
 
 
 /-- Sufficient iterations for LLL to achieve 2^{n/2} approximation. -/
@@ -975,26 +913,26 @@ private lemma LLL_impl_succ (numIters : ℕ) (B : LatticeBasis n k) (δ : ℝ) :
 
 /-- The LLL_impl function preserves integrality of the lattice basis. -/
 lemma LLL_impl_preserve_integrality (δ : ℝ) :
-    ∀ numIters (B : Integral.IntegralLatticeBasis n k),
-      ∃ B' : Integral.IntegralLatticeBasis n k,
-        LLL_impl numIters (B : LatticeBasis n k) δ = (B' : LatticeBasis n k) := by
+    ∀ numIters (B : LatticeBasis n k) [IsIntegralBasis B],
+      let B' := LLL_impl numIters (B : LatticeBasis n k) δ
+      IsIntegralBasis B' := by
   intro numIters
   induction numIters with
   | zero =>
       intro B
-      refine ⟨B, ?_⟩
       simp [LLL_impl]
   | succ numIters ih =>
       intro B
       classical
       by_cases hred : LLLReduced (B : LatticeBasis n k) δ
-      · refine ⟨B, ?_⟩
-        simp [LLL_impl_succ, hred]
+      · simpa [LLL_impl_succ, hred] using (show IsIntegralBasis B from ‹IsIntegralBasis B›)
       ·
-        rcases (LLLStep_preserve_integrality (B := B) (δ := δ)) with ⟨B1, hB1⟩
-        rcases ih B1 with ⟨B2, hB2⟩
-        refine ⟨B2, ?_⟩
-        simp [LLL_impl_succ, hred, hB1, hB2]
+        have hstep : IsIntegralBasis (LLLStep B δ) := by
+          simpa using (LLLStep_preserve_integrality (B := B) (δ := δ))
+        letI : IsIntegralBasis (LLLStep B δ) := hstep
+        have hrec : IsIntegralBasis (LLL_impl numIters (LLLStep B δ) δ) := by
+          simpa using (ih (B := LLLStep B δ))
+        simpa [LLL_impl_succ, hred] using hrec
 
 /-- If the LLL_impl function does not return a reduced basis,
 then it decreases the potential by at least a factor of δ per iteration.
@@ -1038,7 +976,6 @@ lemma LLL_impl_potential_bound (δ : ℝ) (hδ : IsDelta δ) :
           | inr hlt => exact hlt
         have hrec := ih (B := LLLStep B δ) hnot'
         have hδpos : 0 < δ := by nlinarith [hδ.1]
-        have hpow_nonneg : 0 ≤ δ ^ numIters := pow_nonneg (le_of_lt hδpos) _
         have hlt : LLLPotential (LLL_impl (numIters + 1) B δ)
             < (δ ^ (numIters + 1)) * LLLPotential B := by
           calc
@@ -1056,9 +993,9 @@ lemma LLL_impl_potential_bound (δ : ℝ) (hδ : IsDelta δ) :
 
 /-- Upper bound on number of LLL iterations when given an integral lattice as input. -/
 theorem LLL_iteration_bound
-    (B : Integral.IntegralLatticeBasis n k) (δ : ℝ) (hδ : IsDelta δ) :
+    (B : LatticeBasis n k) [hb : IsIntegralBasis B] (δ : ℝ) (hδ : IsDelta δ) :
     let N := LLL_sufficient_iters (B : LatticeBasis n k) δ
-    ∀ numIters ≥ N, LLLReduced (LLL_impl numIters (B : LatticeBasis n k) δ) δ := by
+    ∀ numIters ≥ N, LLLReduced (LLL_impl numIters B δ) δ := by
   -- Use the fact that
   -- (1) The LLL potential is at least 1 for integral basis (and the integrality is preserved throughout), while at most `M^{k(k+1)}` where `M` is the maximum basis norm.
   -- (2) Each swap reduces potential by at least a factor of δ
@@ -1067,9 +1004,11 @@ theorem LLL_iteration_bound
   intro N numIters hN
   by_contra hnot
   -- Integrality is preserved, so the potential is at least 1.
-  rcases (LLL_impl_preserve_integrality (δ := δ) numIters B) with ⟨B', hB'⟩
+  have hIntImpl : IsIntegralBasis (LLL_impl numIters B δ) := by
+    simpa using (LLL_impl_preserve_integrality (δ := δ) numIters B)
+  letI : IsIntegralBasis (LLL_impl numIters B δ) := hIntImpl
   have hpot_lb : 1 ≤ LLLPotential (LLL_impl numIters (B : LatticeBasis n k) δ) := by
-    simpa [hB'] using (LLLPotential_pos_of_integral (B := B'))
+    simpa using (LLLPotential_pos_of_integral (B := (LLL_impl numIters B δ)))
 
   -- Upper bound on the potential from the step-wise decrease.
   have hpot_ub :

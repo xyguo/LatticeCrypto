@@ -4,7 +4,7 @@ import Mathlib.Data.Nat.Log
 
 import LatticeCrypto.Foundations.Lattice.Integral
 import LatticeCrypto.Foundations.Lattice.SuccessiveMinima
-import LatticeCrypto.Foundations.Algorithms.LLL.Defs
+import LatticeCrypto.Foundations.Algorithms.LLL.Quality
 import LatticeCrypto.Foundations.Algorithms.Babai.Algorithm
 import LatticeCrypto.Foundations.Algorithms.Babai.Correctness
 import LatticeCrypto.Foundations.Hardness.Defs
@@ -23,6 +23,7 @@ open LatticeCrypto.Utils.Vec
 open LatticeCrypto.Utils.Geometry
 open LatticeCrypto.Utils.LinearAlgebra
 open LatticeCrypto.Foundations.Lattice
+open LatticeCrypto.Foundations.Lattice.Integral
 open LatticeCrypto.Foundations.Algorithms.LLL
 open LatticeCrypto.Foundations.Hardness
 
@@ -1432,31 +1433,13 @@ lemma babaiRound_approximation_factor_induction
 /-! Helper lemmas for the final Babai CVP approximation theorem. -/
 /-- Helper lemma: an integral lattice can be LLL-reduced within sufficient iterations -/
 lemma lll_output_reduced_of_integral
-    (B : LatticeBasis n k) (hBint : Foundations.Lattice.Integral.IsIntegral B.toLattice) :
+    (B : LatticeBasis n k) [hBint : IsIntegralBasis B] :
     LLLReduced (LLL_impl (LLL_sufficient_iters B δ34) B δ34) δ34 := by
-  -- Bridge `IsIntegral` to `LLL_iteration_bound`.
-  let LI : Foundations.Lattice.Integral.IntegralLattice n k :=
-    Foundations.Lattice.Integral.toIntegralLattice B.toLattice hBint
-  let BI : Foundations.Lattice.Integral.IntegralLatticeBasis n k :=
-    Foundations.Lattice.Integral.getIntegralBasis LI
-  have hBI_toLattice : BI.toLattice = LI := by
-    simpa [BI] using (Foundations.Lattice.Integral.getIntegralBasis_toLattice (L := LI))
-  have hBI_euc : (BI : LatticeBasis n k).toLattice = B.toLattice := by
-    have htmp : BI.toLattice.toEuclideanLattice = LI.toEuclideanLattice := by
-      exact congrArg Foundations.Lattice.Integral.IntegralLattice.toEuclideanLattice hBI_toLattice
-    simpa [BI, LI, Foundations.Lattice.Integral.toIntegralLattice] using htmp
-  have hBI_eq : (BI : LatticeBasis n k) = B := by
-    simpa using congrArg EuclideanLattice.basis hBI_euc
   have hiter :
-      ∀ numIters ≥ LLL_sufficient_iters (BI : LatticeBasis n k) δ34,
-        LLLReduced (LLL_impl numIters (BI : LatticeBasis n k) δ34) δ34 := by
-    simpa using (LLL_iteration_bound (B := BI) (δ := δ34) δ34_IsDelta)
-  have hredBI :
-      LLLReduced
-        (LLL_impl (LLL_sufficient_iters (BI : LatticeBasis n k) δ34)
-          (BI : LatticeBasis n k) δ34) δ34 := by
-    exact hiter _ le_rfl
-  simpa [hBI_eq] using hredBI
+      ∀ numIters ≥ LLL_sufficient_iters B δ34,
+        LLLReduced (LLL_impl numIters B δ34) δ34 := by
+    simpa using (LLL_iteration_bound (B := B) (δ := δ34) δ34_IsDelta)
+  exact hiter _ le_rfl
 
 /-- Helper lemma: LLL preserves the span of the basis vectors -/
 lemma span_transport_of_lll_equiv
@@ -1510,7 +1493,7 @@ If v* is the true closest lattice vector to t, and v is Babai's output, then:
   ‖t - v‖ ≤ 2^(k/2) • ‖t - v*‖
 -/
 theorem babaiNearestPlane_approximation_factor (cvp : CVPInstance n k)
-  (hL : Foundations.Lattice.Integral.IsIntegral cvp.L)
+  (hL : IsIntegralLattice cvp.L)
   (ht : cvp.t ∈ Submodule.span ℝ (Set.range cvp.L.basis.basis)) :
   let B := cvp.L.basis
   let t := cvp.t
@@ -1519,7 +1502,7 @@ theorem babaiNearestPlane_approximation_factor (cvp : CVPInstance n k)
   intro B t
   have hLB : cvp.L = B.toLattice := by
     simpa [B] using (EuclideanLattice.eq_basis_toLattice cvp.L)
-  have hL' : Foundations.Lattice.Integral.IsIntegral B.toLattice := by
+  have hL' : IsIntegralLattice B.toLattice := by
     simpa [hLB] using hL
   unfold approxCVPSolution
   constructor
@@ -1531,7 +1514,10 @@ theorem babaiNearestPlane_approximation_factor (cvp : CVPInstance n k)
     have h_eq : babaiNearestPlane t B = babaiRound t B'.basis := by
       simp [babaiNearestPlane, N, B']
     have h_red : LLLReduced B' δ34 := by
-      simpa [N, B'] using (lll_output_reduced_of_integral (B := B) (hBint := hL'))
+      have hBint : IsIntegralBasis B :=
+        (isIntegralLattice_iff_isIntegralBasis B.toLattice).mp hL'
+      letI : IsIntegralBasis B := hBint
+      simpa [N, B'] using (lll_output_reduced_of_integral (B := B))
     have ht' : t ∈ Submodule.span ℝ (Set.range B'.basis) := by
       simpa [N, B'] using (span_transport_of_lll_equiv (B := B) (t := t) (ht := ht) (δ := δ34))
     have h_dist_eq : (B'.toLattice).distanceToLattice t = cvp.L.distanceToLattice t := by
