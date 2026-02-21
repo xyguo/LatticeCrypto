@@ -15,6 +15,7 @@ import LatticeCrypto.Foundations.Lattice.Minkowski
 import LatticeCrypto.Foundations.Gaussian.Defs
 import LatticeCrypto.Foundations.Gaussian.Fourier
 import LatticeCrypto.Foundations.Gaussian.PoissonSummation
+import LatticeCrypto.Foundations.Gaussian.TailBound
 import LatticeCrypto.Foundations.Gaussian.Banaszczyk  -- the transference theorems
 import LatticeCrypto.Foundations.Gaussian.Smoothing  -- smoothing parameter
 

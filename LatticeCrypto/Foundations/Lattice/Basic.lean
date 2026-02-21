@@ -539,6 +539,15 @@ theorem EuclideanLattice.mem_dual_iff_integral_inner_basis (L : EuclideanLattice
     exact ( EuclideanLattice.dual_carrier_eq_integralDual L ) |>.symm.subset h_integral_dual
 
 /--
+  If `v ∈ L` and `w ∈ L.dual`, then `⟪v, w⟫` is an integer.
+-/
+theorem EuclideanLattice.inner_lattice_dual_int (L : EuclideanLattice n n) (v w : 𝓔 n)
+    (hv : v ∈ L.carrier) (hw : w ∈ L.dual.carrier) : ∃ k : ℤ, inner ℝ v w = k := by
+  have h_dual : w ∈ integralDualSet L := by
+    exact (EuclideanLattice.dual_carrier_eq_integralDual L) ▸ hw
+  simpa [integralDualSet, Set.mem_setOf_eq] using h_dual v hv
+
+/--
   The dual of the dual lattice is the original lattice.
 -/
 theorem EuclideanLattice.dual_dual (L : EuclideanLattice n n) : L.dual.dual ≡ᵤ L := by
