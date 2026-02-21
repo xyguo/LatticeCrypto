@@ -1,11 +1,26 @@
+# ignore files and directories related to AI agents
 /.claude
-/.lake
+/.agents
+/.codex
+AGENTS.md
+CLAUDE.md
+/prompts
+Aristotle-*
+*aristotle*
+
+# Ignore virtual environment and other files
 /.venv
 main.py
+/.vscode
+.DS_Store
+/PDFs
+*.backup
+
+# Ignore python environment files that's used to run Aristotle 
 pyproject.toml
 uv.lock
 .python-version
-Aristotle-*
-*aristotle*
-.DS_Store
-/PDFs
+
+
+# Ignore Lean build files
+/.lake
