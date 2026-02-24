@@ -205,6 +205,29 @@ theorem LatticeBasis.sub_mod_mem_lattice (B : SquareLatticeBasis n) (v : 𝓔 n)
     simp [LatticeBasis.cols];
   unfold ZSpan.floor; aesop;
 
+/-- The floor function is measurable because it is a step function. -/
+lemma measurable_int_floor : Measurable (Int.floor : ℝ → ℤ) := by
+  apply Monotone.measurable; exact Int.floor_mono
+
+/-- Moding a basis' parallelpiped is a measurable function. -/
+lemma LatticeBasis.measurable_mod {n : ℕ+} (B : SquareLatticeBasis n) : Measurable B.mod := by
+  -- The fractional part function is measurable.
+  have h_fract_measurable : Measurable (fun x : 𝓔 n => x - ∑ i, ⌊(B.asTopBasis.repr x) i⌋ • B.cols i) := by
+    -- The floor function is measurable, and the sum of measurable functions is measurable.
+    have h_floor_measurable : ∀ i, Measurable (fun x : 𝓔 n => ⌊(B.asTopBasis.repr x) i⌋) := by
+      intro i;
+      have h_floor : Measurable (fun x : ℝ => Int.floor x) := by
+        exact measurable_int_floor;
+      have h_floor : Measurable (fun x : Fin n → ℝ => Int.floor (x i)) := by
+        exact h_floor.comp ( measurable_pi_apply i );
+      convert h_floor.comp ( show Measurable ( fun x : LatticeCrypto.Utils.Vec.𝓔 n => ( B.asTopBasis.repr x : Fin n → ℝ ) ) from ?_ ) using 1;
+      convert ( Continuous.measurable ( show Continuous ( fun x : LatticeCrypto.Utils.Vec.𝓔 n => ( B.asTopBasis.repr x : Fin n → ℝ ) ) from ?_ ) ) using 1;
+      exact Module.Basis.continuous_coe_repr (asTopBasis B);
+    fun_prop;
+  unfold LatticeBasis.mod; simp +decide [ ZSpan.fract ] ;
+  unfold ZSpan.floor ; aesop
+
+
 /-- Corollary: Any vector v can be decomposed into a lattice point and a point in the fundamental domain. -/
 theorem EuclideanLattice.sub_mod_mem_lattice (L : EuclideanLattice n n) (v : 𝓔 n) :
     v - L.basis.mod v ∈ L.carrier := by
