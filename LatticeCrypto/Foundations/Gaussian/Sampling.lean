@@ -481,102 +481,66 @@ theorem tvDist_modGaussian_vs_uniform_le
         (modGaussianProbabilityMeasureOnFundamentalDomain L B hB s hs)
         (uniformProbabilityMeasureOnFundamentalDomain L B hB)
       ≤ ENNReal.ofReal (rhoSMassOn (1 / s) 0 L.dual {0}ᶜ) := by
+  let S : Set (𝓔 n) := B.fundamentalDomain
+  let μ : MeasureTheory.Measure (𝓔 n) :=
+    (MeasureTheory.volume : MeasureTheory.Measure (𝓔 n)).restrict S
   let p : MeasureTheory.ProbabilityMeasure (𝓔 n) :=
     modGaussianProbabilityMeasureOnFundamentalDomain L B hB s hs
   let q : MeasureTheory.ProbabilityMeasure (𝓔 n) :=
     uniformProbabilityMeasureOnFundamentalDomain L B hB
-  let f : 𝓔 n → ℝ := densityOnSet (modGaussianDensity L s) B.fundamentalDomain
-  let g : 𝓔 n → ℝ := densityOnSet (uniformDensity L) B.fundamentalDomain
-  have hf_int_on : MeasureTheory.IntegrableOn (modGaussianDensity L s) B.fundamentalDomain := by
-    exact modGaussianDensity_integrableOn_fundamentalDomain L B hB s hs
-  have hg_int_on : MeasureTheory.IntegrableOn (uniformDensity L) B.fundamentalDomain := by
+  let f : 𝓔 n → ℝ := modGaussianDensity L s
+  let g : 𝓔 n → ℝ := uniformDensity L
+  have hf_int : MeasureTheory.Integrable f μ := by
+    simpa [f, μ, S] using
+      (modGaussianDensity_integrableOn_fundamentalDomain L B hB s hs)
+  have hg_int : MeasureTheory.Integrable g μ := by
     have hpdf : IsProbabilityDensityOn (uniformDensity L) B.fundamentalDomain :=
       uniformDensity_isProbabilityDensityOn_fundamentalDomain L B hB
-    exact IsProbabilityDensityOn.integrableOn hpdf (LatticeBasis.fundamentalDomain_measurableSet B)
-  have hf_int : MeasureTheory.Integrable f := by
-    simpa [f, densityOnSet, MeasureTheory.integrable_indicator_iff
-      (LatticeBasis.fundamentalDomain_measurableSet B)] using hf_int_on
-  have hg_int : MeasureTheory.Integrable g := by
-    simpa [g, densityOnSet, MeasureTheory.integrable_indicator_iff
-      (LatticeBasis.fundamentalDomain_measurableSet B)] using hg_int_on
-  have hf_nonneg : 0 ≤ᵐ[(MeasureTheory.volume : MeasureTheory.Measure (𝓔 n))] f := by
+    have hg_int_on : MeasureTheory.IntegrableOn (uniformDensity L) B.fundamentalDomain :=
+      IsProbabilityDensityOn.integrableOn hpdf (LatticeBasis.fundamentalDomain_measurableSet B)
+    simpa [g, μ, S] using hg_int_on
+  have hf_nonneg : 0 ≤ᵐ[μ] f := by
     refine Filter.Eventually.of_forall ?_
     intro x
-    by_cases hx : x ∈ B.fundamentalDomain
-    · simp [f, densityOnSet, hx, modGaussianDensity_nonneg L s hs x]
-    · simp [f, densityOnSet, hx]
-  have hg_nonneg : 0 ≤ᵐ[(MeasureTheory.volume : MeasureTheory.Measure (𝓔 n))] g := by
+    simpa [f] using modGaussianDensity_nonneg L s hs x
+  have hg_nonneg : 0 ≤ᵐ[μ] g := by
     refine Filter.Eventually.of_forall ?_
     intro x
-    by_cases hx : x ∈ B.fundamentalDomain
-    · have hx_nonneg : 0 ≤ uniformDensity L x := by
-        unfold uniformDensity
-        exact L.dual.det_pos.le
-      simp [g, densityOnSet, hx, hx_nonneg]
-    · simp [g, densityOnSet, hx]
-  have hf_mass : ∫ x, f x = 1 := by
-    calc
-      ∫ x, f x = ∫ x in B.fundamentalDomain, modGaussianDensity L s x := by
-        simpa [f, densityOnSet] using
-          (MeasureTheory.integral_indicator (LatticeBasis.fundamentalDomain_measurableSet B)
-            (f := modGaussianDensity L s))
-      _ = 1 := integral_modGaussianDensity_eq_one L B hB s hs
-  have hg_mass : ∫ x, g x = 1 := by
-    calc
-      ∫ x, g x = ∫ x in B.fundamentalDomain, uniformDensity L x := by
-        simpa [g, densityOnSet] using
-          (MeasureTheory.integral_indicator (LatticeBasis.fundamentalDomain_measurableSet B)
-            (f := uniformDensity L))
-      _ = 1 := (uniformDensity_isProbabilityDensityOn_fundamentalDomain L B hB).2
+    have hx_nonneg : 0 ≤ uniformDensity L x := by
+      unfold uniformDensity
+      exact L.dual.det_pos.le
+    simpa [g] using hx_nonneg
   have hp :
       (p : MeasureTheory.Measure (𝓔 n))
-        = (MeasureTheory.volume : MeasureTheory.Measure (𝓔 n)).withDensity
+        = μ.withDensity
             (fun x => ENNReal.ofReal (f x)) := by
     change modGaussianMeasureOnFundamentalDomain L B s =
-      (MeasureTheory.volume : MeasureTheory.Measure (𝓔 n)).withDensity
-        (fun x => ENNReal.ofReal (f x))
-    simp [modGaussianMeasureOnFundamentalDomain, measureOfDensityOn, f]
+      μ.withDensity (fun x => ENNReal.ofReal (f x))
+    simp [μ, S, f, modGaussianMeasureOnFundamentalDomain, measureOfDensityOn]
   have hq :
       (q : MeasureTheory.Measure (𝓔 n))
-        = (MeasureTheory.volume : MeasureTheory.Measure (𝓔 n)).withDensity
+        = μ.withDensity
             (fun x => ENNReal.ofReal (g x)) := by
     change uniformMeasureOnFundamentalDomain L B =
-      (MeasureTheory.volume : MeasureTheory.Measure (𝓔 n)).withDensity
-        (fun x => ENNReal.ofReal (g x))
-    simp [uniformMeasureOnFundamentalDomain, measureOfDensityOn, g]
+      μ.withDensity (fun x => ENNReal.ofReal (g x))
+    simp [μ, S, g, uniformMeasureOnFundamentalDomain, measureOfDensityOn]
   have h_tv_le_l1 :
       LatticeCrypto.Utils.Probability.tvDist p q
-        ≤ ENNReal.ofReal (∫ x, |f x - g x|) := by
+        ≤ ENNReal.ofReal (∫ x, |f x - g x| ∂μ) := by
     exact LatticeCrypto.Utils.Probability.tvDist_le_l1_of_withDensity
-      (μ := (MeasureTheory.volume : MeasureTheory.Measure (𝓔 n)))
+      (μ := μ)
       (p := p) (q := q) (f := f) (g := g)
       hf_int hg_int hf_nonneg hg_nonneg hp hq
-  have h_l1_eq :
-      ∫ x, |f x - g x|
-        = ∫ x in B.fundamentalDomain, |modGaussianDensity L s x - uniformDensity L x| := by
-    have h_zero_out : ∀ x, x ∉ B.fundamentalDomain → |f x - g x| = 0 := by
-      intro x hx
-      simp [f, g, densityOnSet, hx]
-    have h_set :
-        ∫ x in B.fundamentalDomain, |f x - g x|
-          = ∫ x in B.fundamentalDomain, |modGaussianDensity L s x - uniformDensity L x| := by
-      refine MeasureTheory.setIntegral_congr_fun (LatticeBasis.fundamentalDomain_measurableSet B) ?_
-      intro x hx
-      simp [f, g, densityOnSet, hx]
-    calc
-      ∫ x, |f x - g x| = ∫ x in B.fundamentalDomain, |f x - g x| := by
-        symm
-        exact MeasureTheory.setIntegral_eq_integral_of_forall_compl_eq_zero h_zero_out
-      _ = ∫ x in B.fundamentalDomain, |modGaussianDensity L s x - uniformDensity L x| := h_set
   have h_real_bound :
-      ∫ x, |f x - g x| ≤ rhoSMassOn (1 / s) 0 L.dual {0}ᶜ := by
+      ∫ x, |f x - g x| ∂μ ≤ rhoSMassOn (1 / s) 0 L.dual {0}ᶜ := by
     have hhalf :
-        (1 / 2) * ∫ x, |f x - g x|
+        (1 / 2) * ∫ x, |f x - g x| ∂μ
           ≤ (1 / 2) * rhoSMassOn (1 / s) 0 L.dual {0}ᶜ := by
-      simpa [h_l1_eq] using measure_L1Dist_modGaussian_vs_uniform_le L B hB s hs
+      simpa [μ, S, f, g] using
+        measure_L1Dist_modGaussian_vs_uniform_le L B hB s hs
     nlinarith [hhalf]
   have h_bound :
-      ENNReal.ofReal (∫ x, |f x - g x|)
+      ENNReal.ofReal (∫ x, |f x - g x| ∂μ)
         ≤ ENNReal.ofReal (rhoSMassOn (1 / s) 0 L.dual {0}ᶜ) := by
     apply ENNReal.ofReal_le_ofReal
     exact h_real_bound
@@ -585,7 +549,7 @@ theorem tvDist_modGaussian_vs_uniform_le
         (modGaussianProbabilityMeasureOnFundamentalDomain L B hB s hs)
         (uniformProbabilityMeasureOnFundamentalDomain L B hB)
       = LatticeCrypto.Utils.Probability.tvDist p q := by rfl
-    _ ≤ ENNReal.ofReal (∫ x, |f x - g x|) := h_tv_le_l1
+    _ ≤ ENNReal.ofReal (∫ x, |f x - g x| ∂μ) := h_tv_le_l1
     _ ≤ ENNReal.ofReal (rhoSMassOn (1 / s) 0 L.dual {0}ᶜ) := h_bound
 
 end mathlib_measures

@@ -15,22 +15,20 @@ section density_bridge
 
 variable {α : Type*} [MeasureTheory.MeasureSpace α]
 
-/-- A density clipped to `S` (equal to `f` on `S`, `0` outside). -/
-noncomputable def densityOnSet (f : α → ℝ) (S : Set α) : α → ℝ :=
-  S.indicator f
-
-/-- The `withDensity` measure induced by a clipped real-valued density. -/
+/-- The `withDensity` measure induced by a real-valued density on `volume.restrict S`. -/
 noncomputable def measureOfDensityOn (f : α → ℝ) (S : Set α) : MeasureTheory.Measure α :=
-  MeasureTheory.volume.withDensity (fun x => ENNReal.ofReal (densityOnSet f S x))
+  ((MeasureTheory.volume : MeasureTheory.Measure α).restrict S).withDensity
+    (fun x => ENNReal.ofReal (f x))
 
 /-- Evaluates `measureOfDensityOn` on a measurable set via `withDensity`. -/
 theorem measureOfDensityOn_apply
     (f : α → ℝ) (S T : Set α) (hT : MeasurableSet T) :
-    measureOfDensityOn f S T = ∫⁻ x in T, ENNReal.ofReal (densityOnSet f S x) := by
-  simpa [measureOfDensityOn, densityOnSet] using
+    measureOfDensityOn f S T
+      = ∫⁻ x in T, ENNReal.ofReal (f x) ∂((MeasureTheory.volume : MeasureTheory.Measure α).restrict S) := by
+  simpa [measureOfDensityOn] using
     (MeasureTheory.withDensity_apply
-      (μ := (MeasureTheory.volume : MeasureTheory.Measure α))
-      (f := fun x => ENNReal.ofReal (densityOnSet f S x)) hT)
+      (μ := ((MeasureTheory.volume : MeasureTheory.Measure α).restrict S))
+      (f := fun x => ENNReal.ofReal (f x)) hT)
 
 /--
 If `f` is a probability density on `S`, then `f` is integrable on `S`.
@@ -60,31 +58,21 @@ theorem measureOfDensityOn_univ
     {f : α → ℝ} {S : Set α}
     (hS : MeasurableSet S) (hpdf : IsProbabilityDensityOn f S) :
     measureOfDensityOn f S Set.univ = 1 := by
-  have hInt_on : MeasureTheory.IntegrableOn f S := hpdf.integrableOn hS
-  have hInt : MeasureTheory.Integrable (densityOnSet f S) := by
-    rw [densityOnSet, MeasureTheory.integrable_indicator_iff hS]
-    exact hInt_on
-  have h_nonneg : 0 ≤ᵐ[(MeasureTheory.volume : MeasureTheory.Measure α)] densityOnSet f S := by
-    refine Filter.Eventually.of_forall ?_
-    intro x
-    by_cases hx : x ∈ S
-    · simp [densityOnSet, hx, hpdf.1 x hx]
-    · simp [densityOnSet, hx]
-  have h_int_one : ∫ x, densityOnSet f S x = 1 := by
-    calc
-      ∫ x, densityOnSet f S x = ∫ x in S, f x := by
-        simpa [densityOnSet] using (MeasureTheory.integral_indicator hS (f := f))
-      _ = 1 := hpdf.2
+  let μS : MeasureTheory.Measure α := (MeasureTheory.volume : MeasureTheory.Measure α).restrict S
+  have hInt : MeasureTheory.Integrable f μS := by
+    simpa [μS] using (hpdf.integrableOn hS)
+  have h_nonneg : 0 ≤ᵐ[μS] f := by
+    refine (MeasureTheory.ae_restrict_iff' hS).2 ?_
+    exact Filter.Eventually.of_forall (fun x hx => hpdf.1 x hx)
   calc
     measureOfDensityOn f S Set.univ
-        = ∫⁻ x, ENNReal.ofReal (densityOnSet f S x) := by
-            rw [measureOfDensityOn_apply _ _ _ MeasurableSet.univ]
-            simp
-    _ = ENNReal.ofReal (∫ x, densityOnSet f S x) := by
+        = ∫⁻ x, ENNReal.ofReal (f x) ∂μS := by
+            simpa [μS] using
+              (measureOfDensityOn_apply f S Set.univ MeasurableSet.univ)
+    _ = ENNReal.ofReal (∫ x, f x ∂μS) := by
           rw [← MeasureTheory.ofReal_integral_eq_lintegral_ofReal hInt h_nonneg]
     _ = 1 := by
-          rw [h_int_one]
-          norm_num
+          simpa [μS] using hpdf.2
 
 /-- Any `IsProbabilityDensityOn f S` induces a Mathlib `IsProbabilityMeasure`. -/
 theorem measureOfDensityOn_isProbabilityMeasure
