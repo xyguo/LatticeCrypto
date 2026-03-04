@@ -177,13 +177,15 @@ noncomputable def modGaussianOnFundamentalDomainENNReal
     (L : EuclideanLattice n n) (B : SquareLatticeBasis n) (s : ℝ) : 𝓔 n → ℝ≥0∞ :=
   fun x => ENNReal.ofReal (modGaussianOnFundamentalDomain L B s x)
 
+/- Note the `Real` type has defined `Real / 0 = 0`, but when `s = 0`, `rhoS (1 / s)` should be undefined. So we really want `s ≠ 0`. -/
+set_option linter.unusedVariables false in
 /-- Summability of the twisted Fourier series term in Poisson expansion. -/
 private lemma summable_twisted_rhoS
     (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) (x : 𝓔 n) :
     Summable (fun v : L.dual.carrier =>
       cexp (-2 * Real.pi * Complex.I * inner ℝ x (v : 𝓔 n)) * (rhoS (1 / s) (v : 𝓔 n) : ℂ)) := by
   have hρ : Summable (fun v : L.dual.carrier => rhoS (1 / s) (v : 𝓔 n)) := by
-    simpa using summable_rhoS L.dual (1 / s) (one_div_pos.mpr hs) 0
+    simpa using summable_rhoS L.dual (1 / s) 0
   have hnorm : Summable (fun v : L.dual.carrier =>
       ‖cexp (-2 * Real.pi * Complex.I * inner ℝ x (v : 𝓔 n)) * (rhoS (1 / s) (v : 𝓔 n) : ℂ)‖) := by
     convert hρ using 1
@@ -191,6 +193,8 @@ private lemma summable_twisted_rhoS
     simp [Complex.norm_exp, rhoS_nonneg]
   exact Summable.of_norm hnorm
 
+/- Note the `Real` type has defined `Real / 0 = 0`, but when `s = 0`, `rhoS (1 / s)` should be undefined. So we really want `s ≠ 0`. -/
+set_option linter.unusedVariables false in
 /-- Summability of the nonzero-frequency tail of the twisted Fourier series. -/
 private lemma summable_twisted_rhoS_tail
     (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) (x : 𝓔 n) :
@@ -198,7 +202,7 @@ private lemma summable_twisted_rhoS_tail
       if v = 0 then 0 else
         cexp (-2 * Real.pi * Complex.I * inner ℝ x (v : 𝓔 n)) * (rhoS (1 / s) (v : 𝓔 n) : ℂ)) := by
   have hρ : Summable (fun v : L.dual.carrier => rhoS (1 / s) (v : 𝓔 n)) := by
-    simpa using summable_rhoS L.dual (1 / s) (one_div_pos.mpr hs) 0
+    simpa using summable_rhoS L.dual (1 / s) 0
   have hρtail : Summable (fun v : L.dual.carrier => if v = 0 then 0 else rhoS (1 / s) (v : 𝓔 n)) := by
     refine Summable.of_nonneg_of_le (fun v => ?_) (fun v => ?_) hρ
     · by_cases hv : v = 0 <;> simp [hv, rhoS_nonneg]
@@ -433,6 +437,7 @@ theorem uniformMeasureOnFundamentalDomain_isProbabilityMeasure
     (hS := LatticeBasis.fundamentalDomain_measurableSet B)
     (hpdf := uniformDensity_isProbabilityDensityOn_fundamentalDomain L B hB)
 
+/-- The modulo-Gaussian density is integrable on the fundamental domain. -/
 lemma modGaussianDensity_integrableOn_fundamentalDomain
     (L : EuclideanLattice n n) (B : SquareLatticeBasis n)
     (hB : isBasisFor B L) (s : ℝ) (hs : 0 < s) :

@@ -32,7 +32,7 @@ abbrev 𝔅 {n : ℕ+} (c : 𝓔 n) (r : ℝ) := Metric.ball c r
   * `stronger_numeric_bound_for_tail_bound`: Real.exp (-3 * Real.pi * n / 4) * (2 ^ n) < (0.2 ^ n)
 -/
 section numeric_bounds
-/-
+/--
 ln(4) < 3π/4 using proven bounds.
 -/
 private fact log_four_lt_three_pi_div_four : Real.log 4 < 3 * Real.pi / 4 := by
@@ -44,7 +44,7 @@ private fact log_four_lt_three_pi_div_four : Real.log 4 < 3 * Real.pi / 4 := by
     exact Real.pi_gt_three;
   linarith
 
-/-
+/--
 Numeric bound: exp(-3πn/4) * 2^n < 2^{-n}.
 -/
 private fact numeric_bound_for_tail_bound (n : ℕ+) :
@@ -152,18 +152,18 @@ lemma rhoMassTailBoundConst_le_four_rpow_neg (n : ℕ+) :
 end numeric_bounds
 
 
-/-
+/--
   Handy bound relating ρ₁ and ρ₂.
 -/
 lemma rho_le_exp_mul_rhoS_two_of_norm_ge_sqrt {n : ℕ+} (v : 𝓔 n) (hv : ‖v‖ ≥ Real.sqrt n) :
   rho v ≤ Real.exp (-3 * Real.pi * n / 4) * rhoS 2 v := by
-    unfold rhoS at *;
-    unfold rho;
+    rw [rhoS_of_ne_zero (by norm_num : (2 : ℝ) ≠ 0)]
+    unfold rho
     rw [ ← Real.exp_add ];
     norm_num [ norm_smul ];
     nlinarith [ Real.pi_pos, show ( n : ℝ ) ≥ 1 from Nat.one_le_cast.mpr n.pos, Real.sqrt_nonneg n, Real.sq_sqrt <| Nat.cast_nonneg n, mul_le_mul_of_nonneg_left hv <| Real.pi_pos.le ]
 
-/-
+/--
 Bound the mass of the Gaussian on a set by a factor times the mass of the scaled Gaussian on the same set.
 -/
 lemma rhoMassOn_outside_ball_sqrt_le_exp_mul_rhoSMassOn_two (c : 𝓔 n) (L : EuclideanLattice n n) :
@@ -173,14 +173,15 @@ lemma rhoMassOn_outside_ball_sqrt_le_exp_mul_rhoSMassOn_two (c : 𝓔 n) (L : Eu
     rw [←rhoSMassOn_one_eq_rhoMassOn]
     have h_term_le : ∀ v : L.carrier, (Set.indicator (𝔅 0 (Real.sqrt n))ᶜ (rhoS 1)) ((v : 𝓔 n) + c) ≤ (Real.exp (-3 * Real.pi * n / 4)) * (Set.indicator (𝔅 0 (Real.sqrt n))ᶜ (rhoS 2)) ((v : 𝓔 n) + c) := by
       intro v; by_cases hv : ( v : 𝓔 n ) + c ∈ 𝔅 0 ( Real.sqrt n ) <;> simp_all +decide [ Set.indicator ] ;
-      convert rho_le_exp_mul_rhoS_two_of_norm_ge_sqrt _ hv using 1 ; ring_nf;
+      simpa [rho, rhoS_of_ne_zero (by norm_num : (1 : ℝ) ≠ 0)]
+        using rho_le_exp_mul_rhoS_two_of_norm_ge_sqrt ((v : 𝓔 n) + c) hv
     convert Summable.tsum_le_tsum h_term_le _ _ using 1;
     · rw [ tsum_mul_left, rhoSMassOn ];
       aesop;
     · exact SummationFilter.instNeBotUnconditional ↥L.carrier;
-    · convert summable_rhoSMassOn 1 zero_lt_one c L ( 𝔅 0 ( Real.sqrt n ) ) ᶜ using 1;
+    · convert summable_rhoSMassOn 1 c L ( 𝔅 0 ( Real.sqrt n ) ) ᶜ using 1;
     · refine' Summable.mul_left _ _;
-      convert summable_rhoSMassOn 2 ( by norm_num ) c L ( 𝔅 0 ( Real.sqrt n ) ) ᶜ using 1
+      convert summable_rhoSMassOn 2 c L ( 𝔅 0 ( Real.sqrt n ) ) ᶜ using 1
 
 /--
   Let Bₙ denote the open Euclidean unit ball. Then, for any lattice L and any s > 0,
@@ -200,20 +201,19 @@ theorem rhoMassOn_outside_ball_sqrt_lt_zero_point_two_rpow_mul_rhoMass (c : 𝓔
           apply Summable.tsum_le_tsum ;
           · intro v; by_cases hv : ( v : 𝓔 n ) + c ∈ 𝔅 0 ( Real.sqrt n ) <;> simp_all +decide  ;
             exact Real.exp_nonneg _;
-          · convert summable_rhoSMassOn 2 ( by norm_num ) c L ( 𝔅 0 ( Real.sqrt ( n : ℝ ) ) ) ᶜ using 1;
-          · convert summable_rhoSMassOn 2 ( by norm_num ) c L Set.univ using 1 ; aesop;
+          · convert summable_rhoSMassOn 2 c L ( 𝔅 0 ( Real.sqrt ( n : ℝ ) ) ) ᶜ using 1;
+          · convert summable_rhoSMassOn 2 c L Set.univ using 1 ; aesop;
         exact this.trans ( mul_le_mul_of_nonneg_left h_bound <| by positivity );
       have h_bound : rhoSMass 2 c L ≤ 2 ^ (n : ℝ) * rhoSMass 1 0 L := by
         exact le_trans ( rhoSMass_shift_mono L 2 ( by norm_num ) c ) ( by simpa using rhoSMass_scaling_mono 2 ( by norm_num ) L );
       nlinarith [ Real.exp_pos ( -3 * Real.pi * n / 4 ) ];
     have h_bound : Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ)^(n : ℝ) * rhoSMass 1 0 L < (0.2 : ℝ)^(n : ℝ) * rhoSMass 1 0 L := by
-      gcongr;
-      · refine' lt_of_lt_of_le _ ( Summable.le_tsum _ 0 _ ) <;> norm_num;
-        · exact Real.exp_pos _;
-        · simp ; convert summable_rhoSMassOn 1 zero_lt_one 0 L Set.univ using 1;
-          ext; simp ;
-        · exact fun _ _ _ => Real.exp_nonneg _;
-      · convert stronger_numeric_bound_for_tail_bound n using 1;
+      have h_mass_pos : 0 < rhoSMass 1 0 L := by
+        have hdg : 0 < dGZ L 1 (0 : 𝓔 n) := dGZ_pos L 1 (by norm_num) 0
+        simpa [dGZ_eq_rhoSCosetMass] using hdg
+      have h_coeff : Real.exp (-3 * Real.pi * n / 4) * (2 : ℝ) ^ (n : ℝ) < (0.2 : ℝ) ^ (n : ℝ) := by
+        simpa using stronger_numeric_bound_for_tail_bound n
+      exact mul_lt_mul_of_pos_right h_coeff h_mass_pos
     convert lt_of_le_of_lt ‹_› h_bound using 1
     rw [ rhoSMass_one_eq_rhoMass ]
 
@@ -266,7 +266,7 @@ theorem rhoMassOn_nonzero_lt_zero_point_two_rpow_div_one_sub_of_shortestVectorLe
   rw [←h_eq'] at h_concentration
 
   have : rhoMass 0 L = 1 + rhoMassOn 0 L {0}ᶜ := by
-    have h_eq := rhoSMass_eq_one_add_rhoSMassOn_nonzero L 1 zero_lt_one
+    have h_eq := rhoSMass_eq_one_add_rhoSMassOn_nonzero L 1
     rw [ rhoSMass_one_eq_rhoMass, rhoSMassOn_one_eq_rhoMassOn ] at h_eq
     exact h_eq
   rw [ this ] at h_concentration
@@ -311,7 +311,7 @@ corollary rhoMass_dual_le_one_add_two_mul_two_rpow_neg_mul_det_of_shortestVector
     refine' le_trans ( norm_tsum_le_tsum_norm _ ) _;
     · simp_all +decide [ Complex.norm_exp ];
       have h_summable : Summable (fun v : L.carrier => rho v) := by
-        have := LatticeCrypto.Foundations.Gaussian.summable_rhoSMassOn 1 zero_lt_one 0 L Set.univ
+        have := LatticeCrypto.Foundations.Gaussian.summable_rhoSMassOn 1 0 L Set.univ
         simp_all +decide [ LatticeCrypto.Foundations.Gaussian.rhoS, LatticeCrypto.Foundations.Gaussian.rho ];
       exact h_summable.abs;
     · simp_all +decide [ Complex.norm_exp ];
@@ -321,7 +321,7 @@ corollary rhoMass_dual_le_one_add_two_mul_two_rpow_neg_mul_det_of_shortestVector
       rw [ Summable.tsum_eq_add_tsum_ite ];
       congr! 1;
       · unfold Gaussian.rho; norm_num;
-      · convert summable_rhoSMassOn 1 zero_lt_one 0 L ( Set.univ : Set ( 𝓔 n ) ) using 1;
+      · convert summable_rhoSMassOn 1 0 L ( Set.univ : Set ( 𝓔 n ) ) using 1;
         ext; simp [LatticeCrypto.Foundations.Gaussian.rho];
     have h_sum_abs : ∑' v : L.carrier, (if v = 0 then 0 else rho v) ≤ 2 * 2 ^ (-(n : ℝ)) := by
       have h_sum_abs : ∑' v : L.carrier, (if v = 0 then 0 else rho v) ≤ rhoMassOn 0 L {0}ᶜ := by
@@ -337,7 +337,9 @@ corollary rhoMass_dual_le_one_add_two_mul_two_rpow_neg_mul_det_of_shortestVector
   · refine' le_trans _ h_sum_abs;
     refine' le_trans _ ‹_›;
     convert Complex.re_le_norm _ using 2 ; norm_num [ Complex.exp_neg ];
-    exact rfl
+    refine tsum_congr ?_
+    intro v
+    simp [Complex.exp_neg, rho]
 
 /-- Corollary : lattices with long shortest vector have almost uniform rhoMass on the dual cosets -/
 corollary rhoMass_dual_ge_one_sub_two_mul_two_rpow_neg_mul_det_of_shortestVectorLength_ge_sqrt (L : EuclideanLattice n n) (h_svl : L.shortestVectorLength ≥ Real.sqrt (n : ℝ)) (u : 𝓔 n) :
@@ -354,33 +356,49 @@ corollary rhoMass_dual_ge_one_sub_two_mul_two_rpow_neg_mul_det_of_shortestVector
   have h_v_zero : (rhoMass u (L.dual) : ℝ) ≥ (L.det : ℝ) * (1 - rhoMassOn 0 L {0}ᶜ) := by
     -- The sum is L.det * ∑_{v ∈ L} exp(-2πi ⟨u, v⟩) * rho(v).
     have h_sum : (rhoMass u (L.dual) : ℝ) = (L.det : ℝ) * (∑' v : ↥L.carrier, cexp (-2 * Real.pi * Complex.I * inner ℝ u v) * rho (v : 𝓔 n)) := by
-      aesop;
+      simpa [rho] using h_poisson
+    have hsum_twist : Summable (fun v : L.carrier => cexp (-2 * Real.pi * Complex.I * inner ℝ u v) * rho (v : 𝓔 n)) := by
+      have hρ : Summable (fun v : L.carrier => rho (v : 𝓔 n)) := by
+        convert summable_rhoSMassOn 1 0 L Set.univ using 1
+        ext v
+        simp [rho]
+      exact Summable.of_norm <| by
+        convert hρ.norm using 1
+        ext v
+        calc
+          ‖cexp (-2 * Real.pi * Complex.I * inner ℝ u v) * (rho (v : 𝓔 n) : ℂ)‖
+              = ‖cexp (-2 * Real.pi * Complex.I * inner ℝ u v)‖ * ‖(rho (v : 𝓔 n) : ℂ)‖ := by
+                  rw [norm_mul]
+          _ = ‖rho (v : 𝓔 n)‖ := by simp [Complex.norm_exp]
     -- The sum is L.det * ∑_{v ∈ L} exp(-2πi ⟨u, v⟩) * rho(v). We separate the v=0 term from the sum.
     have h_sum_separated : (rhoMass u (L.dual) : ℝ) = (L.det : ℝ) * (1 + ∑' v : ↥L.carrier, if v = 0 then 0 else cexp (-2 * Real.pi * Complex.I * inner ℝ u v) * rho (v : 𝓔 n)) := by
-      rw [ h_sum, Summable.tsum_eq_add_tsum_ite ];
+      rw [h_sum, Summable.tsum_eq_add_tsum_ite hsum_twist 0]
       field_simp;
       · norm_num [ Gaussian.rho ];
-      · contrapose! h_sum;
-        -- If the sum is not summable, then the Gaussian mass would be zero, which contradicts the assumption that the Gaussian mass is positive.
-        have h_gauss_mass_pos : 0 < LatticeCrypto.Foundations.Gaussian.rhoMass u L.dual := by
-          apply_rules [ Summable.tsum_pos ];
-          rotate_right;
-          exact ⟨ 0, by simp +decide ⟩;
-          · convert summable_rhoSMassOn 1 zero_lt_one u L.dual ( Set.univ ) using 1;
-            ext; simp +decide  ;
-          · exact fun _ => Real.exp_nonneg _;
-          · exact Real.exp_pos _;
-        rw [ tsum_eq_zero_of_not_summable h_sum ] ; norm_num [ h_gauss_mass_pos.ne' ];
     -- The magnitude of the sum is bounded by the sum of the magnitudes.
     have h_sum_abs : ‖∑' v : ↥L.carrier, if v = 0 then 0 else cexp (-2 * Real.pi * Complex.I * inner ℝ u v) * rho (v : 𝓔 n)‖ ≤ ∑' v : ↥L.carrier, if v = 0 then 0 else rho (v : 𝓔 n) := by
-      convert norm_tsum_le_tsum_norm _ <;> norm_num [ Complex.norm_exp ];
-      · split_ifs <;> norm_num [ Complex.norm_exp ];
-        exact Eq.symm ( abs_of_nonneg ( Real.exp_nonneg _ ) );
-      · refine' Summable.of_nonneg_of_le ( fun v => norm_nonneg _ ) ( fun v => _ ) ( show Summable fun v : L.carrier => ( rho ( v : 𝓔 n ) : ℝ ) from _ );
-        · split_ifs <;> simp_all +decide [ Complex.norm_exp ];
-          · exact Real.exp_nonneg _;
-          · rw [ abs_of_nonneg ( by exact Real.exp_pos _ |> le_of_lt ) ];
-        · convert summable_rhoSMassOn 1 zero_lt_one 0 L Set.univ using 1 ; norm_num [ rhoMassOn ];
+      have hsum_if : Summable (fun v : L.carrier => if v = 0 then 0 else cexp (-2 * Real.pi * Complex.I * inner ℝ u v) * rho (v : 𝓔 n)) := by
+        refine Summable.of_norm ?_
+        refine Summable.of_nonneg_of_le (fun _ => by positivity) (fun v => ?_) hsum_twist.norm
+        by_cases hv : v = 0
+        · simp [hv]
+        · have hrho_nonneg : 0 ≤ rho (v : 𝓔 n) := by
+            unfold rho
+            positivity
+          simp [hv, Complex.norm_exp, Real.norm_eq_abs, abs_of_nonneg hrho_nonneg]
+      calc
+        ‖∑' v : ↥L.carrier, if v = 0 then 0 else cexp (-2 * Real.pi * Complex.I * inner ℝ u v) * rho (v : 𝓔 n)‖
+            ≤ ∑' v : ↥L.carrier, ‖if v = 0 then 0 else cexp (-2 * Real.pi * Complex.I * inner ℝ u v) * rho (v : 𝓔 n)‖ := by
+                exact norm_tsum_le_tsum_norm hsum_if.norm
+        _ = ∑' v : ↥L.carrier, if v = 0 then 0 else rho (v : 𝓔 n) := by
+              refine tsum_congr ?_
+              intro v
+              by_cases hv : v = 0
+              · simp [hv]
+              · have hrho_nonneg : 0 ≤ rho (v : 𝓔 n) := by
+                  unfold rho
+                  positivity
+                simp [hv, Complex.norm_exp, Real.norm_eq_abs, abs_of_nonneg hrho_nonneg]
     -- The sum of the magnitudes is bounded by rhoMassOn 0 L {0}ᶜ.
     have h_sum_abs_le : ∑' v : ↥L.carrier, (if v = 0 then 0 else rho (v : 𝓔 n)) = rhoMassOn 0 L {0}ᶜ := by
       simp [rhoMassOn];
@@ -444,7 +462,7 @@ def AffineHalfSpace (u : 𝓔 n) (hu : ‖u‖ = 1) (t : ℝ) : Set (𝓔 n) :=
 
 abbrev 𝓗 (u : 𝓔 n) (hu : ‖u‖ = 1) (t : ℝ) := AffineHalfSpace u hu t
 
-/-
+/--
 Algebraic identity for completing the square in the exponent.
 -/
 private lemma square_completion {n : ℕ+} (v u : 𝓔 n) (t : ℝ) (hu : ‖u‖ = 1) :
@@ -454,7 +472,7 @@ private lemma square_completion {n : ℕ+} (v u : 𝓔 n) (t : ℝ) (hu : ‖u�
       norm_num [ Real.norm_eq_abs ];
       ring
 
-/-
+/--
 Pointwise inequality for the Gaussian terms in the half-space tail bound.
 -/
 private lemma gaussian_ineq {n : ℕ+} (v u : 𝓔 n) (t : ℝ) (hu : ‖u‖ = 1) (h : inner ℝ u v ≥ t) (ht : t ≥ 0) :
@@ -467,7 +485,7 @@ private lemma gaussian_ineq {n : ℕ+} (v u : 𝓔 n) (t : ℝ) (hu : ‖u‖ = 
     rw [ real_inner_comm ] ; nlinarith;
   exact Real.exp_le_exp.mpr ( by nlinarith [ Real.pi_pos ] )
 
-/-
+/--
 Intermediate bound: mass outside half-space is bounded by shifted mass times exponential factor.
 -/
 protected lemma rhoMassOn_compl_affineHalfSpace_le_exp_neg_pi_mul_sq_mul_rhoMass_shifted {n : ℕ+} (L : EuclideanLattice n n) (u : 𝓔 n) (hu : ‖u‖ = 1) (t : ℝ) (ht : t ≥ 0) (x : 𝓔 n) :
@@ -492,7 +510,7 @@ protected lemma rhoMassOn_compl_affineHalfSpace_le_exp_neg_pi_mul_sq_mul_rhoMass
     convert summable_rhoMassOn ( x - t • u ) L ( Set.univ : Set ( 𝓔 n ) ) using 1;
        ext; simp
 
-/-
+/--
 For any lattice L, unit vector u ∈ R n, real t ≥ 0, and x ∈ R^n, we have that
 ρ((x + L) \setminus 𝓗 u t) ≤ exp(−πt^2) * ρ(L).
 -/
@@ -503,7 +521,7 @@ theorem rhoMassOn_compl_affineHalfSpace_le_exp_neg_pi_mul_sq_mul_rhoMass {n : �
   convert le_trans ( Gaussian.rhoMassOn_compl_affineHalfSpace_le_exp_neg_pi_mul_sq_mul_rhoMass_shifted L u hu t ht x ) ( mul_le_mul_of_nonneg_left this <| by positivity ) using 1
   rw [rhoSMass_one_eq_rhoMass]
 
-/-
+/--
 For any non-zero vector w in the dual lattice and any basis v of the primal lattice, there is a basis vector v_i such that |<w, v_i>| >= 1.
 -/
 private lemma exists_dual_inner_ge_one {n : ℕ+} (L : EuclideanLattice n n) (w : 𝓔 n)
@@ -530,7 +548,7 @@ private lemma exists_dual_inner_ge_one {n : ℕ+} (L : EuclideanLattice n n) (w 
         exact hw_ne ( by simpa [ inner_self_eq_norm_sq_to_K ] using h_zero ));
       exact ⟨ i, by obtain ⟨ k, hk ⟩ := h_int i; norm_num [ hk ] ; exact mod_cast abs_pos.mpr ( show ( k : ℝ ) ≠ 0 from mod_cast by aesop ) ⟩
 
-/-
+/--
 Any non-zero lattice vector is in the complement of at least one of the halfspaces defined by u_i or -u_i.
 -/
 private lemma covering_of_nonzero {n : ℕ+} (L : EuclideanLattice n n)
@@ -541,7 +559,7 @@ private lemma covering_of_nonzero {n : ℕ+} (L : EuclideanLattice n n)
       · exact Or.inl ( by rwa [ real_inner_comm ] );
       · exact Or.inr ( by rw [ real_inner_comm ] ; linarith )
 
-/-
+/--
 The Gaussian mass of a union of sets is at most the sum of the Gaussian masses of the individual sets.
 -/
 lemma rhoMassOn_iUnion_le_sum {n : ℕ+} (L : EuclideanLattice n n) {ι : Type*} [Fintype ι] (S : ι → Set (𝓔 n)) :
@@ -580,7 +598,7 @@ lemma rhoMassOn_iUnion_le_sum {n : ℕ+} (L : EuclideanLattice n n) {ι : Type*}
     exact h_fubini fun i => by tauto;
   convert h_summable.trans_eq h_fubini using 1
 
-/-
+/--
 If every non-zero lattice vector is outside at least one of the slabs defined by u_i and t, then the total Gaussian mass of non-zero vectors is bounded by the sum of the masses outside each halfspace.
 -/
 private lemma rhoMass_le_sum_halfspaces {n : ℕ+} (L : EuclideanLattice n n)
@@ -614,7 +632,7 @@ private lemma rhoMass_le_sum_halfspaces {n : ℕ+} (L : EuclideanLattice n n)
     · ext; simp ;
     · rw [ Fin.sum_univ_two ] ; aesop
 
-/-
+/--
 If the non-zero lattice vectors are covered by the complements of halfspaces defined by `u_i` and `t`, then the Gaussian mass of the non-zero vectors is bounded by `2n * exp(-pi * t^2) * rho(L)`.
 -/
 private lemma rhoMass_nonzero_bound_of_covering {n : ℕ+} (L : EuclideanLattice n n)
@@ -631,7 +649,7 @@ private lemma rhoMass_nonzero_bound_of_covering {n : ℕ+} (L : EuclideanLattice
   · convert rhoMassOn_compl_affineHalfSpace_le_exp_neg_pi_mul_sq_mul_rhoMass L ( -u i ) ( by simpa using hu i ) t ht 0 using 1;
   · norm_num ; ring_nf ; norm_num
 
-/-
+/--
 If the n-th successive minimum of L is at most 1/t, then the Gaussian mass of the non-zero dual vectors is bounded by 2n * exp(-pi * t^2) * rho(L*).
 -/
 lemma rhoMassOn_nonzero_dual_le_of_succMinₙ_le_inv {n : ℕ+} (L : EuclideanLattice n n) (t : ℝ) (ht : t > 0)
@@ -662,7 +680,7 @@ lemma rhoMassOn_nonzero_dual_le_of_succMinₙ_le_inv {n : ℕ+} (L : EuclideanLa
     rw [ inv_mul_eq_div, le_div_iff₀ ] <;> nlinarith [ norm_pos_iff.mpr ( show v i ≠ 0 from by intro h; norm_num [ h ] at hi ), hv.2.2 i, mul_inv_cancel₀ ( ne_of_gt ht ) ];
   convert rhoMass_nonzero_bound_of_covering L.dual u hu.1 t ht.le h_cover using 1
 
-/-
+/--
 If the scaled n-th successive minimum is small enough, the Gaussian mass of the dual tail is bounded.
 -/
 lemma rhoSMassOn_nonzero_dual_le_of_succMinₙ_div_le_inv {n : ℕ+} (L : EuclideanLattice n n) (s t : ℝ) (hs : s > 0) (ht : t > 0)

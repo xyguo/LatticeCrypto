@@ -27,38 +27,95 @@ def rho (x : E) : ℝ := Real.exp (-π * ‖x‖^2)
 scoped notation "ρ" => rho
 
 /-- The scaled Gaussian ρ_s(x) = ρ(x/s) = exp(-π ‖x‖^2 / s^2) -/
-def rhoS (s : ℝ) (x : E) : ℝ := Real.exp (-π * ‖s⁻¹ • x‖^2)
+def rhoS (s : ℝ) (x : E) : ℝ := by
+  classical
+  exact
+    if s = 0 then
+      if x = 0 then 1 else 0
+    else
+      Real.exp (-π * ‖s⁻¹ • x‖^2)
 
 scoped notation "ρ[" s "]" => rhoS s
 
-theorem rhoS_eq_rho_s_inv_mul_x {s : ℝ} {x : E} :
+@[simp] theorem rhoS_zero [DecidableEq E] (x : E) : rhoS 0 x = if x = 0 then 1 else 0 := by
+  simp [rhoS]
+
+@[simp] theorem rhoS_zero_zero : rhoS 0 (0 : E) = 1 := by
+  simp [rhoS]
+
+@[simp] theorem rhoS_zero_of_ne {x : E} (hx : x ≠ 0) : rhoS 0 x = 0 := by
+  simp [rhoS, hx]
+
+@[simp] theorem rhoS_of_ne_zero {s : ℝ} (hs : s ≠ 0) (x : E) :
+    rhoS s x = Real.exp (-π * ‖s⁻¹ • x‖^2) := by
+  simp [rhoS, hs]
+
+/-- Immediate corollary from the definition of `rhoS` -/
+theorem rhoS_eq_rho_s_inv_mul_x {s : ℝ} {x : E} (hs : s ≠ 0) :
   rhoS s x = rho (s⁻¹ • x) := by
-  unfold rhoS rho; rfl
+  simp [rhoS, rho, hs]
 
 /-- The scaled-tilted Gaussian ρ_s ∘ T(x) = ρ(Tx/s) = exp(-π ‖ T x ‖^2 / s^2) -/
-def rhoST (s : ℝ) (T : E ≃L[ℝ] E) (x : E) : ℝ := Real.exp (-π * ‖s⁻¹ • (T x)‖^2)
+def rhoST (s : ℝ) (T : E ≃L[ℝ] E) (x : E) : ℝ := by
+  classical
+  exact
+    if s = 0 then
+      if x = 0 then 1 else 0
+    else
+      Real.exp (-π * ‖s⁻¹ • (T x)‖^2)
 
+@[simp] theorem rhoST_zero [DecidableEq E] (T : E ≃L[ℝ] E) (x : E) : rhoST 0 T x = if x = 0 then 1 else 0 := by
+  simp [rhoST]
+
+@[simp] theorem rhoST_zero_zero (T : E ≃L[ℝ] E) : rhoST 0 T (0 : E) = 1 := by
+  simp [rhoST]
+
+@[simp] theorem rhoST_zero_of_ne (T : E ≃L[ℝ] E) {x : E} (hx : x ≠ 0) : rhoST 0 T x = 0 := by
+  simp [rhoST, hx]
+
+@[simp] theorem rhoST_of_ne_zero {s : ℝ} (hs : s ≠ 0) (T : E ≃L[ℝ] E) (x : E) :
+    rhoST s T x = Real.exp (-π * ‖s⁻¹ • (T x)‖^2) := by
+  simp [rhoST, hs]
+
+/-- `rhoST` equals `rhoS` composed with the linear equivalence `T` -/
 theorem rhoST_eq_rhoS_T_x {s : ℝ} {T : E ≃L[ℝ] E} {x : E} :
   rhoST s T x = rhoS s (T x) := by
-  unfold rhoST rhoS; rfl
+  by_cases hs : s = 0
+  · subst hs; by_cases hx : x = 0 <;> simp [rhoST, rhoS, hx]
+  · simp [rhoST, rhoS, hs]
 
+/-- `rhoST` with the identity equivalence equals `rhoS` -/
 lemma rhoST_Id_eq_rhoS (s : ℝ) (x : E) :
   rhoST s (ContinuousLinearEquiv.refl ℝ E) x = rhoS s x := by
   simp [rhoST, rhoS, ContinuousLinearEquiv.refl_apply]
 
+/-- lemma `rhoS_1_eq_rho`: ∀ x : E, rhoS 1 x = rho x. -/
 @[simp]
 lemma rhoS_1_eq_rho :
   ∀ x : E, rhoS 1 x = rho x :=
-  by simp [rhoS_eq_rho_s_inv_mul_x, rho]
+  by
+    intro x
+    simpa using rhoS_eq_rho_s_inv_mul_x (s := 1) (x := x) one_ne_zero
 
+/-- `rhoST` is non-negative -/
 lemma rhoST_nonneg (s : ℝ) (T : E ≃L[ℝ] E) (x : E) : 0 ≤ rhoST s T x :=
-  Real.exp_pos _ |>.le
+  by
+    by_cases hs : s = 0
+    · subst hs; by_cases hx : x = 0 <;> simp [rhoST, hx]
+    · simpa [rhoST, hs] using (Real.exp_pos (-(π * ‖s⁻¹ • T x‖^2))).le
 
+/-- `rhoS` is non-negative -/
 theorem rhoS_nonneg (s : ℝ) (x : E) : 0 ≤ rhoS s x :=
-  Real.exp_pos _ |>.le
+  by
+    by_cases hs : s = 0
+    · subst hs; by_cases hx : x = 0 <;> simp [rhoS, hx]
+    · simpa [rhoS, hs] using (Real.exp_pos (-(π * ‖s⁻¹ • x‖^2))).le
 
+/-- Larger Gaussian width implies smaller density -/
 lemma rhoST_mono {s₁ s₂ : ℝ} (h1 : 0 < s₁) (h : s₁ ≤ s₂) (T : E ≃L[ℝ] E) (x : E) :
     rhoST s₁ T x ≤ rhoST s₂ T x := by
+  have hs₁ : s₁ ≠ 0 := h1.ne'
+  have hs₂ : s₂ ≠ 0 := ne_of_gt (lt_of_lt_of_le h1 h)
   -- Since the exponential function is decreasing, if the exponent is smaller, the value is larger.
   have h_exp : Real.exp (-(Real.pi * (‖T x‖ / s₁) ^ 2)) ≤ Real.exp (-(Real.pi * (‖T x‖ / s₂) ^ 2)) := by
     gcongr;
@@ -66,15 +123,14 @@ lemma rhoST_mono {s₁ s₂ : ℝ} (h1 : 0 < s₁) (h : s₁ ≤ s₂) (T : E �
     apply div_nonneg
     exact norm_nonneg _
     exact le_trans h1.le h;
-  convert h_exp using 1 <;> norm_num [ rhoST, rhoS, rho ] ; ring_nf;
+  convert h_exp using 1 <;> norm_num [rhoST_of_ne_zero hs₁, rhoST_of_ne_zero hs₂, rho] ; ring_nf;
   · rw [ norm_smul, Real.norm_of_nonneg ( by positivity ), mul_pow ];
   · rw [ norm_smul, Real.norm_of_nonneg ( inv_nonneg.2 ( by linarith ) ), inv_mul_eq_div ]
 
+/-- Larger Gaussian width implies smaller density -/
 theorem rhoS_mono {s₁ s₂ : ℝ} (h1 : 0 < s₁) (h : s₁ ≤ s₂) (x : E) :
     rhoS s₁ x ≤ rhoS s₂ x := by
-  unfold rhoS;
-  norm_num [ norm_smul ];
-  gcongr
+  simpa [rhoST_Id_eq_rhoS] using rhoST_mono h1 h (ContinuousLinearEquiv.refl ℝ E) x
 
 /-- The Gaussian function ρ is essentially the Gaussian PDF on ℝ -/
 theorem rhoS_eq_gaussianPDF (s : ℝ) (x : E) (h: s > 0):
@@ -85,10 +141,12 @@ theorem rhoS_eq_gaussianPDF (s : ℝ) (x : E) (h: s > 0):
   -- = exp( - π * ‖x / s‖^2 )
   -- = exp( - π * ‖x‖^2 / s^2 )
   -- = s * gaussianPDFReal 0 (s^2 / 2π) ‖x‖
-  unfold rhoS ProbabilityTheory.gaussianPDFReal;
+  rw [rhoS_of_ne_zero h.ne']
+  unfold ProbabilityTheory.gaussianPDFReal;
   simp +decide [ mul_comm, mul_left_comm, h.ne', Real.pi_pos.ne.symm, div_eq_mul_inv, h.le ] ; ring_nf;
   rw [ norm_smul, Real.norm_of_nonneg ( inv_nonneg.2 h.le ), mul_pow ]
 
+/-- theorem `rhoS_eq_Pi_gaussianPDF`: ℝ) (x : 𝓔 n) (h: s > 0):. -/
 theorem rhoS_eq_Pi_gaussianPDF (s : ℝ) (x : 𝓔 n) (h: s > 0):
     rhoS s x = (s ^ (n : ℕ)) • ∏ (i : Fin n), ProbabilityTheory.gaussianPDFReal 0 ⟨s^2 / (2 * π), by positivity⟩ (x i) := by
   convert rhoS_eq_gaussianPDF s x h using 1;
@@ -101,16 +159,12 @@ theorem rhoS_eq_Pi_gaussianPDF (s : ℝ) (x : 𝓔 n) (h: s > 0):
 /-- Handy corollary for ρ=1 -/
 corollary rho_eq_gaussianPDF (x : 𝓔 n) :
     rho x = ProbabilityTheory.gaussianPDFReal 0 ⟨1 / (2 * π), by positivity⟩ ‖x‖ := by
-    have h1 := rhoS_eq_gaussianPDF 1 x
-    simp [rhoS_1_eq_rho] at h1
-    simp [h1]
+    simpa [rhoS_1_eq_rho, rho] using rhoS_eq_gaussianPDF 1 x zero_lt_one
 
 /-- Handy corollary for ρ=1 -/
 corollary rho_eq_Pi_gaussianPDF (x : 𝓔 n) :
     rho x = ∏ (i : Fin n), ProbabilityTheory.gaussianPDFReal 0 ⟨1 / (2 * π), by positivity⟩ (x i) := by
-    have h1 := rhoS_eq_Pi_gaussianPDF 1 x
-    simp [rhoS_1_eq_rho] at h1
-    simp [h1]
+    simpa [rhoS_1_eq_rho, rho] using rhoS_eq_Pi_gaussianPDF 1 x zero_lt_one
 
 /-- The Gaussian function ρ_s is integrable -/
 lemma rhoS.integrable {n : ℕ+} (s : ℝ) (hs : s ≠ 0) :
@@ -137,9 +191,10 @@ lemma rhoS.integrable {n : ℕ+} (s : ℝ) (hs : s ≠ 0) :
     exact ( by contrapose! h_gauss_integrable; rw [ MeasureTheory.integral_undef h_gauss_integrable ] ; positivity );
   norm_num [ div_eq_inv_mul ] at *;
   convert h_gauss_integrable.ofReal using 2;
-  ext; simp +decide [ rhoS, norm_smul, mul_pow ] ; ring_nf
+  ext; simp +decide [rhoS, hs, norm_smul, mul_pow] ; ring_nf
 
 open MeasureTheory.Measure
+/-- The composition of an integrable function with a continuous linear equivalence is integrable -/
 lemma integrable_comp_continuousLinearEquiv
     {E F : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E] [BorelSpace E] [FiniteDimensional ℝ E]
     [NormedAddCommGroup F] [MeasurableSpace F]
@@ -158,14 +213,12 @@ lemma integrable_comp_continuousLinearEquiv
         exact ENNReal.ofReal_ne_top;
       convert h_map.comp_measurable T.continuous.measurable
 
+/-- `rhoST` is integrable -/
 lemma rhoST.integrable {n : ℕ+} (s : ℝ) (hs : s ≠ 0) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) :
     MeasureTheory.Integrable (fun v : 𝓔 n => (rhoST s T v : ℂ)) := by
-      convert integrable_comp_continuousLinearEquiv MeasureTheory.MeasureSpace.volume _ T _;
-      rotate_left;
-      exact inferInstance;
-      exact fun v => ( rhoS s v : ℂ );
-      · exact rhoS.integrable s hs;
-      · exact rfl
+  simpa [rhoST_eq_rhoS_T_x] using
+    (integrable_comp_continuousLinearEquiv MeasureTheory.MeasureSpace.volume
+      (fun v : 𝓔 n => (rhoS s v : ℂ)) T (rhoS.integrable s hs))
 
 
 open scoped ENNReal
@@ -196,6 +249,7 @@ noncomputable def rhoSTMass.ENNReal (s : ℝ) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) 
 noncomputable def rhoSTMassOn (s : ℝ) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) (c : 𝓔 n) (L : EuclideanLattice n n) (S : Set (𝓔 n)) : ℝ :=
   L.latticeSum (fun v => (S.indicator (rhoST s T)) (v + c))
 
+/-- `rhoSTMassOn` the whole space is by definition equal to `rhoSTMass`. -/
 theorem rhoSTMassOn_univ (s : ℝ) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) (c : 𝓔 n) (L : EuclideanLattice n n) :
   rhoSTMassOn s T c L Set.univ = rhoSTMass s T c L := by
   classical
@@ -214,11 +268,13 @@ noncomputable def rhoSMassOn
 scoped notation "ρMass["s"]" => rhoSMass s
 scoped notation "ρMassOn["s"]" => rhoSMassOn s
 
+/-- `rhoSMassOn` the whole space is by definition equal to `rhoSMass`. -/
 theorem rhoSMassOn_univ (s : ℝ) (c : 𝓔 n) (L : EuclideanLattice n n) :
   rhoSMassOn s c L Set.univ = rhoSMass s c L := by
   classical
   simp [rhoSMassOn, rhoSMass]
 
+/-- Immediate corollary from `rhoST Id = rhoS` -/
 theorem rhoSTMass_Id_eq_rhoSMass (s c L) :
   rhoSTMass s (ContinuousLinearEquiv.refl ℝ (𝓔 n)) c L = rhoSMass s c L :=
   rfl
@@ -237,12 +293,14 @@ noncomputable def rhoMassOn
 scoped notation "ρMass" => rhoMass
 scoped notation "ρMassOn" => rhoMassOn
 
+/-- `rhoMassOn` the whole space is by definition equal to `rhoMass` -/
 theorem rhoMassOn_univ (c : 𝓔 n) (L : EuclideanLattice n n) :
   rhoMassOn c L Set.univ = rhoMass c L := by
   classical
   simp [rhoMassOn, rhoMass]
 
 
+/-- Immediate corollary of `rhoS 1 = rho` -/
 theorem rhoSMass_one_eq_rhoMass (c : 𝓔 n) L :
    rhoSMass 1 c L = rhoMass c L := by
   unfold rhoSMass rhoMass;
@@ -250,6 +308,7 @@ theorem rhoSMass_one_eq_rhoMass (c : 𝓔 n) L :
   ext x; exact rhoS_1_eq_rho (E := 𝓔 n) x
 
 
+/-- Immediate corollary of `rhoS 1 = rho` -/
 theorem rhoSMassOn_one_eq_rhoMassOn (c : 𝓔 n) L (S : Set (𝓔 n)) :
    rhoSMassOn 1 c L S = rhoMassOn c L S := by
   unfold rhoSMassOn rhoMassOn;
@@ -282,6 +341,7 @@ theorem rhoSMass_scale (s : ℝ) (hs : s > 0) (L : EuclideanLattice n n) :
 -/
 open scoped Pointwise
 
+/-- Scaling down the Gaussian width for `rhoSMassOn` is equivalent to scaling up the lattice and the set. -/
 lemma rhoSMassOn_scale {n : ℕ+} (L : EuclideanLattice n n) (s : ℝ) (hs : s ≠ 0) (S : Set (𝓔 n)) :
     rhoSMassOn (1 / s) 0 L S = rhoMassOn 0 (L.smul s hs) (s • S) := by
       -- By definition of `rhoSMassOn` and `rhoMassOn`, we can rewrite the sums in terms of the scaled lattice.
@@ -313,7 +373,6 @@ lemma rhoSMassOn_scale {n : ℕ+} (L : EuclideanLattice n n) (s : ℝ) (hs : s �
       rw [h_sum_smul];
       congr! 2; simp [Set.indicator];
       split_ifs <;> simp_all +decide [ Set.mem_smul_set_iff_inv_smul_mem₀ ];
-      unfold rhoS rho; norm_num [ hs, norm_smul ] ;
 
 
 end gaussian
@@ -371,7 +430,7 @@ theorem periodize_add_mem (f : 𝓔 n → α) (L : EuclideanLattice n n)
   This is the "official" object f(x + L).
 -/
 
-/-!
+/--
   The periodization defined as a function on the quotient group (𝓔 n) / L.
   This maps a coset (x + L) to the value ∑ f(x + v).
 -/
@@ -384,7 +443,7 @@ noncomputable def periodizeQuotient (f : 𝓔 n → α) (L : EuclideanLattice n 
   rw [ hg, periodize_add_mem ])
 
 
-/-! The fundamental equivalence: The value on the quotient coset `mk x`
+/-- The fundamental equivalence: The value on the quotient coset `mk x`
     equals the periodization sum at `x`. -/
 @[simp]
 theorem periodizeQuotient_mk (f : 𝓔 n → α) (L : EuclideanLattice n n) (x : 𝓔 n) :
@@ -395,6 +454,7 @@ theorem periodizeQuotient_mk (f : 𝓔 n → α) (L : EuclideanLattice n n) (x :
 def LatticePeriodic (f : 𝓔 n → α) (L : EuclideanLattice n n) : Prop :=
   ∀ v ∈ L, ∀ x, f (x + v) = f x
 
+/-- The periodization of a function is periodic with respect to the lattice. -/
 theorem periodize_is_periodic (f : 𝓔 n → α) (L : EuclideanLattice n n) :
     LatticePeriodic (periodize f L) L := by
   intro v hv x;
@@ -433,12 +493,12 @@ noncomputable def periodicEquivQuotient (L : EuclideanLattice n n) :
   which divides by the total mass ρ(L).
 -/
 
-/-! The Gaussian periodization function: g_s(Tx) = ρ_s(Tx + L) -/
+/-- The Gaussian periodization function: g_s(Tx) = ρ_s(Tx + L) -/
 def rhoST_periodize (s : ℝ) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) (L : EuclideanLattice n n) : 𝓔 n → ℝ :=
   periodize (fun v => rhoST s T v) L
 
 
-/-
+/--
 The series exp(-c * n^2) is summable over the integers for c > 0.
 -/
 lemma summable_exp_neg_mul_sq_int {c : ℝ} (hc : 0 < c) : Summable (fun n : ℤ => Real.exp (-c * n^2)) := by
@@ -454,7 +514,7 @@ lemma summable_exp_neg_mul_sq_int {c : ℝ} (hc : 0 < c) : Summable (fun n : ℤ
   have := summable_geometric_of_lt_one ( by positivity ) ( Real.exp_lt_one_iff.mpr ( neg_lt_zero.mpr hc ) );
   exact this.of_nonneg_of_le ( fun n => by positivity ) fun n => by rw [ ← Real.exp_nat_mul ] ; ring_nf; gcongr ; norm_cast ; nlinarith;
 
-/-
+/--
 The Gaussian series exp(-c ||v||^2) is summable over any full-rank lattice for c > 0.
 -/
 lemma summable_exp_neg_mul_sq_lattice {n : ℕ+} (L : EuclideanLattice n n) {c : ℝ} (hc : 0 < c) :
@@ -580,24 +640,21 @@ theorem rhoST_periodize.continuous :
     refine' this.of_nonneg_of_le ( fun v => Real.exp_nonneg _ ) ( fun v => Real.exp_le_exp.mpr _ );
     field_simp;
     gcongr ; nlinarith [ hC v, norm_nonneg ( T v ), norm_nonneg ( v : 𝓔 n ), mul_le_mul_of_nonneg_left ( hC v ) hC_pos.le ];
+  have hs' : s ≠ 0 := by simpa [eq_comm] using hs
   convert h_sum_cont using 1;
   funext x; exact (by
-  simp +decide only [rhoST_periodize, rhoST];
+  simp +decide only [rhoST_periodize, rhoST, hs'];
   ring_nf;
   norm_num; ring_nf;
   simp +decide [ mul_assoc, periodize ];
   simp +decide [ ← smul_add, norm_smul, mul_pow, EuclideanLattice.latticeSum ])
 
+/-- The periodization of rhoST is integrable on the fundamental domain. -/
 theorem rhoST_periodize.integrableOn_fundamentalDomain :
-    ∀ (s : ℝ) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) (L : EuclideanLattice n n),
+    ∀ (s : ℝ) (hs : 0 ≠ s) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) (L : EuclideanLattice n n),
     MeasureTheory.IntegrableOn (rhoST_periodize s T L) L.basis.fundamentalDomain := by
-  intro s T L;
-  have h_cont : Continuous (rhoST_periodize s T L) := by
-    by_cases hs : 0 = s;
-    · norm_num [ ← hs ];
-      unfold rhoST_periodize; norm_num [ rhoST ] ;
-      exact continuous_const;
-    · exact continuous s hs T L;
+  intro s hs T L;
+  have h_cont : Continuous (rhoST_periodize s T L) := continuous s hs T L
   -- The fundamental domain is a subset of the space, and since the function is continuous, it's integrable on any bounded set.
   have h_bounded : Bornology.IsBounded L.basis.fundamentalDomain := by
     exact LatticeBasis.fundamentalDomain_isBounded L.basis;
@@ -606,19 +663,19 @@ theorem rhoST_periodize.integrableOn_fundamentalDomain :
     exact h_bounded.isCompact_closure;
   exact h_integrable.mono_set <| subset_closure
 
-/-! The Gaussian periodization on the quotient. -/
+/-- The Gaussian periodization on the quotient. -/
 noncomputable def rhoST_periodizeQuotient (s : ℝ) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) (L : EuclideanLattice n n) : L.Quotient → ℝ :=
   periodizeQuotient (fun v => rhoST s T v) L
 
-/-! The Gaussian periodization function: g_s(x) = ρ_s(x + L) -/
+/-- The Gaussian periodization function: g_s(x) = ρ_s(x + L) -/
 def rhoS_periodize (s : ℝ) (L : EuclideanLattice n n) : 𝓔 n → ℝ :=
   periodize (fun v => ρ[s] v) L
 
-/-! The Gaussian periodization on the quotient. -/
+/-- The Gaussian periodization on the quotient. -/
 noncomputable def rhoS_periodizeQuotient (s : ℝ) (L : EuclideanLattice n n) : L.Quotient → ℝ :=
   periodizeQuotient (fun v => rhoS s v) L
 
-/-! The periodized rho's value equals that of the rhoMass of a coset-/
+/-- The periodized rho's value equals that of the rhoMass of a coset-/
 theorem rhoS_periodize_eq_rhoSMass_on_coset (s : ℝ) (L : EuclideanLattice n n) (x : 𝓔 n) :
     rhoS_periodize s L x = rhoSMass s x L := by
   dsimp [rhoS_periodize, periodize];
@@ -627,11 +684,11 @@ theorem rhoS_periodize_eq_rhoSMass_on_coset (s : ℝ) (L : EuclideanLattice n n)
   funext v;
   rw [ add_comm ]
 
-/-! The Gaussian periodization function: g_s(x) = ρ_s(x + L) -/
+/-- The Gaussian periodization function: g_s(x) = ρ_s(x + L) -/
 def rho_periodize (L : EuclideanLattice n n) : 𝓔 n → ℝ :=
   rhoS_periodize 1 L
 
-/-! The Gaussian periodization on the quotient. -/
+/-- The Gaussian periodization on the quotient. -/
 noncomputable def rho_periodizeQuotient (L : EuclideanLattice n n) : L.Quotient → ℝ :=
   rhoS_periodizeQuotient 1 L
 
@@ -649,8 +706,9 @@ open scoped ENNReal
  The majority of this section devotes to proving that the discrete Gaussian distribution is well-defined.
  -/
 
-lemma rhoS_pos {n : ℕ+} (s : ℝ) (x : 𝓔 n) : 0 < rhoS s x := by
-  exact Real.exp_pos _
+/-- The rhoS function is positive for any `s > 0` and `x ≠ 0`. -/
+lemma rhoS_pos {n : ℕ+} (s : ℝ) (hs : s ≠ 0) (x : 𝓔 n) : 0 < rhoS s x := by
+  simpa [rhoS, hs] using (Real.exp_pos (-(π * ‖s⁻¹ • x‖^2)))
 
 /-!
  ### Prove that the discrete Gaussian weights sum to a finite value
@@ -659,16 +717,15 @@ lemma rhoS_pos {n : ℕ+} (s : ℝ) (x : 𝓔 n) : 0 < rhoS s x := by
 /-
 The integer coefficients of a lattice vector with respect to the lattice basis.
 -/
-noncomputable def lattice_coeffs (L : EuclideanLattice n n) (v : L.carrier) : Fin n → ℤ :=
+noncomputable def basisReprCoeff (L : EuclideanLattice n n) (v : L.carrier) : Fin n → ℤ :=
   L.basis.repr (v : 𝓔 n) (by
   cases L ; aesop)
 
 /-
 The norm of a lattice vector is bounded below by a constant times the norm of its coefficient vector.
 -/
-
 lemma norm_ge_norm_coeffs (L : EuclideanLattice n n) :
-  ∃ C > 0, ∀ v : L.carrier, ‖(v : 𝓔 n)‖ ≥ C * ‖(fun i => (lattice_coeffs L v i : ℝ))‖ := by
+  ∃ C > 0, ∀ v : L.carrier, ‖(v : 𝓔 n)‖ ≥ C * ‖(fun i => (basisReprCoeff L v i : ℝ))‖ := by
     -- The map from lattice vectors to their coefficients is bounded.
     obtain ⟨C, hC_pos, hC_bound⟩ : ∃ C > 0, ∀ (c : Fin n → ℝ), ‖∑ i, c i • L.basis.cols i‖ ≥ C * ‖c‖ := by
       -- Let T be the linear map from ℝ^n to ℝ^n given by T(c) = ∑ c_i L.basis.cols i.
@@ -698,8 +755,8 @@ lemma norm_ge_norm_coeffs (L : EuclideanLattice n n) :
       refine' ⟨ 1 / C, one_div_pos.mpr hC.1, fun c => _ ⟩;
       have := hC.2 ( T c ) ; simp_all +decide [ LinearMap.ext_iff ] ;
       rw [ inv_mul_le_iff₀ ] <;> aesop;
-    refine' ⟨ C, hC_pos, fun v => le_trans ( mul_le_mul_of_nonneg_left ( _ : ‖fun i => ↑ ( lattice_coeffs L v i )‖ ≤ ‖ ( fun i => ↑ ( lattice_coeffs L v i ) : Fin n → ℝ )‖ ) hC_pos.le ) ( hC_bound _ |> le_trans <| _ ) ⟩;
-    · exact Std.IsPreorder.le_refl ‖fun i => lattice_coeffs L v i‖;
+    refine' ⟨ C, hC_pos, fun v => le_trans ( mul_le_mul_of_nonneg_left ( _ : ‖fun i => ↑ ( basisReprCoeff L v i )‖ ≤ ‖ ( fun i => ↑ ( basisReprCoeff L v i ) : Fin n → ℝ )‖ ) hC_pos.le ) ( hC_bound _ |> le_trans <| _ ) ⟩;
+    · exact Std.IsPreorder.le_refl ‖fun i => basisReprCoeff L v i‖;
     · have := L.basis.repr_spec ( v : 𝓔 n ) ( by aesop );
       exact this ▸ by norm_cast;
 
@@ -757,32 +814,30 @@ lemma norm_sq_shift_bound (v c : 𝓔 n) : ‖v - c‖^2 ≥ 1/2 * ‖v‖^2 - �
   rw [ ← Finset.sum_add_distrib ];
   rw [ Finset.mul_sum _ _ _ ] ; exact Finset.sum_le_sum fun i _ => by nlinarith only [ sq_nonneg ( v i - 2 * c i ) ] ;
 
-/-
-  Main result: The discrete Gaussian sum over the lattice is finite.
--/
-theorem summable_rhoS (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) (c : 𝓔 n) :
+/-- The rhoS function is summable on any `EuclideanLattice` for any `s > 0`. -/
+private lemma summable_rhoS_pos_aux (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) (c : 𝓔 n) :
   Summable (fun v : L.carrier => rhoS s ((v : 𝓔 n) - c)) := by
     -- Using the bound from `norm_ge_norm_coeffs`, we can show that the sum is summable.
     have h_summable : Summable (fun (v : L.carrier) => Real.exp (-Real.pi / (2 * s^2) * ‖(v : 𝓔 n)‖^2)) := by
-      -- Using the bound from `norm_ge_norm_coeffs`, we know that ‖v‖^2 ≥ C^2 * ‖lattice_coeffs L v‖^2 for some C > 0.
-      obtain ⟨C, hC_pos, hC_bound⟩ : ∃ C > 0, ∀ v : L.carrier, ‖(v : 𝓔 n)‖^2 ≥ C^2 * ‖(fun i => (lattice_coeffs L v i : ℝ))‖^2 := by
+      -- Using the bound from `norm_ge_norm_coeffs`, we know that ‖v‖^2 ≥ C^2 * ‖basisReprCoeff L v‖^2 for some C > 0.
+      obtain ⟨C, hC_pos, hC_bound⟩ : ∃ C > 0, ∀ v : L.carrier, ‖(v : 𝓔 n)‖^2 ≥ C^2 * ‖(fun i => (basisReprCoeff L v i : ℝ))‖^2 := by
         obtain ⟨ C, hC_pos, hC_bound ⟩ := norm_ge_norm_coeffs L;
-        exact ⟨ C, hC_pos, fun v => by nlinarith [ hC_bound v, show 0 ≤ C * ‖fun i => ( lattice_coeffs L v i : ℝ )‖ by positivity ] ⟩;
+        exact ⟨ C, hC_pos, fun v => by nlinarith [ hC_bound v, show 0 ≤ C * ‖fun i => ( basisReprCoeff L v i : ℝ )‖ by positivity ] ⟩;
       have h_summable : Summable (fun (c : Fin n → ℤ) => Real.exp (-Real.pi / (2 * s^2) * C^2 * ‖(fun i => (c i : ℝ))‖^2)) := by
         have h_summable : Summable (fun (c : Fin n → ℤ) => Real.exp (-Real.pi * C^2 / (2 * s^2) * ‖(fun i => (c i : ℝ))‖^2)) := by
           have h_C_pos : 0 < Real.pi * C^2 / (2 * s^2) := by
             positivity
           convert summable_int_gaussian ( Real.pi * C ^ 2 / ( 2 * s ^ 2 ) ) h_C_pos using 2 ; ring_nf;
         convert h_summable using 3 ; ring;
-      have h_summable : Summable (fun (v : L.carrier) => Real.exp (-Real.pi / (2 * s^2) * C^2 * ‖(fun i => (lattice_coeffs L v i : ℝ))‖^2)) := by
-        convert h_summable.comp_injective ( show Function.Injective ( fun v : L.carrier => lattice_coeffs L v ) from ?_ ) using 1;
+      have h_summable : Summable (fun (v : L.carrier) => Real.exp (-Real.pi / (2 * s^2) * C^2 * ‖(fun i => (basisReprCoeff L v i : ℝ))‖^2)) := by
+        convert h_summable.comp_injective ( show Function.Injective ( fun v : L.carrier => basisReprCoeff L v ) from ?_ ) using 1;
         intro v w hvw;
-        have h_eq : (v : 𝓔 n) = ∑ i, (lattice_coeffs L v i : ℝ) • L.basis.cols i ∧ (w : 𝓔 n) = ∑ i, (lattice_coeffs L w i : ℝ) • L.basis.cols i := by
-          have h_eq : ∀ v : L.carrier, (v : 𝓔 n) = ∑ i, (lattice_coeffs L v i : ℝ) • L.basis.cols i := by
+        have h_eq : (v : 𝓔 n) = ∑ i, (basisReprCoeff L v i : ℝ) • L.basis.cols i ∧ (w : 𝓔 n) = ∑ i, (basisReprCoeff L w i : ℝ) • L.basis.cols i := by
+          have h_eq : ∀ v : L.carrier, (v : 𝓔 n) = ∑ i, (basisReprCoeff L v i : ℝ) • L.basis.cols i := by
             intro v; exact (by
             convert L.basis.repr_spec ( v : 𝓔 n ) ( by aesop ) using 1;
             congr!;
-            ext; simp [lattice_coeffs]);
+            ext; simp [basisReprCoeff]);
           exact ⟨ h_eq v, h_eq w ⟩;
         ext; aesop;
       refine' h_summable.of_nonneg_of_le ( fun v => Real.exp_nonneg _ ) ( fun v => Real.exp_le_exp.mpr _ );
@@ -794,11 +849,44 @@ theorem summable_rhoS (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) (c : �
         have := norm_sq_shift_bound ( v : 𝓔 n ) c;
         nlinarith [ show 0 ≤ Real.pi * ( s ^ 2 ) ⁻¹ by positivity ];
       exact Summable.of_nonneg_of_le ( fun v => Real.exp_nonneg _ ) h_summable ( Summable.mul_left _ ‹_› );
-    unfold rhoS; convert h_summable using 2 ; ring_nf;
-    norm_num [ norm_smul, mul_pow, mul_assoc, mul_comm, mul_left_comm ] ;
+    rw [show (fun v : L.carrier => rhoS s ((v : 𝓔 n) - c)) =
+      (fun v : L.carrier => Real.exp (-Real.pi / s^2 * ‖(v : 𝓔 n) - c‖^2)) from by
+        funext v
+        rw [rhoS_of_ne_zero hs.ne']
+        ring_nf
+        norm_num [norm_smul, mul_pow, mul_assoc, mul_comm, mul_left_comm]
+    ]
+    exact h_summable
 
-/-- Tilted rhoS is also summable -/
-theorem summable_rhoST (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) (c : 𝓔 n) :
+/-- The rhoS function is summable on any `EuclideanLattice` -/
+theorem summable_rhoS (L : EuclideanLattice n n) (s : ℝ) (c : 𝓔 n) :
+  Summable (fun v : L.carrier => rhoS s ((v : 𝓔 n) - c)) := by
+  by_cases hs0 : s = 0
+  · have h_le :
+      ∀ v : L.carrier, rhoS s ((v : 𝓔 n) - c) ≤ rhoS 1 ((v : 𝓔 n) - c) := by
+        intro v
+        subst hs0
+        by_cases hv0 : ((v : 𝓔 n) - c) = 0
+        · simp [rhoS, hv0]
+        · simpa [rhoS, hv0] using (rhoS_nonneg 1 (((v : 𝓔 n) - c)))
+    exact Summable.of_nonneg_of_le
+      (fun v => rhoS_nonneg s _)
+      h_le
+      (summable_rhoS_pos_aux L 1 zero_lt_one c)
+  · have h_abs_eq :
+      (fun v : L.carrier => rhoS s ((v : 𝓔 n) - c)) =
+      (fun v : L.carrier => rhoS |s| ((v : 𝓔 n) - c)) := by
+      funext v
+      rw [rhoS_of_ne_zero hs0, rhoS_of_ne_zero (abs_ne_zero.mpr hs0)]
+      congr 1
+      congr 1
+      rw [norm_smul, norm_smul]
+      simp [Real.norm_eq_abs, abs_of_nonneg (abs_nonneg s)]
+    exact h_abs_eq.symm ▸ summable_rhoS_pos_aux L |s| (abs_pos.mpr hs0) c
+
+/-- Tilted rhoS is also summable for any `s > 0` -/
+private lemma summable_rhoST_pos_aux (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s)
+    (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) (c : 𝓔 n) :
   Summable (fun v : L.carrier => rhoST s T ((v : 𝓔 n) - c)) := by
   have upper_bounded : ∃ M > 0, ∀ v ∈ L.carrier, ‖T (v - c)‖^2 ≥ ‖v - c‖^2 / M := by
     have h_m_ge_zero : ∃ m > 0, ∀ v : 𝓔 n, ‖v‖ ≤ m * ‖T v‖ := by
@@ -808,28 +896,54 @@ theorem summable_rhoST (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) (T : (�
   -- By combining the results from upper_bounded and summable_rhoS, we can conclude the proof.
   obtain ⟨M, hM_pos, hM⟩ := upper_bounded
   have h_summable : Summable (fun v : L.carrier => Real.exp (-Real.pi * ‖v - c‖^2 / (s^2 * M))) := by
-    have h_summable : Summable (fun v : L.carrier => Real.exp (-Real.pi * ‖v - c‖^2 / (s^2 * M))) := by
-      have := summable_rhoS L (s * Real.sqrt M) (by positivity) c
-      convert this using 2 ; unfold rhoS ; ring_nf ; norm_num [ hs.le, hM_pos.le ];
-      norm_num [ norm_smul, hs.le, hM_pos.le ] ; ring_nf;
-      norm_num [ abs_of_pos hs, abs_of_pos ( Real.sqrt_pos.mpr hM_pos ), Real.sq_sqrt hM_pos.le ];
-    convert h_summable using 1;
+    have h_summable' : Summable (fun v : L.carrier => rhoS (s * Real.sqrt M) ((v : 𝓔 n) - c)) := by
+      exact summable_rhoS_pos_aux L (s * Real.sqrt M) (by positivity) c
+    have h_eq :
+        (fun v : L.carrier => Real.exp (-Real.pi * ‖(v : 𝓔 n) - c‖^2 / (s^2 * M))) =
+        (fun v : L.carrier => rhoS (s * Real.sqrt M) ((v : 𝓔 n) - c)) := by
+      funext v
+      symm
+      rw [rhoS_of_ne_zero (by positivity : s * Real.sqrt M ≠ 0)]
+      ring_nf
+      norm_num [hs.le, hM_pos.le, norm_smul, mul_pow]
+      ring
+    exact h_eq.symm ▸ h_summable'
   refine' .of_nonneg_of_le ( fun v => _ ) ( fun v => _ ) h_summable;
-  · exact Real.exp_nonneg _;
-  · unfold rhoST
+  · exact rhoST_nonneg s T ((v : 𝓔 n) - c)
+  · rw [rhoST_of_ne_zero hs.ne']
     simp_all +decide [ norm_smul, mul_pow, div_eq_mul_inv, mul_assoc, mul_comm, mul_left_comm ];
     exact mul_le_mul_of_nonneg_left ( by have := hM v ( by simpa using v.2 ) ; nlinarith [ inv_pos.mpr hM_pos, inv_pos.mpr ( sq_pos_of_pos hs ), mul_inv_cancel₀ hM_pos.ne', mul_inv_cancel₀ ( ne_of_gt ( sq_pos_of_pos hs ) ) ] ) Real.pi_pos.le
 
-theorem summable_rhoST_shift_center (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) (c : 𝓔 n):
-  Summable (fun v : L.carrier => rhoST s T (v + c : 𝓔 n)) :=
-    by
-      -- Apply the hypothesis `h_summable` with the given parameters.
-      have := @summable_rhoST n L s hs T (-c);
-      aesop
+/-- The rhoST function is summable on any `EuclideanLattice`. -/
+theorem summable_rhoST (L : EuclideanLattice n n) (s : ℝ) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) (c : 𝓔 n) :
+  Summable (fun v : L.carrier => rhoST s T ((v : 𝓔 n) - c)) := by
+  by_cases hs0 : s = 0
+  · have h_le :
+      ∀ v : L.carrier, rhoST s T ((v : 𝓔 n) - c) ≤ rhoST 1 T ((v : 𝓔 n) - c) := by
+        intro v
+        subst hs0
+        by_cases hv0 : ((v : 𝓔 n) - c) = 0
+        · simp [rhoST, hv0]
+        · simpa [rhoST, hv0] using (rhoST_nonneg 1 T (((v : 𝓔 n) - c)))
+    exact Summable.of_nonneg_of_le
+      (fun v => rhoST_nonneg s T _)
+      h_le
+      (summable_rhoST_pos_aux L 1 zero_lt_one T c)
+  · have h_abs_eq :
+      (fun v : L.carrier => rhoST s T ((v : 𝓔 n) - c)) =
+      (fun v : L.carrier => rhoST |s| T ((v : 𝓔 n) - c)) := by
+      funext v
+      rw [rhoST_of_ne_zero hs0, rhoST_of_ne_zero (abs_ne_zero.mpr hs0)]
+      congr 1
+      congr 1
+      rw [norm_smul, norm_smul]
+      simp [Real.norm_eq_abs, abs_of_nonneg (abs_nonneg s)]
+    exact h_abs_eq.symm ▸ summable_rhoST_pos_aux L |s| (abs_pos.mpr hs0) T c
+
 /-
  Handy corollary: The Gaussian mass of a lattice is equal to 1 plus the Gaussian mass of the non-zero lattice vectors.
 -/
-lemma rhoSMass_eq_one_add_rhoSMassOn_nonzero {n : ℕ+} (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) :
+lemma rhoSMass_eq_one_add_rhoSMassOn_nonzero {n : ℕ+} (L : EuclideanLattice n n) (s : ℝ) :
   rhoSMass s 0 L = 1 + rhoSMassOn s 0 L {0}ᶜ := by
     unfold rhoSMass rhoSMassOn;
     unfold EuclideanLattice.latticeSum;
@@ -837,10 +951,10 @@ lemma rhoSMass_eq_one_add_rhoSMassOn_nonzero {n : ℕ+} (L : EuclideanLattice n 
     congr! 1;
     rotate_right;
     exact ⟨ 0, L.zero_mem ⟩;
-    · unfold rhoS; norm_num [ hs.ne' ] ;
+    · simp [rhoS]
     · exact tsum_congr fun x => by aesop;
     · have := @LatticeCrypto.Foundations.Gaussian.summable_rhoS ( n := n );
-      simpa using this L s hs 0
+      simpa using this L s 0
 
 
 /-- Corollary : for a same lattice, a wider Gaussian has larger mass -/
@@ -852,13 +966,13 @@ lemma rhoSTMass_mono {s₁ s₂ : ℝ} {T : (𝓔 n) ≃L[ℝ] (𝓔 n)} (h1  : 
   ·
     have := @summable_rhoST;
     -- Apply the hypothesis `this` with `c = 0` to conclude the summability of the series.
-    specialize this L s₁ (by linarith) T 0;
+    specialize this L s₁ T 0;
     aesop
   ·
-    convert summable_rhoST L s₁ ( by linarith : 0 < s₁ ) T 0 using 1;
+    convert summable_rhoST L s₁ T 0 using 1;
     norm_num [ add_zero]
   .
-    convert summable_rhoST L s₂ ( by linarith : 0 < s₂ ) T 0 using 1;
+    convert summable_rhoST L s₂ T 0 using 1;
     norm_num [ add_zero]
 
 /-- Corollary : just apply the above to T = identity map -/
@@ -869,18 +983,13 @@ corollary rhoSMass_mono {s₁ s₂ : ℝ} (h1 : 0 < s₁) (h : s₁ ≤ s₂) (L
 /-
   rhoSMassOn is summable: because it's just sum of rhoS over a subset of lattice vectors
 -/
-lemma summable_rhoSMassOn (s : ℝ) (hs : 0 < s) (c : 𝓔 n) (L : EuclideanLattice n n) (S : Set (𝓔 n)) :
+lemma summable_rhoSMassOn (s : ℝ) (c : 𝓔 n) (L : EuclideanLattice n n) (S : Set (𝓔 n)) :
   Summable (fun v : L.carrier => (S.indicator (rhoS s)) ((v : 𝓔 n) + c)) := by
     -- The series `∑' v : L.carrier, S.indicator (rhoS s) (v + c)` is absolutely convergent because `rhoS` is absolutely integrable.
     have h_abs_conv : Summable (fun v : L.carrier => |(S.indicator (rhoS s)) (v + c)|) := by
       have h_abs_conv : Summable (fun v : L.carrier => rhoS s (v + c)) := by
         -- Apply the lemma that states the summability of the Gaussian function over the lattice.
-        have h_summable : Summable (fun v : L.carrier => rhoS s (v - c)) := by
-          exact summable_rhoS L s hs c;
-        convert h_summable.comp_injective ( show Function.Injective ( fun v : L.carrier => ⟨ -v.1, by aesop ⟩ : L.carrier → L.carrier ) from fun a b h => by aesop ) using 1;
-        ext; simp +decide [ add_comm, sub_eq_add_neg ] ;
-        unfold rhoS; norm_num [ add_comm, add_left_comm, add_assoc ] ;
-        norm_num [ EuclideanSpace.norm_eq, Finset.sum_add_distrib, add_sq ] ;
+        simpa [sub_eq_add_neg, add_assoc] using (summable_rhoS L s (-c))
       refine' .of_nonneg_of_le ( fun v => abs_nonneg _ ) ( fun v => _ ) h_abs_conv.norm;
       by_cases hv : ( v : 𝓔 n ) + c ∈ S <;> simp +decide [ hv ];
     exact h_abs_conv.of_abs
@@ -889,7 +998,7 @@ lemma summable_rhoSMassOn (s : ℝ) (hs : 0 < s) (c : 𝓔 n) (L : EuclideanLatt
 corollary summable_rhoMassOn (c : 𝓔 n) (L : EuclideanLattice n n) (S : Set (𝓔 n)) :
   Summable (fun v : L.carrier => (S.indicator rho) ((v : 𝓔 n) + c)) := by
   have h_rhoSMass_summable : Summable (fun v : L.carrier => (S.indicator (rhoS 1)) ((v : 𝓔 n) + c)) := by
-    exact summable_rhoSMassOn 1 zero_lt_one c L S;
+    exact summable_rhoSMassOn 1 c L S;
   convert h_rhoSMass_summable using 1
   congr!; ext y; exact (rhoS_1_eq_rho y).symm
 
@@ -902,6 +1011,7 @@ noncomputable def dGWeight {L: EuclideanLattice n n} (s : ℝ) (c : 𝓔 n) (v :
 noncomputable def dGZ (L : EuclideanLattice n n) (s : ℝ) (c : 𝓔 n) : ℝ :=
   ∑' v : L.carrier, dGWeight (L:=L) s c v
 
+/-- lemma `dGZ_eq_rhoSCosetMass`: EuclideanLattice n n) (s : ℝ) (c : 𝓔 n) :. -/
 lemma dGZ_eq_rhoSCosetMass (L : EuclideanLattice n n) (s : ℝ) (c : 𝓔 n) :
   dGZ L s c = rhoSMass s (-c) L := by
     dsimp [dGZ, dGWeight, rhoSMass];
@@ -912,9 +1022,9 @@ The partition function dGZ is strictly positive.
 -/
 theorem dGZ_pos (L : EuclideanLattice n n) (s : ℝ) (h: s > 0) (c : 𝓔 n) : dGZ L s c > 0 := by
   apply_rules [ Summable.tsum_pos ];
-  convert summable_rhoS L s h c using 1;
-  exact fun _ => Real.exp_nonneg _;
-  exact Real.exp_pos _;
+  convert summable_rhoS L s c using 1;
+  exact fun _ => rhoS_nonneg s _
+  exact rhoS_pos s h.ne' _
   exact ⟨ 0, by exact Submodule.zero_mem _ ⟩
 
 /-
@@ -933,7 +1043,7 @@ lemma dGWeightENN_summable (L : EuclideanLattice n n) (s : ℝ) (c : 𝓔 n) :
 /-
 The sum of the ENNReal weights is not infinite.
 -/
-lemma dGWeightENN_tsum_ne_top (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) (c : 𝓔 n) :
+lemma dGWeightENN_tsum_ne_top (L : EuclideanLattice n n) (s : ℝ) (c : 𝓔 n) :
   tsum (dGWeightENN L s c) ≠ ⊤ := by
     -- Apply the fact that in ENNReal, summability implies that the sum is not top.
     have h_summable : Summable (dGWeightENN L s c) := by
@@ -944,17 +1054,17 @@ lemma dGWeightENN_tsum_ne_top (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) 
     convert ENNReal.ofReal_lt_top;
     rw [ ENNReal.ofReal_tsum_of_nonneg ];
     congr! 1;
-    · exact fun _ => Real.exp_nonneg _;
-    · exact summable_rhoS L s hs c)
+    · exact fun _ => rhoS_nonneg _ _;
+    · exact summable_rhoS L s c)
 
 /-
 The sum of the ENNReal weights is not zero.
 -/
-lemma dGWeightENN_tsum_ne_zero (L : EuclideanLattice n n) (s : ℝ) (c : 𝓔 n) :
+lemma dGWeightENN_tsum_ne_zero (L : EuclideanLattice n n) (s : ℝ) (hs : s ≠ 0) (c : 𝓔 n) :
   ∑' v, dGWeightENN L s c v ≠ 0 := by
     -- By definition of `dGWeightENN`, we know that it's a sum of positive terms, so it can't be zero.
     have h_pos : ∀ v : L.carrier, 0 < dGWeightENN L s c v := by
-      exact fun v => ENNReal.ofReal_pos.mpr ( rhoS_pos s _ );
+      exact fun v => ENNReal.ofReal_pos.mpr (rhoS_pos s hs _);
     refine' ne_of_gt ( lt_of_lt_of_le _ ( Summable.le_tsum _ 0 fun v _ => le_of_lt ( h_pos v ) ) ) ; aesop;
     exact dGWeightENN_summable L s c
 
@@ -966,8 +1076,8 @@ noncomputable def discreteGaussianPMF (L : EuclideanLattice n n) (s : ℝ) (h: s
   let Z := ∑' v, f v
   let f_norm := fun v => f v * Z⁻¹
   have h_sum : HasSum f_norm 1 := by
-    have h_Z_ne_zero : Z ≠ 0 := dGWeightENN_tsum_ne_zero L s c
-    have h_Z_ne_top : Z ≠ ⊤ := dGWeightENN_tsum_ne_top L s h c
+    have h_Z_ne_zero : Z ≠ 0 := dGWeightENN_tsum_ne_zero L s h.ne' c
+    have h_Z_ne_top : Z ≠ ⊤ := dGWeightENN_tsum_ne_top L s c
     have h_tsum_eq : ∑' v, f_norm v = 1 := by
       simp only [f_norm]
       rw [ENNReal.tsum_mul_right, ENNReal.mul_inv_cancel h_Z_ne_zero h_Z_ne_top]
@@ -999,27 +1109,6 @@ theorem discreteGaussianPMF_apply_real (L : EuclideanLattice n n) (s : ℝ) (h: 
     rw [ div_eq_mul_inv, ← dGZ_eq_tsum_toReal ];
     · congr;
       exact dGWeightENN_toReal L s c v;
-
-/-
-The real value of the discrete Gaussian PMF at a vector v is equal to the weight of v divided by the partition function.
--/
-theorem discreteGaussianPMF_apply_real_eq (L : EuclideanLattice n n) (s : ℝ) (h: s > 0) (c : 𝓔 n) (v : L.carrier) :
-  (discreteGaussianPMF L s h c v).toReal = rhoS s ((v : 𝓔 n) - c) / dGZ L s c := by
-    exact discreteGaussianPMF_apply_real L s h c v
-
-/-
-The real value of the discrete Gaussian PMF at a vector v is equal to the weight of v divided by the partition function.
--/
-theorem discreteGaussianPMF_apply_real_final (L : EuclideanLattice n n) (s : ℝ) (h: s > 0) (c : 𝓔 n) (v : L.carrier) :
-  (discreteGaussianPMF L s h c v).toReal = rhoS s ((v : 𝓔 n) - c) / dGZ L s c := by
-    exact discreteGaussianPMF_apply_real_eq L s h c v
-
-/-
-The real value of the discrete Gaussian PMF at a vector v is equal to the weight of v divided by the partition function.
--/
-theorem discreteGaussianPMF_apply_eq (L : EuclideanLattice n n) (s : ℝ) (h: s > 0) (c : 𝓔 n) (v : L.carrier) :
-  (discreteGaussianPMF L s h c v).toReal = rhoS s ((v : 𝓔 n) - c) / dGZ L s c := by
-    exact discreteGaussianPMF_apply_real_final L s h c v
 
 
 end discrete_gaussian

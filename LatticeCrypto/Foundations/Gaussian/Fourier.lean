@@ -45,12 +45,19 @@ theorem rhoS_FT_eq {n : ℕ+} (s : ℝ) (h : 0 < s) (x : 𝓔 n) :
         exact mul_pos Real.pi_pos ( div_pos ( by norm_cast; positivity ) ( by positivity ) );
       convert h_ft using 1;
       · unfold rhoS_FT;
-        unfold rhoS; norm_num [ Complex.exp_neg, neg_div ] ;
-        norm_num [ ← Complex.exp_neg, norm_smul ] ; ring_nf;
-        norm_num [ abs_of_pos h ];
+        rw [show (fun v : 𝓔 n => (rhoS s v : ℂ)) = (fun v : 𝓔 n => Complex.exp (-(Real.pi / s^2) * ‖v‖^2)) from by
+          funext v
+          rw [rhoS_of_ne_zero h.ne']
+          norm_num [Complex.exp_neg, neg_div]
+          norm_num [← Complex.exp_neg, norm_smul]
+          ring_nf
+          norm_num [abs_of_pos h]
+          congr 1
+          ring
+        ];
       · norm_cast; simp +decide [ Real.pi_ne_zero ];
         rw [ ← Complex.cpow_natCast _ 2 ] ; rw [ ← Complex.cpow_mul ] ; ring_nf ; norm_num [ h.ne', Real.pi_pos.ne' ] ;
-        · unfold rhoS; norm_cast; simp +decide [ mul_comm, mul_left_comm ] ;
+        · norm_cast; simp +decide [ mul_comm, mul_left_comm ] ;
           norm_num [ norm_smul, mul_pow, mul_assoc, mul_comm, mul_left_comm, Real.pi_pos.ne' ];
           simp +decide [ sq, mul_assoc, mul_left_comm, Real.pi_ne_zero ];
         · norm_num [ Complex.log_im, h.le ];
@@ -60,7 +67,7 @@ theorem rhoS_FT_eq {n : ℕ+} (s : ℝ) (h : 0 < s) (x : 𝓔 n) :
 
 
 /-
-F(x) = f(Bx)  =>  F^(y) = (1/det B) * f^(B⁻ᵀ y)
+g(x) = f(Bx)  =>  𝓕[g](y) = (1/det B) * 𝓕[f](B⁻ᵀ y)
 -/
 lemma fourier_transform_comp_linear_map
     {n : ℕ+}
@@ -142,8 +149,8 @@ noncomputable def rhoST_FT {n : ℕ+} (s : ℝ) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)
 /-- The Fourier transform of rhoST is a scaled-tilted version of the Fourier transform of rhoS -/
 theorem rhoST_FT_eq_scaled_rhoS {n : ℕ+} (s : ℝ) (T: (𝓔 n) ≃L[ℝ] (𝓔 n)) (x : 𝓔 n) :
   rhoST_FT s T x = |LinearMap.det T.toLinearMap|⁻¹ * rhoS_FT s ((T.symm.toLinearMap.toMatrix stdBasis stdBasis).transpose.mulVec x) := by
-  convert fourier_transform_comp_linear_map _ _ _ using 1;
-  rfl
+  simpa [rhoST_FT, rhoS_FT, rhoST_eq_rhoS_T_x] using
+    (fourier_transform_comp_linear_map (f := fun v => (rhoS s v : ℂ)) (B := T) (y := x))
 
 end fourier_transform
 
@@ -191,6 +198,7 @@ instance (L : EuclideanLattice n n) : TopologicalSpace L.Quotient :=
 noncomputable def fourierCoefficient (L : EuclideanLattice n n) (g : 𝓔 n → ℂ) (w : L.dual.carrier) : ℂ :=
   (1 / L.det : ℂ) * ∫ x in L.basis.fundamentalDomain, g x * cexp (-2 * π * Complex.I * (inner ℝ x (w : 𝓔 n)))
 
+/-- The Fourier coefficient of a real-valued function -/
 noncomputable def fourierCoefficientReal
   (L : EuclideanLattice n n)
   (g : 𝓔 n → ℝ)
@@ -227,6 +235,7 @@ noncomputable def fourierCoefficientOnQuotient
     (w : L.dual.carrier) : ℂ :=
   fourierCoefficient L (fun x => g (QuotientAddGroup.mk x)) w
 
+/-- The Fourier coefficient of a function on the quotient space equals the Fourier coefficient of its lift -/
 theorem fourierCoefficientOnQuotient_eq (L : EuclideanLattice n n)
     (g : L.Quotient → ℂ) (w : L.dual.carrier) :
     fourierCoefficientOnQuotient L g w = fourierCoefficient L (g ∘ QuotientAddGroup.mk) w :=
@@ -252,7 +261,7 @@ noncomputable def fourierSeriesOnQuotient (L : EuclideanLattice n n)
     (g : 𝓔 n → ℂ) (x_quot : L.Quotient) : ℂ :=
   fourierSeries L g (Quot.out x_quot)
 
-/-
+/--
 The complex exponential term involving the inner product with a dual lattice vector is periodic with respect to the lattice.
 -/
 lemma cexp_inner_dual_periodicity (L : EuclideanLattice n n) (v : L.carrier) (w : L.dual.carrier) (x : 𝓔 n) :
@@ -264,10 +273,9 @@ lemma cexp_inner_dual_periodicity (L : EuclideanLattice n n) (v : L.carrier) (w 
       obtain ⟨ m, hm ⟩ := h_inner; simp +decide ;
       rw [ inner_add_left ] ; push_cast [ hm ] ; rw [ Complex.exp_eq_exp_iff_exists_int ] ; exact ⟨ -m, by push_cast; ring ⟩ ;
 
-/-
+/--
 The integral of `|f(x + v)|` over the fundamental domain is equal to the integral of `|f(x)|` over the shifted fundamental domain.
 -/
-
 lemma integral_shift_eq_integral_domain (f : 𝓔 n → ℝ) (L : EuclideanLattice n n) (v : L.carrier) :
     ∫ x in L.basis.fundamentalDomain, |f (x + v)| = ∫ x in Set.image (fun y => (v : 𝓔 n) + y) L.basis.fundamentalDomain, |f x| := by
       rw [ MeasureTheory.integral_image_eq_integral_abs_det_fderiv_smul ] <;> norm_num [ add_comm ];
@@ -275,7 +283,7 @@ lemma integral_shift_eq_integral_domain (f : 𝓔 n → ℝ) (L : EuclideanLatti
       · norm_num [ ContinuousLinearMap.det ];
       · exact L.basis.fundamentalDomain_measurableSet;
 
-/-
+/--
 The sum of the integrals of the absolute value of the shifted function over the fundamental domain is summable, assuming the function is integrable.
 -/
 lemma summable_integral_abs_shift (f : 𝓔 n → ℝ) (L : EuclideanLattice n n) (hf : MeasureTheory.Integrable f) :
@@ -299,7 +307,7 @@ lemma summable_integral_abs_shift (f : 𝓔 n → ℝ) (L : EuclideanLattice n n
         · exact hf.abs;
       convert h_abs_integrable using 2 ; rw [ integral_shift_eq_integral_domain ]
 
-/-
+/--
 The integral of the periodization of `f` over the fundamental domain is equal to the sum of the integrals of `f(x + v)` over the fundamental domain.
 -/
 lemma integral_periodize_eq_tsum_integral_shifts (f : 𝓔 n → ℝ) (L : EuclideanLattice n n) (hf : MeasureTheory.Integrable f) :
@@ -320,7 +328,7 @@ lemma integral_periodize_eq_tsum_integral_shifts (f : 𝓔 n → ℝ) (L : Eucli
         · exact fun _ => MeasureTheory.integral_nonneg fun _ => abs_nonneg _;
         · exact summable_integral_abs_shift f L hf
 
-/-
+/--
 The integral of `f(x + v)` over the fundamental domain is equal to the integral of `f(x)` over the shifted fundamental domain.
 -/
 lemma integral_shift_eq_integral_domain_real (f : 𝓔 n → ℝ) (L : EuclideanLattice n n) (v : L.carrier) :
@@ -334,7 +342,7 @@ lemma integral_shift_eq_integral_domain_real (f : 𝓔 n → ℝ) (L : Euclidean
       · exact L.basis.fundamentalDomain_measurableSet
       · exact fun x hx y hy hxy => by simpa using hxy;
 
-/-
+/--
 The integral of the periodization of a real-valued function `f` over the fundamental domain of a lattice `L` is equal to the integral of `f` over the entire space, assuming `f` is integrable.
 -/
 lemma integral_periodize_eq_integral_real (f : 𝓔 n → ℝ) (L : EuclideanLattice n n) (hf : MeasureTheory.Integrable f) :
@@ -363,7 +371,7 @@ lemma integral_periodize_eq_integral_real (f : 𝓔 n → ℝ) (L : EuclideanLat
       convert h_integral using 3;
       (expose_names; exact integral_shift_eq_integral_domain_real f L x)
 
-/-! The Periodization Lemma: If `g = periodize f L` for some `Integrable f`, then g_FS(w) = f_FT(w) / L.det -/
+/-- The Periodization Lemma: If `g = periodize f L` for some `Integrable f`, then g_FS(w) = f_FT(w) / L.det -/
 theorem fourierCoefficient_of_periodization_eq_fourierTransform (L : EuclideanLattice n n) (f : 𝓔 n → ℂ) (hf : MeasureTheory.Integrable f) (w : L.dual.carrier) :
     fourierCoefficient L (fun x => periodize f L x) w = (1 / L.det : ℂ) * 𝓕 (fun v => f v) (w : 𝓔 n) := by
       -- By definition of the Fourier transform, we can rewrite the integral as the sum of the Fourier transforms of the shifted functions.
@@ -428,7 +436,7 @@ theorem fourierCoefficient_of_periodization_eq_fourierTransform (L : EuclideanLa
         norm_num [ Real.fourierChar, mul_assoc, mul_comm, mul_left_comm ];
         exact Or.inl ( by congr; ext; rw [ ← Complex.exp_neg ] )
 
-/-! Specialization of the periodization theorem for real-value `f` -/
+/-- Specialization of the periodization theorem for real-value `f` -/
 lemma fourierCoefficient_of_periodization_eq_fourierTransform_real (L : EuclideanLattice n n) (f : 𝓔 n → ℝ) (hf : MeasureTheory.Integrable f) (w : L.dual.carrier) :
     fourierCoefficientReal L (fun x => periodize f L x) w = (1 / L.det : ℂ) * 𝓕 (fun v => (f v : ℂ)) (w : 𝓔 n) := by
   -- Apply the periodization theorem to the real function `f` by converting it to a complex function.
@@ -445,6 +453,7 @@ lemma fourierCoefficient_of_periodization_eq_fourierTransform_real (L : Euclidea
   rw [ Complex.ofReal_tsum ]
 
 
+/-- The periodization theorem for the scaled-tilted Gaussian -/
 theorem fourierCoefficient_of_rhoST_periodize_eq_fourierTransform_rhoST
   (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) (T : (𝓔 n) ≃L[ℝ] (𝓔 n)) (w : L.dual.carrier) :
     fourierCoefficient L (fun x => (rhoST_periodize s T L x : ℂ)) w = (1 / L.det : ℂ) * 𝓕 (fun v => (rhoST s T v : ℂ)) (w : 𝓔 n) := by
@@ -523,7 +532,7 @@ noncomputable def quotientZnIsoUnitAddTorus : (𝓔 n) ⧸ Zn.carrier ≃+ UnitA
   apply QuotientAddGroup.quotientAddEquivOfEq
   exact h_ker.symm
 
-/-
+/--
 The isomorphism applied to the projection of x is equal to the mapToTorus applied to x.
 -/
 lemma quotientZnIsoUnitAddTorus_mk_eq_mapToTorus (x : 𝓔 n) :
@@ -532,7 +541,7 @@ lemma quotientZnIsoUnitAddTorus_mk_eq_mapToTorus (x : 𝓔 n) :
       simp;
       rfl
 
-/-
+/--
 The periodization of a function f on Z^n, viewed as a function on UnitAddTorus.
 -/
 noncomputable def periodizeZnToTorus (f : 𝓔 n → ℂ) : UnitAddTorus (Fin n) → ℂ :=
@@ -551,7 +560,7 @@ theorem mFourier_eq_cexp (w : Fin n → ℤ) (x : 𝓔 n) :
     norm_num [ Complex.inv_def, Complex.normSq_eq_norm_sq, Complex.norm_exp, inner ];
     norm_num [ Finset.mul_sum _ _ _, mul_assoc, mul_comm, mul_left_comm, Complex.exp_sum ]
 
-/-
+/--
 The volume measure on the unit circle is the pushforward of the Lebesgue measure restricted to [0,1).
 -/
 lemma volume_unitAddCircle_eq_map :
@@ -564,7 +573,7 @@ lemma volume_unitAddCircle_eq_map :
       exact Eq.symm ( by rw [ MeasureTheory.Measure.restrict_congr_set MeasureTheory.Ico_ae_eq_Ioc ] ; exact this.map_eq )
 
 
-/-
+/--
 The product of quotient maps is measure preserving from the unit cube to the torus.
 -/
 lemma measurePreserving_pi_quotient :
@@ -583,7 +592,7 @@ lemma measurePreserving_pi_quotient :
         convert h_prod ( fun _ => fun x => QuotientAddGroup.mk x ) fun _ => h_quot using 1
 
 
-/-
+/--
 The map `mapToTorus` is measure preserving from the fundamental domain of `Zn` to the torus.
 -/
 lemma mapToTorus_measurePreserving :
@@ -603,7 +612,7 @@ lemma mapToTorus_measurePreserving :
       convert h_comb.1.comp h_comb.2 using 1;
       rw [ Zn_fundamentalDomain_eq_pi_Ico ]
 
-/-
+/--
 The vector `ZVec.toZnDual w` viewed as an element of `𝓔 n` is equal to `zToE w`.
 -/
 lemma coe_toZnDual_eq_zToE (w : Fin n → ℤ) :
@@ -620,7 +629,7 @@ lemma coe_toZnDual_eq_zToE (w : Fin n → ℤ) :
 noncomputable def torusIntegrand (f : 𝓔 n → ℂ) (w : ZVec n) (t : UnitAddTorus (Fin n)) : ℂ :=
   (UnitAddTorus.mFourier (-w)) t * periodizeZnToTorus (n:=n) f t
 
-/-
+/--
 The Fourier coefficient is the integral of the function against the Fourier basis element.
 -/
 lemma torusFourierCoeff_torusIntegrand (f : 𝓔 n → ℂ) (w : Fin n → ℤ) :
@@ -634,13 +643,13 @@ lemma torusFourierCoeff_torusIntegrand (f : 𝓔 n → ℂ) (w : Fin n → ℤ) 
       simp [AddCircle.measureSpace];
       congr
 
-/-
+/--
 The map from Euclidean space to the torus is continuous.
 -/
 lemma mapToTorus_continuous : Continuous (mapToTorus (n := n)) := by
   exact continuous_pi_iff.mpr fun i => continuous_quot_mk.comp <| continuous_apply i
 
-/-
+/--
 The Fourier basis function on the torus evaluated at the projection of x is equal to the complex exponential of the inner product of x and the integer vector w.
 -/
 lemma mFourier_mapToTorus_eq (w : Fin n → ℤ) (x : 𝓔 n) :
@@ -648,7 +657,7 @@ lemma mFourier_mapToTorus_eq (w : Fin n → ℤ) (x : 𝓔 n) :
     cexp (-2 * π * Complex.I * inner ℝ x (zToE w)) := by
       convert mFourier_eq_cexp w x using 1
 
-/-
+/--
 The periodization on the torus evaluated at the projection of x is equal to the periodization on the lattice evaluated at x.
 -/
 lemma periodizeZnToTorus_eq_periodize (f : 𝓔 n → ℂ) (x : 𝓔 n) :
@@ -659,7 +668,7 @@ lemma periodizeZnToTorus_eq_periodize (f : 𝓔 n → ℂ) (x : 𝓔 n) :
   simp only [AddEquiv.symm_apply_apply]
   rw [periodizeQuotient_mk]
 
-/-
+/--
 The integrand on the torus, pulled back to the fundamental domain, is equal to the integrand on the lattice.
 -/
 lemma integrand_eq (f : 𝓔 n → ℂ) (w : Fin n → ℤ) (x : 𝓔 n) :
@@ -677,7 +686,7 @@ Definition of the inverse map from torus to fundamental domain.
 noncomputable def torusToFundamentalDomain (u : UnitAddTorus (Fin n)) : 𝓔 n :=
   piToEuc (fun i => AddCircle.liftIco 1 0 (id : ℝ → ℝ) (u i))
 
-/-
+/--
 The inverse map maps into the fundamental domain.
 -/
 lemma torusToFundamentalDomain_mem (u : UnitAddTorus (Fin n)) :
@@ -697,7 +706,7 @@ lemma torusToFundamentalDomain_mem (u : UnitAddTorus (Fin n)) :
   simp at this
   exact this
 
-/-
+/--
 The inverse map from torus to fundamental domain is measurable.
 -/
 lemma torusToFundamentalDomain_measurable : Measurable (torusToFundamentalDomain (n := n)) := by
@@ -709,7 +718,7 @@ lemma torusToFundamentalDomain_measurable : Measurable (torusToFundamentalDomain
     exact ( AddCircle.measurableEquivIco 1 0 ).measurable.comp ( measurable_pi_apply a );
   exact h_measurable
 
-/-
+/--
 The map to torus is a left inverse of the map to fundamental domain.
 -/
 lemma mapToTorus_torusToFundamentalDomain (u : UnitAddTorus (Fin n)) :
@@ -719,7 +728,7 @@ lemma mapToTorus_torusToFundamentalDomain (u : UnitAddTorus (Fin n)) :
       simp [AddCircle.liftIco];
       exact ( AddCircle.equivIco _ _ ).symm_apply_apply _
 
-/-
+/--
 The inverse map is a left inverse on the fundamental domain.
 -/
 lemma torusToFundamentalDomain_mapToTorus (x : 𝓔 n) (hx : x ∈ Zn.basis.fundamentalDomain) :
@@ -734,7 +743,7 @@ lemma torusToFundamentalDomain_mapToTorus (x : 𝓔 n) (hx : x ∈ Zn.basis.fund
       simp +decide [ piToEuc ];
       exact hx i ( Set.mem_univ i ))
 
-/-
+/--
 The inverse map is measure preserving.
 -/
 lemma torusToFundamentalDomain_measurePreserving :
@@ -757,7 +766,7 @@ lemma torusToFundamentalDomain_measurePreserving :
         apply mapToTorus_measurePreserving.map_eq;
       aesop
 
-/-
+/--
 A function on the torus is AEStronglyMeasurable iff its pullback to the fundamental domain is.
 -/
 lemma aestronglyMeasurable_comp_mapToTorus_iff (g : UnitAddTorus (Fin n) → ℂ) :
@@ -773,7 +782,7 @@ lemma aestronglyMeasurable_comp_mapToTorus_iff (g : UnitAddTorus (Fin n) → ℂ
     rw [h_eq]
     exact h.comp_measurePreserving (torusToFundamentalDomain_measurePreserving (n := n))
 
-/-
+/--
 The integral over the torus is equal to the integral over the fundamental domain of the pullback, unconditionally.
 -/
 lemma integral_torus_eq_integral_fundamentalDomain_final (g : UnitAddTorus (Fin n) → ℂ) :
@@ -805,7 +814,7 @@ lemma integral_torus_eq_integral_fundamentalDomain_final (g : UnitAddTorus (Fin 
       · exact aemeasurable_id;
       · rwa [ MeasureTheory.Measure.map_id' ]
 
-/-
+/--
 The Fourier coefficient on the torus is equal to the Fourier coefficient on the lattice.
 -/
 theorem mFourierCoeff_eq_fourierCoefficient_for_periodization (f : 𝓔 n → ℂ) (w : Fin n → ℤ) :
@@ -833,7 +842,7 @@ open scoped FourierTransform
 variable {n : ℕ+}
 
 
-/-
+/--
 If the periodization of a function is continuous, then the induced function on the quotient space is continuous.
 -/
 lemma continuous_periodizeQuotient {f : 𝓔 n → ℂ} (L : EuclideanLattice n n)
@@ -841,19 +850,17 @@ lemma continuous_periodizeQuotient {f : 𝓔 n → ℂ} (L : EuclideanLattice n 
   Continuous (periodizeQuotient f L) := by
     exact continuous_coinduced_dom.mpr h
 
-/-
+/--
 The inverse of the isomorphism maps the projection of x in the torus to the projection of piToEuc x in the quotient of Euclidean space.
 -/
 lemma quotientZnIsoUnitAddTorus_symm_comp_mk (x : Fin n → ℝ) :
   quotientZnIsoUnitAddTorus.symm (fun i => QuotientAddGroup.mk (x i)) = QuotientAddGroup.mk (piToEuc x) := by
     exact (AddEquiv.symm_apply_eq quotientZnIsoUnitAddTorus).mpr rfl
 
-/-
-The projection map to the torus is open.
--/
--- Ensure the instance is available
+/-- Ensure the instance is available -/
 instance : TopologicalSpace UnitAddCircle := QuotientAddGroup.instTopologicalSpace (AddSubgroup.zmultiples 1)
 
+/-- The projection map to the torus is open. -/
 lemma isOpenMap_pi_quotient_mk : IsOpenMap (fun (x : Fin n → ℝ) i => QuotientAddGroup.mk (x i) : (Fin n → ℝ) → (Fin n → UnitAddCircle)) := by
   have h_proj_open : IsOpenMap (fun x : Fin n → ℝ => fun i => QuotientAddGroup.mk (x i) : (Fin n → ℝ) → (Fin n → UnitAddCircle)) := by
     have h_proj_open_comp : ∀ i : Fin n, IsOpenMap (fun x : ℝ => QuotientAddGroup.mk x : ℝ → UnitAddCircle) := by
@@ -864,7 +871,7 @@ lemma isOpenMap_pi_quotient_mk : IsOpenMap (fun (x : Fin n → ℝ) i => Quotien
     · exact Filter.Eventually.of_forall fun i => Quot.mk_surjective;
   exact h_proj_open
 
-/-
+/--
 The inverse of the isomorphism between the quotient of Euclidean space by Zn and the torus is continuous.
 -/
 lemma continuous_quotientZnIsoUnitAddTorus_symm :
@@ -889,13 +896,13 @@ lemma continuous_quotientZnIsoUnitAddTorus_symm :
       · exact h_quotient_map;
     exact (IsOpenQuotientMap.continuous_comp_iff h_quotient_map).mp h_cont
 
-/-
+/--
 The projection map to the torus is surjective.
 -/
 lemma surjective_pi_quotient_mk : Function.Surjective (fun (x : Fin n → ℝ) i => QuotientAddGroup.mk (x i) : (Fin n → ℝ) → (Fin n → UnitAddCircle)) := by
   exact fun x => ⟨ fun i => Classical.choose ( Quotient.exists_rep ( x i ) ), funext fun i => Classical.choose_spec ( Quotient.exists_rep ( x i ) ) ⟩
 
-/-
+/--
 If the periodization of f on Zn is continuous, then the induced function on the torus is continuous.
 -/
 lemma continuous_periodizeZnToTorus {f : 𝓔 n → ℂ}
@@ -903,7 +910,7 @@ lemma continuous_periodizeZnToTorus {f : 𝓔 n → ℂ}
   Continuous (periodizeZnToTorus f) := by
     convert Continuous.comp ( continuous_periodizeQuotient ( Zn ( n := n ) ) h ) ( continuous_quotientZnIsoUnitAddTorus_symm ) using 1
 
-/-
+/--
 The Fourier series on Zn is equal to the Fourier series on the torus evaluated at the mapped point.
 -/
 theorem fourierSeries_Zn_eq_torus_sum (f : 𝓔 n → ℂ) (x : 𝓔 n) :
@@ -953,7 +960,7 @@ theorem fourierSeries_Zn_eq_torus_sum (f : 𝓔 n → ℂ) (x : 𝓔 n) :
     exact tsum_congr fun w => by rw [ h_fourierCoefficient, h_mFourier ] ; rw [ show ( ZVec.toZnDual w : 𝓔 n ) = zToE w from by exact
       (coe_toZnDual_eq_zToE w) ] ;
 
-/-
+/--
 The Fourier series converges to the periodization.
 -/
 theorem fourier_series_inversion_Zn_for_periodization {f : 𝓔 n → ℂ}

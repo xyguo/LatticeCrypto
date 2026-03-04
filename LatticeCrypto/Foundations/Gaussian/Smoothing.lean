@@ -33,13 +33,14 @@ def _root_.LatticeCrypto.Foundations.Lattice.EuclideanLattice.smoothingParameter
 def _root_.LatticeCrypto.Foundations.Lattice.EuclideanLattice.smoothingParameter' {n : ℕ+} (L : EuclideanLattice n n) (ε : ℝ) : ℝ :=
   sInf { s : ℝ | 0 < s ∧ rhoSMassOn (1 / s) (0 : 𝓔 n) L.dual {0}ᶜ ≤ ε }
 
+/-- The two definitions of the smoothing parameter are equivalent. -/
 theorem smoothingParameter_eq_smoothingParameter' (L : EuclideanLattice n n) (ε : ℝ) :
     L.smoothingParameter ε = L.smoothingParameter' ε :=
   by
   -- By definition of smoothing parameter, we know that the sets are equal.
   have h_sets_eq : {s : ℝ | 0 < s ∧ rhoSMass (1 / s) 0 L.dual ≤ 1 + ε} = {s : ℝ | 0 < s ∧ rhoSMassOn (1 / s) 0 L.dual {0}ᶜ ≤ ε} := by
     ext s;
-    constructor <;> intro h <;> have := rhoSMass_eq_one_add_rhoSMassOn_nonzero L.dual ( 1 / s ) ( one_div_pos.mpr h.1 ) <;> aesop;
+    constructor <;> intro h <;> have := rhoSMass_eq_one_add_rhoSMassOn_nonzero L.dual ( 1 / s ) <;> aesop;
   exact congr_arg _ h_sets_eq
 
 def SmoothingSet {n : ℕ+} (L : EuclideanLattice n n) (ε : ℝ) : Set ℝ :=
@@ -48,14 +49,16 @@ def SmoothingSet {n : ℕ+} (L : EuclideanLattice n n) (ε : ℝ) : Set ℝ :=
 def SmoothingSet' {n : ℕ+} (L : EuclideanLattice n n) (ε : ℝ) : Set ℝ :=
   { s : ℝ | 0 < s ∧ rhoSMassOn (1 / s) (0 : 𝓔 n) (L.dual) {0}ᶜ ≤ ε }
 
+/-- The two definitions of the smoothing set are equivalent. -/
 theorem smoothingSet_eq_smoothingSet' (L : EuclideanLattice n n) (ε : ℝ) :
     SmoothingSet L ε = SmoothingSet' L ε :=
   by
   -- By definition of smoothing parameter, we know that the sets are equal.
   unfold SmoothingSet SmoothingSet';
   ext s;
-  constructor <;> intro h <;> have := rhoSMass_eq_one_add_rhoSMassOn_nonzero L.dual ( 1 / s ) ( one_div_pos.mpr h.1 ) <;> aesop;
+  constructor <;> intro h <;> have := rhoSMass_eq_one_add_rhoSMassOn_nonzero L.dual ( 1 / s ) <;> aesop;
 
+/-- The smoothing parameter is the infimum of the smoothing set. -/
 theorem smoothingParameter_eq_sInf_smoothingSet (L : EuclideanLattice n n) (ε : ℝ) :
     L.smoothingParameter ε = sInf (SmoothingSet L ε) := by
   -- By definition of smoothing parameter, we know that the set defining η(ε, L) is exactly SmoothingSet L ε.
@@ -68,19 +71,23 @@ noncomputable abbrev _root_.LatticeCrypto.Foundations.Lattice.EuclideanLattice.�
 
 noncomputable section AristotleLemmas
 
-/-
+/--
 As s goes to 0, rho_{1/s}(v) goes to 1.
 -/
 lemma rhoS_inv_tendsto_one (v : 𝓔 n) :
   Filter.Tendsto (fun s => rhoS (1/s) v) (nhdsWithin 0 (Set.Ioi 0)) (nhds 1) := by
-    -- We'll use the fact that as $s \to 0$, $- \pi * \|v\|^2 * s^2 \to 0$.
-    have h_arg : Filter.Tendsto (fun (s : ℝ) => -Real.pi * ‖v‖^2 * s^2) (nhdsWithin 0 (Set.Ioi 0)) (nhds 0) := by
-      exact tendsto_nhdsWithin_of_tendsto_nhds ( Continuous.tendsto' ( by continuity ) _ _ <| by norm_num );
-    convert Real.continuous_exp.continuousAt.tendsto.comp h_arg using 2 ; norm_num [ LatticeCrypto.Foundations.Gaussian.rhoS ];
-    · simp +decide [ mul_pow, norm_smul ] ; ring;
-    · norm_num
+  have h_arg : Filter.Tendsto (fun (s : ℝ) => -Real.pi * ‖v‖^2 * s^2) (nhdsWithin 0 (Set.Ioi 0)) (nhds 0) := by
+    exact tendsto_nhdsWithin_of_tendsto_nhds ( Continuous.tendsto' ( by continuity ) _ _ <| by norm_num )
+  have h_exp : Filter.Tendsto (fun s : ℝ => Real.exp (-Real.pi * ‖v‖^2 * s^2)) (nhdsWithin 0 (Set.Ioi 0)) (nhds 1) := by
+    simpa using (Real.continuous_exp.continuousAt.tendsto.comp h_arg)
+  refine h_exp.congr' ?_
+  filter_upwards [self_mem_nhdsWithin] with s hs
+  have hspos : 0 < s := hs
+  have hs0 : s ≠ 0 := hspos.ne'
+  rw [rhoS_of_ne_zero (one_div_ne_zero hs0)]
+  simp [norm_smul, mul_pow, abs_of_nonneg hspos.le, mul_left_comm, mul_comm]
 
-/-
+/--
 The sum of rho_{1/s}(v) over a finite set S tends to |S| as s -> 0.
 -/
 lemma sum_rhoS_inv_tendsto_card (L : EuclideanLattice n n) (S : Finset L.dual.carrier) :
@@ -90,7 +97,7 @@ lemma sum_rhoS_inv_tendsto_card (L : EuclideanLattice n n) (S : Finset L.dual.ca
     exact rhoS_inv_tendsto_one (v : 𝓔 n)
   simpa using tendsto_finset_sum _ h_sum
 
-/-
+/--
 The Gaussian mass rho_{1/s}(L*) tends to infinity as s tends to 0 from the right.
 -/
 theorem rhoSMass_inv_tendsto_atTop (L : EuclideanLattice n n) :
@@ -106,8 +113,8 @@ theorem rhoSMass_inv_tendsto_atTop (L : EuclideanLattice n n) :
         intros s hs S
         have h_sum_le_total : ∑ v ∈ S, rhoS (1/s) (v : 𝓔 n) ≤ ∑' v : L.dual.carrier, rhoS (1/s) (v : 𝓔 n) := by
           refine' Summable.sum_le_tsum _ _ _;
-          · exact fun _ _ => Real.exp_nonneg _;
-          · have := summable_rhoSMassOn ( 1 / s ) ( one_div_pos.mpr hs ) 0 L.dual ( Set.univ : Set ( 𝓔 n ) ) ; aesop;
+          · exact fun _ _ => rhoS_nonneg (1 / s) _
+          · have := summable_rhoSMassOn ( 1 / s ) 0 L.dual ( Set.univ : Set ( 𝓔 n ) ) ; aesop;
         convert h_sum_le_total using 1;
         unfold LatticeCrypto.Foundations.Gaussian.rhoSMass; aesop;
       -- By Lemma `sum_rhoS_inv_tendsto_card`, for any finite subset S of L.dual, the sum over S tends to the cardinality of S as s -> 0+.
@@ -116,28 +123,35 @@ theorem rhoSMass_inv_tendsto_atTop (L : EuclideanLattice n n) :
       refine' Filter.tendsto_atTop.2 fun M => _;
       rcases h_finite_subset ( ⌈M⌉₊ + 1 ) ( by positivity ) with ⟨ S, hS ⟩ ; filter_upwards [ h_tendsto_card S |> fun h => h.eventually ( le_mem_nhds <| show ( S.card : ℝ ) > M by exact lt_of_lt_of_le ( Nat.lt_of_ceil_lt <| by linarith ) <| mod_cast le_rfl ), self_mem_nhdsWithin ] with s hs₁ hs₂ using le_trans hs₁ <| h_le_total s hs₂ S
 
-/-
+/--
 For any non-zero vector v, the function s ↦ ρ_{1/s}(v) tends to 0 as s tends to infinity.
 -/
 lemma tendsto_rhoS_inv_atTop_zero {n : ℕ+} (v : 𝓔 n) (hv : v ≠ 0) :
   Filter.Tendsto (fun s : ℝ => rhoS (1/s) v) Filter.atTop (nhds 0) := by
-    norm_num [ rhoS, hv ];
-    -- Since $v \neq 0$, we have $‖s • v‖^2 = s^2 * ‖v‖^2$.
-    have h_norm_sq : ∀ s : ℝ, ‖s • v‖^2 = s^2 * ‖v‖^2 := by
-      norm_num [ norm_smul, mul_pow ];
-    norm_num [ h_norm_sq ];
-    exact Filter.Tendsto.const_mul_atTop ( by positivity ) ( Filter.Tendsto.atTop_mul_const ( by positivity ) ( by norm_num ) )
+  have hpow : Filter.Tendsto (fun s : ℝ => s ^ 2) Filter.atTop Filter.atTop := by
+    simpa [pow_two] using (Filter.Tendsto.atTop_mul_atTop₀ Filter.tendsto_id Filter.tendsto_id)
+  have harg : Filter.Tendsto (fun s : ℝ => (-Real.pi * ‖v‖^2) * s^2) Filter.atTop Filter.atBot := by
+    exact hpow.const_mul_atTop_of_neg (by nlinarith [Real.pi_pos, sq_pos_iff.mpr (norm_ne_zero_iff.mpr hv)])
+  have hexp : Filter.Tendsto (fun s : ℝ => Real.exp ((-Real.pi * ‖v‖^2) * s^2)) Filter.atTop (nhds 0) := by
+    exact Real.tendsto_exp_atBot.comp harg
+  refine hexp.congr' ?_
+  filter_upwards [Filter.eventually_ge_atTop (1 : ℝ)] with s hs
+  have hs0 : s ≠ 0 := by linarith
+  rw [rhoS_of_ne_zero (one_div_ne_zero hs0)]
+  simp [norm_smul, mul_pow, abs_of_nonneg (le_trans zero_le_one hs), mul_left_comm, mul_comm]
 
-/-
+/--
 For s >= 1, the Gaussian with parameter 1/s is bounded by the standard Gaussian.
 -/
 lemma rhoS_inv_le_rho_of_ge_one {n : ℕ+} (v : 𝓔 n) (s : ℝ) (hs : 1 ≤ s) :
   rhoS (1/s) v ≤ rho v := by
-    unfold LatticeCrypto.Foundations.Gaussian.rhoS LatticeCrypto.Foundations.Gaussian.rho;
+    have hs0 : s ≠ 0 := by linarith
+    rw [rhoS_of_ne_zero (one_div_ne_zero hs0)]
+    unfold LatticeCrypto.Foundations.Gaussian.rho;
     field_simp;
     exact Real.exp_le_exp.mpr ( neg_le_neg <| mul_le_mul_of_nonneg_left ( by simpa [ norm_smul, abs_of_nonneg ( zero_le_one.trans hs ) ] using pow_le_pow_left₀ ( norm_nonneg _ ) ( show ‖v‖ ≤ s * ‖v‖ by exact le_mul_of_one_le_left ( norm_nonneg _ ) hs ) 2 ) <| by positivity )
 
-/-
+/--
 For s >= 1 and a non-zero lattice vector v, rho_{1/s}(v) is bounded by exp(-pi * (s^2 - 1) * lambda_1^2) * rho(v).
 -/
 lemma rhoS_inv_le_exp_mul_rho {n : ℕ+} (L : EuclideanLattice n n) (v : 𝓔 n) (hv : v ∈ L.nonzeroVectors) (s : ℝ) (hs : 1 ≤ s) :
@@ -149,11 +163,12 @@ lemma rhoS_inv_le_exp_mul_rho {n : ℕ+} (L : EuclideanLattice n n) (v : 𝓔 n)
         exact EuclideanLattice.norm_ge_successiveMinima_one L v hv;
       exact pow_le_pow_left₀ ( by exact le_of_lt ( by exact
         (EuclideanLattice.successiveMinima_pos L ⟨0, PNat.pos n⟩) ) ) h_norm_sq_bound 2;
-    simp_all +decide [ LatticeCrypto.Foundations.Gaussian.rhoS, LatticeCrypto.Foundations.Gaussian.rho ];
+    have hs0 : s ≠ 0 := by linarith
+    simp_all +decide [LatticeCrypto.Foundations.Gaussian.rho];
     rw [ ← Real.exp_add ] ; norm_num [ norm_smul, mul_pow ];
     nlinarith [ show 0 ≤ Real.pi * ( s ^ 2 - 1 ) by exact mul_nonneg Real.pi_pos.le ( by nlinarith ) ]
 
-/-
+/--
 Dominated convergence theorem for series: if terms are dominated by a summable function and tend to 0, the sum tends to 0.
 -/
 lemma tendsto_tsum_zero_of_dominated_real {α : Type*} (f : α → ℝ) (hf : Summable f) (g : ℝ → α → ℝ)
@@ -199,19 +214,19 @@ lemma tendsto_tsum_zero_of_dominated_real {α : Type*} (f : α → ℝ) (hf : Su
       exact ⟨ Max.max T 1, fun s hs => lt_of_le_of_lt ( h_final_bound s hs ) ( by nlinarith [ mul_div_cancel₀ ε ( by positivity : ( 2 * S.card + 1 : ℝ ) ≠ 0 ) ] ) ⟩;
     exact Metric.tendsto_atTop.mpr fun ε hε => by obtain ⟨ T, hT ⟩ := h_eps ε hε; exact ⟨ T, fun s hs => by simpa using hT s hs ⟩ ;
 
-/-
+/--
 As s goes to infinity, the Gaussian mass of the dual lattice excluding the origin (with parameter 1/s) tends to 0.
 -/
 lemma tendsto_rhoSMassOn_atTop_zero  (L : EuclideanLattice n n) :
   Filter.Tendsto (fun s => rhoSMassOn (1/s) (0 : 𝓔 n) L {0}ᶜ) Filter.atTop (nhds 0) := by
     apply_rules [ tendsto_tsum_zero_of_dominated_real ];
     case f => exact fun v => if v = 0 then 0 else LatticeCrypto.Foundations.Gaussian.rho ( v : LatticeCrypto.Utils.Vec.𝓔 n );
-    · have := @LatticeCrypto.Foundations.Gaussian.summable_rhoS n L 1 zero_lt_one 0;
-      convert this.sub ( show Summable fun v : L.carrier => if v = 0 then LatticeCrypto.Foundations.Gaussian.rho ( v : LatticeCrypto.Utils.Vec.𝓔 n ) else 0 from ?_ ) using 2 ; aesop;
-      exact ⟨ _, hasSum_single 0 <| by aesop ⟩;
+    · convert (summable_rhoMassOn (n := n) (c := (0 : 𝓔 n)) (L := L) (S := ({0}ᶜ : Set (𝓔 n)))) using 1
+      ext v
+      by_cases hv : v = 0 <;> simp [hv]
     · simp +zetaDelta at *;
       intro s hs a ha; split_ifs <;> simp_all +decide ;
-      rw [ abs_of_nonneg ( by exact Real.exp_nonneg _ ) ];
+      rw [ abs_of_nonneg (rhoS_nonneg s⁻¹ a) ];
       field_simp;
       exact LatticeCrypto.Foundations.Gaussian.rhoS_inv_le_rho_of_ge_one _ _ hs;
     · simp +zetaDelta at *;
@@ -230,7 +245,7 @@ theorem smoothingParameter_exists (L : EuclideanLattice n n) (ε : ℝ) (hε : �
     have := tendsto_rhoSMassOn_atTop_zero L.dual;
     simpa using this.eventually ( ge_mem_nhds hε );
   use Max.max s₀ 1;
-  exact ⟨ by positivity, by rw [ rhoSMass_eq_one_add_rhoSMassOn_nonzero ( L.dual ) ( 1 / Max.max s₀ 1 ) ( by positivity ) ] ; linarith [ hs₀ ( Max.max s₀ 1 ) ( le_max_left s₀ 1 ) ] ⟩
+  exact ⟨ by positivity, by rw [ rhoSMass_eq_one_add_rhoSMassOn_nonzero ( L.dual ) ( 1 / Max.max s₀ 1 ) ] ; linarith [ hs₀ ( Max.max s₀ 1 ) ( le_max_left s₀ 1 ) ] ⟩
 
 /-- The smoothing parameter is non-negative. -/
 theorem smoothingParameter_nonneg (L : EuclideanLattice n n) (ε : ℝ) :
@@ -294,7 +309,7 @@ theorem smoothingParameter_thresh (L : EuclideanLattice n n) (ε : ℝ) (hε : �
     apply smoothingParameter_mono_s L ε t ht s ht_lt_s.le;
   exact h_t_le_s t ht.1 ht.2
 
-/-!
+/--
   The smoothing parameter is positive for any constant ε > 0.
   Note this is actually nontrivial since the definition itself allows the infimum to be 0.
 -/
@@ -339,7 +354,7 @@ variable {n : ℕ+} (L : EuclideanLattice n n) (s : ℝ) (ε : ℝ)
 theorem rhoSMassOn_nonzero_in_smoothing_regime (L : EuclideanLattice n n) (s : ℝ) (hs : s > 0) (ε : ℝ) (hε : ε > 0) :
     rhoSMassOn (1 / s) (0 : 𝓔 n) L.dual {0}ᶜ ≤ (ε / (1 + ε)) * rhoSMass (1 / s) (0 : 𝓔 n) L.dual → s ≥ L.η ε := by
   intro h_rhoSMassOn_nonzero_le
-  have h_rhoSMass_decomp := rhoSMass_eq_one_add_rhoSMassOn_nonzero L.dual ( 1 / s ) ( one_div_pos.mpr hs ) ;
+  have h_rhoSMass_decomp := rhoSMass_eq_one_add_rhoSMassOn_nonzero L.dual ( 1 / s ) ;
   rw [ h_rhoSMass_decomp ] at h_rhoSMassOn_nonzero_le ;
 
   let M := rhoSMassOn (1 / s) (0 : 𝓔 n) L.dual {0}ᶜ
@@ -412,8 +427,7 @@ theorem smoothing_parameter_ub_via_dual_succMin₁_for_ε_ge_4_pow_neg_n {n : �
     · exact EuclideanLattice.successiveMinima_pos L.dual ⟨0, PNat.pos n⟩;
     · -- By definition of rhoSMass, we have rhoSMass (1 / s) 0 L.dual = 1 + rhoSMassOn (1 / s) 0 L.dual {0}ᶜ.
       have h_rhoSMass_def : rhoSMass (1 / s) 0 L.dual = 1 + rhoSMassOn (1 / s) 0 L.dual {0}ᶜ := by
-        convert Gaussian.rhoSMass_eq_one_add_rhoSMassOn_nonzero L.dual ( 1 / s ) ( one_div_pos.mpr <| div_pos ( Real.sqrt_pos.mpr <| Nat.cast_pos.mpr n.pos ) <| ?_ ) using 1;
-        exact EuclideanLattice.successiveMinima_pos L.dual ⟨0, PNat.pos n⟩;
+        convert Gaussian.rhoSMass_eq_one_add_rhoSMassOn_nonzero L.dual ( 1 / s ) using 1;
       linarith
 
 /-- For any ε ≥ 4^{−n} , η_ε(L) ≤ √n * λ_n(L)-/
@@ -442,7 +456,7 @@ theorem smoothing_parameter_ub_via_succMinₙ_for_ε_ge_4_pow_neg_n {n : ℕ+} (
 
 noncomputable section AristotleLemmas
 
-/-
+/--
 If s < 1/lambda_1(L*), then the Gaussian mass of L* \ {0} with parameter 1/s is strictly greater than 2 * exp(-pi).
 -/
 lemma rhoSMassOn_dual_nonzero_gt_of_s_lt_inv_succMin₁ (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s)
@@ -460,8 +474,8 @@ lemma rhoSMassOn_dual_nonzero_gt_of_s_lt_inv_succMin₁ (L : EuclideanLattice n 
             exact fun h' => h <| by ext i; have := congr_fun h' i; norm_num at *; linarith;
         · norm_num +zetaDelta at *;
           intro w hw₁ hw₂ hw₃; by_cases hw₄ : w = 0 <;> simp_all +decide ;
-          exact Real.exp_nonneg _;
-        · exact summable_rhoSMassOn ( 1 / s ) ( one_div_pos.mpr hs ) 0 L.dual { 0 } ᶜ;
+          exact rhoS_nonneg s⁻¹ w;
+        · exact summable_rhoSMassOn ( 1 / s ) 0 L.dual { 0 } ᶜ;
       -- Since $s < 1/\lambda_1(L^*)$, we have $s \|v\| < 1$.
       have h_s_norm_v_lt_1 : s * ‖v‖ < 1 := by
         rw [ lt_div_iff₀ ( _ ) ] at h_s_lt;
@@ -475,12 +489,12 @@ lemma rhoSMassOn_dual_nonzero_gt_of_s_lt_inv_succMin₁ (L : EuclideanLattice n 
         exact Real.exp_lt_exp.mpr ( by nlinarith [ Real.pi_pos, show ( s * ‖v‖ ) ^ 2 < 1 by exact pow_lt_one₀ ( mul_nonneg hs.le ( norm_nonneg v ) ) h_s_norm_v_lt_1 ( by norm_num ) ] );
       -- Since $\rhoS(1/s, v) = \exp(-\pi (s \|v\|)^2)$ and $\rhoS(1/s, -v) = \exp(-\pi (s \|v\|)^2)$, we have:
       have h_rho_v_minus_v_eq : LatticeCrypto.Foundations.Gaussian.rhoS (1 / s) v + LatticeCrypto.Foundations.Gaussian.rhoS (1 / s) (-v) = 2 * Real.exp (-Real.pi * (s * ‖v‖) ^ 2) := by
-        unfold LatticeCrypto.Foundations.Gaussian.rhoS; norm_num ; ring_nf;
-        norm_num ; ring_nf;
+        rw [rhoS_of_ne_zero (one_div_ne_zero hs.ne'), rhoS_of_ne_zero (one_div_ne_zero hs.ne')]
+        norm_num; ring_nf;
         rw [ norm_smul, Real.norm_of_nonneg hs.le ] ; ring_nf;
       linarith
 
-/-
+/--
 For s >= 1, the Gaussian mass of the dual lattice excluding the origin with parameter 1/s is bounded by a factor times the mass with parameter 1.
 -/
 lemma rhoSMassOn_le_pow_rhoMassOn (L : EuclideanLattice n n) (s : ℝ) (hs : s ≥ 1) :
@@ -497,7 +511,7 @@ lemma rhoSMassOn_le_pow_rhoMassOn (L : EuclideanLattice n n) (s : ℝ) (hs : s �
             · exact L.dual.norm_ge_successiveMinima_one w ( by aesop );
           exact Real.exp_le_exp.mpr ( by nlinarith [ Real.pi_pos, mul_le_mul_of_nonneg_left hs Real.pi_pos.le, mul_le_mul_of_nonneg_left ( sq_nonneg ( s - 1 ) ) Real.pi_pos.le ] );
         convert mul_le_mul_of_nonneg_left h_exp_bound ( Real.exp_nonneg ( -Real.pi * ‖w‖ ^ 2 ) ) using 1 ; ring_nf;
-        unfold LatticeCrypto.Foundations.Gaussian.rhoS ; rw [ ← Real.exp_add ] ; ring_nf;
+        rw [rhoS_of_ne_zero (s := s⁻¹) (inv_ne_zero (by linarith : s ≠ 0)), ← Real.exp_add] ; ring_nf;
         norm_num [ norm_smul, mul_pow ] ; ring;
       convert Summable.tsum_le_tsum ( fun x => ?_ ) ?_ ?_;
       any_goals rw [ tsum_mul_right ];
@@ -507,11 +521,11 @@ lemma rhoSMassOn_le_pow_rhoMassOn (L : EuclideanLattice n n) (s : ℝ) (hs : s �
       · by_cases hx : x = 0 <;> simp_all +decide [ mul_comm ];
         convert h_term_bound x _ using 1;
         · exact ⟨ x.2, by simpa using hx ⟩;
-      · convert LatticeCrypto.Foundations.Gaussian.summable_rhoSMassOn ( 1 / s ) ( by positivity ) 0 L.dual { 0 } ᶜ using 1;
+      · convert LatticeCrypto.Foundations.Gaussian.summable_rhoSMassOn ( 1 / s ) 0 L.dual { 0 } ᶜ using 1;
       · refine' Summable.mul_right _ _;
         convert summable_rhoMassOn 0 L.dual { 0 } ᶜ using 1
 
-/-
+/--
 For any epsilon > 0, there exists a positive s such that the Gaussian mass of the dual lattice excluding the origin with parameter 1/s is at most epsilon.
 -/
 lemma exists_s_rhoSMassOn_le (L : EuclideanLattice n n) (ε : ℝ) (hε : 0 < ε) :
@@ -544,7 +558,7 @@ theorem smoothing_paramter_lb_via_dual_succMin₁_for_small_ε (hε : 0 < ε ∧
 
 noncomputable section AristotleLemmas
 
-/-
+/--
   The Gaussian mass of the non-zero vectors is at least 2 * exp(-pi * lambda_1^2).
   Essentially a special case of `rhoSMassOn_dual_nonzero_gt_of_s_lt_inv_succMin₁`
 -/
@@ -569,7 +583,7 @@ theorem rhoMass_nonzero_ge_2_exp_neg_pi_mul_succMin₁_sq {n : ℕ+} (L : Euclid
           exact fun h' => hv₂ <| by ext i; have := congr_fun h' i; norm_num at *; linarith;
       simp_all +decide [ two_mul, rho ]
 
-/-
+/--
 rhoSMassOn (1/s) of dual lattice tail is at least exp(-pi * (s * lambda_1(dual))^2).
 -/
 theorem rhoSMassOn_nonzero_ge_exp_neg_pi_mul_s_sq_mul_succMin₁_sq {n : ℕ+} (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) :
@@ -587,7 +601,7 @@ theorem rhoSMassOn_nonzero_ge_exp_neg_pi_mul_s_sq_mul_succMin₁_sq {n : ℕ+} (
       rw [ h_succMin₁_smul ];
     linarith [ Real.exp_pos ( -Real.pi * ( s * L.succMin₁ ) ^ 2 ) ]
 
-/-
+/--
 Algebraic lemma for smoothing parameter lower bound.
 -/
 lemma smoothing_parameter_lb_algebraic_lemma {s lambda epsilon : ℝ}
@@ -601,8 +615,8 @@ lemma smoothing_parameter_lb_algebraic_lemma {s lambda epsilon : ℝ}
     rw [ div_le_iff₀ hlambda, Real.sqrt_le_iff ];
     exact ⟨ by positivity, by rw [ div_le_iff₀ ( by positivity ) ] ; simpa [ Real.log_div, hepsilon.ne' ] using by nlinarith ⟩
 
-/-
-Auxiliary lemma for smoothing parameter lower bound.
+/--
+  Auxiliary lemma for smoothing parameter lower bound.
 -/
 lemma smoothing_parameter_lb_aux {n : ℕ+} (L : EuclideanLattice n n) (ε : ℝ) (hε : ε > 0) (s : ℝ) (hs : 0 < s) :
   rhoSMass (1 / s) 0 L.dual ≤ 1 + ε → (Real.sqrt (Real.log (1 / ε) / Real.pi)) * (1 / L.dual.succMin₁) ≤ s := by
@@ -612,7 +626,6 @@ lemma smoothing_parameter_lb_aux {n : ℕ+} (L : EuclideanLattice n n) (ε : ℝ
       have h_ineq : rhoSMassOn (1 / s) (0 : 𝓔 n) L.dual {0}ᶜ ≥ Real.exp (-Real.pi * (s * L.dual.succMin₁)^2) := by
         exact rhoSMassOn_nonzero_ge_exp_neg_pi_mul_s_sq_mul_succMin₁_sq L.dual s hs;
       rw [ rhoSMass_eq_one_add_rhoSMassOn_nonzero ] at h ; linarith;
-      positivity;
     have := @smoothing_parameter_lb_algebraic_lemma s L.dual.succMin₁ ε hs;
     by_cases hε1 : ε ≤ 1;
     · -- Apply the lemma with the given hypotheses.
@@ -621,7 +634,7 @@ lemma smoothing_parameter_lb_aux {n : ℕ+} (L : EuclideanLattice n n) (ε : ℝ
       aesop;
     · rw [ Real.sqrt_eq_zero_of_nonpos ( div_nonpos_of_nonpos_of_nonneg ( Real.log_nonpos ( by positivity ) ( by rw [ div_le_iff₀ ( by positivity ) ] ; linarith ) ) Real.pi_pos.le ) ] ; norm_num ; linarith
 
-/-
+/--
 If rhoSMassOn (1/s) <= epsilon, then s >= LB.
 -/
 lemma smoothing_parameter_lb_imp_ge {n : ℕ+} (L : EuclideanLattice n n) (ε : ℝ) (hε : ε > 0) (s : ℝ) (hs : 0 < s) :
@@ -632,8 +645,7 @@ lemma smoothing_parameter_lb_imp_ge {n : ℕ+} (L : EuclideanLattice n n) (ε : 
     contrapose! this;
     refine' ⟨ n, L, ε, hε, s, hs, _, this ⟩;
     rw [ rhoSMass_eq_one_add_rhoSMassOn_nonzero ];
-    · linarith;
-    · positivity
+    linarith
 
 end AristotleLemmas
 
@@ -747,7 +759,7 @@ open LatticeCrypto.Foundations.Lattice
 
 variable {n : ℕ+} (L : EuclideanLattice n n) (s : ℝ)
 
-/-
+/--
 Helper lemma to simplify the exponential term in the Micciancio-Regev bound.
 -/
 private lemma exp_neg_pi_t_sq (n : ℕ+) (ε : ℝ) (hε : ε > 0) (hn : 1 ≤ (n : ℝ)) :
@@ -763,9 +775,9 @@ private lemma exp_neg_pi_t_sq (n : ℕ+) (ε : ℝ) (hε : ε > 0) (hn : 1 ≤ (
       field_simp;
       ring
 
--- /-- For any ε>0 and (full-rank) n-dimensional lattice L, we have
---   η_ε(L) ≤ λ_n(L) * Real.sqrt (\ln (2n(1 + 1/ε)) / π)
--- -/
+/-- For any ε>0 and (full-rank) n-dimensional lattice L, we have
+  η_ε(L) ≤ λ_n(L) * Real.sqrt (\ln (2n(1 + 1/ε)) / π)
+-/
 theorem smoothing_parameter_ub_micciancio_regev_by_succMinₙ (L : EuclideanLattice n n) (hn : n ≥ Banaszczyk_transference_threshold_constant) (ε : ℝ) (hε : ε > 0) :
     L.η ε ≤ L.succMinₙ * Real.sqrt (Real.log (2 * n * (1 + 1 / ε)) / Real.pi) := by
   let t := Real.sqrt (Real.log (2 * n * (1 + 1 / ε)) / Real.pi)

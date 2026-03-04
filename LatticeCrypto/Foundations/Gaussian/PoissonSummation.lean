@@ -348,7 +348,7 @@ The Fourier coefficients of the periodized Gaussian function `rhoS` are summable
 lemma summable_fourierCoefficient_of_rhoS_periodize (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) :
   Summable (fourierCoefficientReal L (rhoS_periodize s L)) := by
     have h_summable : Summable (fun w : L.dual.carrier => rhoS (1 / s) (w : 𝓔 n)) := by
-      convert summable_rhoS L.dual ( 1 / s ) ( by positivity ) 0 using 1;
+      convert summable_rhoS L.dual ( 1 / s ) 0 using 1;
       norm_num +zetaDelta at *;
     have h_fourier_coeff : ∀ w : L.dual.carrier, fourierCoefficientReal L (rhoS_periodize s L) w = (1 / L.det : ℂ) * (s ^ (n : ℕ) : ℂ) * rhoS (1 / s) (w : 𝓔 n) := by
       intro w;
@@ -357,7 +357,7 @@ lemma summable_fourierCoefficient_of_rhoS_periodize (L : EuclideanLattice n n) (
           convert rhoS_FT_eq s hs ( w : 𝓔 n ) using 1;
         rw [ h_fourier_transform, mul_assoc ];
       · convert ( rhoS.integrable s hs.ne' ) |> MeasureTheory.Integrable.norm using 1 ; norm_num ;
-        exact funext fun x => by rw [ abs_of_nonneg ( by exact Real.exp_nonneg _ ) ] ;
+        exact funext fun x => by rw [ abs_of_nonneg (rhoS_nonneg s x) ] ;
     rw [ show fourierCoefficientReal L ( rhoS_periodize s L ) = _ from funext h_fourier_coeff ] ; exact Summable.mul_left _ <| by exact_mod_cast h_summable;
 
 /--
@@ -366,25 +366,31 @@ lemma summable_fourierCoefficient_of_rhoS_periodize (L : EuclideanLattice n n) (
 theorem poisson_summation_rhoS (L : EuclideanLattice n n) (s : ℝ) (h_s : 0 < s) :
     rhoSMass s 0 L = (1 / L.det) * (s ^ (n : ℕ)) * rhoSMass (1 / s) 0 L.dual := by
   have h_poisson : L.latticeSum (fun v => (rhoS s v : ℂ)) = (1 / L.det : ℂ) * L.dual.latticeSum (fun w => (rhoS_FT s w : ℂ)) := by
-    convert poisson_summation L ( fun v => ( rhoS s v : ℂ ) ) _ _ _ using 1 <;> norm_num [ rhoS.integrable, h_s.ne' ];
-    · have h_cont : Continuous (rhoST_periodize s (ContinuousLinearEquiv.refl ℝ (𝓔 n)) L) := by
-        apply rhoST_periodize.continuous;
-        positivity;
-      convert Complex.continuous_ofReal.comp h_cont using 1;
-      ext; norm_num [ rhoST_periodize, rhoST, rhoS ] ;
-      unfold periodize; norm_num [ Complex.ofReal_tsum ] ;
-      unfold EuclideanLattice.latticeSum; norm_num [ Complex.ofReal_tsum ] ;
-    · have h_summable : Summable (fourierCoefficientReal L (rhoS_periodize s L)) := by
-        exact summable_fourierCoefficient_of_rhoS_periodize L s h_s;
-      convert h_summable using 1;
-      unfold fourierCoefficientReal fourierCoefficient; norm_num [ Complex.exp_re, Complex.exp_im, Complex.cos, Complex.sin ] ;
-      congr! 3;
-      ext; norm_cast;
-      erw [ Complex.ofReal_tsum ] ; norm_num [ Complex.ofReal_mul, Complex.ofReal_exp ];
-      exact rfl;
+    refine poisson_summation L (fun v => (rhoS s v : ℂ)) (rhoS.integrable s h_s.ne') ?_ ?_
+    · have h_contR : Continuous (rhoST_periodize s (ContinuousLinearEquiv.refl ℝ (𝓔 n)) L) := by
+        exact rhoST_periodize.continuous s (by simpa [eq_comm] using h_s.ne') _ L
+      convert Complex.continuous_ofReal.comp h_contR using 1
+      ext x
+      have hsumm : Summable (fun v : L.carrier => rhoS s (x + (v : 𝓔 n))) := by
+        convert summable_rhoS L s (-x) using 1
+        funext v
+        abel_nf
+      simp [rhoST_periodize, periodize, rhoST_Id_eq_rhoS, EuclideanLattice.latticeSum, Complex.ofReal_tsum]
+    · convert (summable_fourierCoefficient_of_rhoS_periodize L s h_s) using 1
+      have h_eq_fun :
+          periodize (fun v => (rhoS s v : ℂ)) L =
+            (fun x => (rhoS_periodize s L x : ℂ)) := by
+        funext x
+        have hsummx : Summable (fun v : L.carrier => rhoS s (x + (v : 𝓔 n))) := by
+          convert summable_rhoS L s (-x) using 1
+          funext v
+          abel_nf
+        simp [rhoS_periodize, periodize, EuclideanLattice.latticeSum, Complex.ofReal_tsum]
+      funext w
+      simp [fourierCoefficientReal, h_eq_fun]
   convert congr_arg Complex.re h_poisson using 1;
   · simp [rhoSMass ] ; erw [ Complex.re_tsum ] ; norm_cast;
-    convert summable_rhoS L s h_s 0 using 1;
+    convert summable_rhoS L s 0 using 1;
     ext; simp +decide ;
   · -- By definition of `rhoS_FT`, we have `rhoS_FT s w = (s ^ (n : ℕ) : ℂ) * (rhoS (1 / s) w : ℂ)`.
     simp [rhoSMass]
@@ -423,9 +429,26 @@ lemma rhoSMass_on_coset_eq_latticeSum_sub (s : ℝ) (L : EuclideanLattice n n) (
       conv_lhs => rw [ ← Equiv.tsum_eq ( Equiv.ofBijective _ h_bij ) ] ;
       norm_num +zetaDelta at *;
     have h_even : ∀ x : 𝓔 n, rhoS s (-x + u) = rhoS s (x - u) := by
-      unfold rhoS; intros; ring_nf;
-      norm_num [ neg_add_eq_sub, sub_eq_add_neg ] ;
-      rw [ ← norm_neg ] ; abel_nf;
+      intro x
+      by_cases hs0 : s = 0
+      · have hx : (-x + u) = -(x - u) := by
+          abel_nf
+        by_cases hxu : x - u = 0
+        · have hxu' : -x + u = 0 := by simp [hx, hxu]
+          simp [rhoS, hs0, hxu, hxu']
+        · have hxu' : -x + u ≠ 0 := by
+            intro h0
+            apply hxu
+            have : x - u = -(-x + u) := by abel_nf
+            simpa [h0] using this
+          simp [rhoS, hs0, hxu, hxu']
+      · rw [rhoS_of_ne_zero hs0, rhoS_of_ne_zero hs0]
+        congr 1
+        congr 1
+        have hx : s⁻¹ • (-x + u) = -(s⁻¹ • (x - u)) := by
+          simp [sub_eq_add_neg, smul_add]
+          abel_nf
+        rw [hx, norm_neg]
     aesop
 
 /-- handy lemmas for the shifted rhoS' Fourier transforms -/
@@ -435,6 +458,7 @@ lemma rhoS_sub_FT (s : ℝ) (u : 𝓔 n) (w : 𝓔 n) (hs : 0 < s) :
   rw [rhoS_shift_FT, rhoS_FT_eq s hs]
   ring
 
+/-- The Fourier coefficients of the shifted `rhoS` are summable -/
 lemma summable_fourier_rhoS_sub (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) (u : 𝓔 n) :
   Summable (fourierCoefficient L (periodize (fun v => (rhoS s (v - u) : ℂ)) L)) := by
     have := @fourierCoefficient_of_periodization_eq_fourierTransform;
@@ -449,7 +473,7 @@ lemma summable_fourier_rhoS_sub (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s
         have h_fourier_coeff_summable : Summable (fun w : L.dual.carrier => ‖(rhoS (1 / s) (w : 𝓔 n))‖) := by
           have h_fourier_coeff_summable : Summable (fun w : L.dual.carrier => (rhoS (1 / s) (w : 𝓔 n))) := by
             have := @summable_rhoS;
-            simpa using this L.dual ( 1 / s ) ( one_div_pos.mpr hs ) 0;
+            simpa using this L.dual ( 1 / s ) 0;
           exact h_fourier_coeff_summable.norm;
         simpa [ Complex.norm_exp ] using h_fourier_coeff_summable.mul_left _;
       convert h_fourier_coeff_summable using 2 ; rw [ LatticeCrypto.Foundations.Gaussian.rhoS_sub_FT ] ; aesop;
@@ -515,13 +539,17 @@ theorem rhoSMass_scaling_mono (s : ℝ) (h_s : s ≥ 1) (L : EuclideanLattice n 
   -- Since $s \geq 1$, we have $s^n \geq 1$ and $1 / s \leq 1$, thus $\rho(1 / s, L^*) \leq \rho(L^*)$.
   have h_rho_bound_1 : L.dual.latticeSum (fun v => rhoS (1 / s) v) ≤ L.dual.latticeSum (fun v => rhoS 1 v) := by
     apply_rules [ Summable.tsum_le_tsum ];
-    · unfold LatticeCrypto.Foundations.Gaussian.rhoS;
-      norm_num; ring_nf ;
-      exact fun x hx => mul_le_mul_of_nonneg_left ( by rw [ norm_smul, Real.norm_of_nonneg ( by positivity ) ] ; exact pow_le_pow_left₀ ( by positivity ) ( le_mul_of_one_le_left ( norm_nonneg _ ) h_s ) _ ) Real.pi_pos.le;
+    · intro x
+      have hs_pos : 0 < s := by linarith [h_s]
+      have hs_ne : s ≠ 0 := hs_pos.ne'
+      have h_inv : (1 / s) ≤ 1 := by
+        field_simp [hs_ne]
+        linarith
+      simpa using rhoS_mono (s₁ := 1 / s) (s₂ := 1) (h1 := one_div_pos.mpr hs_pos) h_inv (x := (x : 𝓔 n))
     · have := @LatticeCrypto.Foundations.Gaussian.summable_rhoS;
-      simpa using this L.dual ( 1 / s ) ( one_div_pos.mpr ( zero_lt_one.trans_le h_s ) ) 0;
+      simpa using this L.dual ( 1 / s ) 0;
     · have := @LatticeCrypto.Foundations.Gaussian.summable_rhoS n L.dual;
-      simpa using this 1 zero_lt_one 0
+      simpa using this 1 0
   have h_rho_bound_2 : L.latticeSum (fun v => rhoS 1 v) = L.det⁻¹ * L.dual.latticeSum (fun v => rhoS 1 v) := by
     have h_poisson := poisson_summation_rhoS L 1 zero_lt_one
     simp at h_poisson; simp [rhoSMass] at h_poisson;
@@ -539,7 +567,7 @@ theorem rhoSMass_shift_mono (L : EuclideanLattice n n) (s : ℝ) (hs: 0 < s) (u 
   -- Proof idea:
   -- Since rhoS is non-negative, shifting by u does not increase the sum.
   have h_rhoSCosetMass_nonneg : 0 ≤ rhoSMass s u L := by
-    exact tsum_nonneg fun _ => Real.exp_nonneg _
+    exact tsum_nonneg fun _ => rhoS_nonneg s _
   have h_rhoSCosetMass_eq_complex : ‖(rhoSMass s u L : ℂ)‖ = rhoSMass s u L := by
     exact_mod_cast abs_of_nonneg h_rhoSCosetMass_nonneg
   rw [ ← h_rhoSCosetMass_eq_complex,  poisson_summation_rhoS_coset L s hs u];
@@ -551,7 +579,7 @@ theorem rhoSMass_shift_mono (L : EuclideanLattice n n) (s : ℝ) (hs: 0 < s) (u 
     convert norm_tsum_le_tsum_norm _ using 2 ; aesop
     generalize_proofs at *;
     have h_summable : Summable (fun v : L.dual.carrier => rhoS (1 / s) (v : 𝓔 n)) := by
-      have := summable_rhoS L.dual ( 1 / s ) ( by positivity ) 0
+      have := summable_rhoS L.dual ( 1 / s ) 0
       generalize_proofs at *;
       aesop;
     convert h_summable.norm using 1 ; aesop
@@ -562,11 +590,13 @@ theorem rhoSMass_shift_mono (L : EuclideanLattice n n) (s : ℝ) (hs: 0 < s) (u 
     · norm_num [ abs_of_nonneg, hs.le, L.det_pos ];
       rw [ abs_of_nonneg ( show 0 ≤ L.det from le_of_lt ( L.det_pos ) ) ];
       congr! 2; simp [rhoSMass, EuclideanLattice.latticeSum];
-      exact tsum_congr fun v => by rw [ abs_of_nonneg ( rhoS_pos _ _ |> le_of_lt ) ] ;
+      exact tsum_congr fun v => by
+        simpa using (abs_of_nonneg (rhoS_nonneg (1 / s) (v : 𝓔 n))).symm
     · positivity
 
 noncomputable section AristotleLemmas
 
+/-- The real part of the tail of the sum of shift-center of the Fourier coefficients of `rhoS` over the dual lattice is bounded below by the negative of `rhoMass` on the nonzero lattice points of the coset -/
 lemma re_tsum_tail_ge_neg_rhoMassOn (L : EuclideanLattice n n) (u : 𝓔 n) :
   (∑' v : L.dual.carrier, (if v = 0 then 0 else cexp (-2 * π * Complex.I * inner ℝ u (v : 𝓔 n)) * (rho v : ℂ))).re ≥ -rhoMassOn 0 L.dual {0}ᶜ := by
     unfold LatticeCrypto.Foundations.Gaussian.rhoMassOn;
@@ -581,36 +611,52 @@ lemma re_tsum_tail_ge_neg_rhoMassOn (L : EuclideanLattice n n) (u : 𝓔 n) :
       norm_cast;
     · -- The series $\sum_{v \in \Lambda^*} \rho(v)$ is summable by the properties of the Gaussian function and the lattice.
       have h_summable : Summable (fun v : L.dual.carrier => (LatticeCrypto.Foundations.Gaussian.rho v : ℝ)) := by
-        convert summable_rhoS L.dual 1 zero_lt_one 0 using 1;
-        aesop;
+        simpa [rho, rhoS_1_eq_rho] using (summable_rhoS L.dual 1 0)
       refine' .of_nonneg_of_le ( fun v => norm_nonneg _ ) ( fun v => _ ) h_summable.norm;
       split_ifs <;> norm_num [ Complex.norm_exp ]
 
+/-- The series of `rho v * exp(-2 * π * Complex.I * inner ℝ u (v : 𝓔 n))` is summable -/
 lemma summable_rho_exponential (L : EuclideanLattice n n) (u : 𝓔 n) :
   Summable (fun v : L.dual.carrier => cexp (-2 * π * Complex.I * inner ℝ u (v : 𝓔 n)) * (rho v : ℂ)) := by
     -- Since the Gaussian function is non-negative and its sum is finite, it is summable.
     have h_summable : Summable (fun v : L.dual.carrier => (LatticeCrypto.Foundations.Gaussian.rho v : ℝ)) := by
       -- Apply the lemma `summable_rhoS` with `s = 1` and `c = 0`.
-      have := summable_rhoS L.dual 1 (by norm_num) 0;
-      aesop;
+      simpa [rho, rhoS_1_eq_rho] using (summable_rhoS L.dual 1 0)
     exact .of_norm <| by simpa [ Complex.norm_exp ] using h_summable.norm;
 
 open Real Complex MeasureTheory LatticeCrypto.Foundations.Lattice LatticeCrypto.Utils.Vec LatticeCrypto.Foundations.Gaussian
 
+/-- The real part of the Poisson summation formula for `rhoMass` -/
 lemma rhoMass_eq_real_part_poisson (L : EuclideanLattice n n) (u : 𝓔 n) :
   rhoMass u L = (1 / L.det) * (1 + (∑' v : L.dual.carrier, (if v = 0 then 0 else cexp (-2 * π * Complex.I * inner ℝ u (v : 𝓔 n)) * (rho v : ℂ))).re) := by
     have := @LatticeCrypto.Foundations.Gaussian.poisson_summation_rhoS_coset n L 1;
     specialize this zero_lt_one u;
     rw [rhoSMass_one_eq_rhoMass] at this;
-    have h_lattice_sum : L.dual.latticeSum (fun v : 𝓔 n => cexp (-2 * Real.pi * Complex.I * (inner ℝ u v : ℂ)) * (rho v : ℂ)) = (∑' v : L.dual.carrier, cexp (-2 * Real.pi * Complex.I * (inner ℝ u (v : 𝓔 n) : ℂ)) * (rho (v : 𝓔 n) : ℂ)) := by
-      exact rfl;
-    convert congr_arg Complex.re this using 1;
-    rw [ Summable.tsum_eq_add_tsum_ite ] at h_lattice_sum;
-    case b => exact ⟨ 0, by simp +decide ⟩;
-    · simp_all +decide ;
-      unfold LatticeCrypto.Foundations.Gaussian.rho; norm_num;
-      exact Or.inl rfl;
-    · exact summable_rho_exponential L u
+    let f : L.dual.carrier → ℂ := fun v =>
+      cexp (-2 * π * Complex.I * inner ℝ u (v : 𝓔 n)) * (rho v : ℂ)
+    let g : L.dual.carrier → ℂ := fun v =>
+      if v = 0 then 0 else cexp (-2 * π * Complex.I * inner ℝ u (v : 𝓔 n)) * (rho v : ℂ)
+    have hsum : Summable (fun v : L.dual.carrier => cexp (-2 * π * Complex.I * inner ℝ u (v : 𝓔 n)) * (rho (v : 𝓔 n) : ℂ)) := by
+      simpa using summable_rho_exponential L u
+    have hsplit := Summable.tsum_eq_add_tsum_ite hsum (0 : L.dual.carrier)
+    have hmain : rhoMass u L = (1 / L.det) * (∑' v : L.dual.carrier, f v).re := by
+      simpa [f, rho, EuclideanLattice.latticeSum, rhoS_of_ne_zero (by norm_num : (1 : ℝ) ≠ 0)]
+        using congrArg Complex.re this
+    have hsplit_re :
+        1 + (∑' v : L.dual.carrier, g v).re = (∑' v : L.dual.carrier, f v).re := by
+      have h0 : (f 0).re = 1 := by simp [f, rho]
+      have hsplit' : (∑' v : L.dual.carrier, f v).re = (f 0 + ∑' v : L.dual.carrier, g v).re := by
+        simpa [f, g] using congrArg Complex.re hsplit
+      calc
+        1 + (∑' v : L.dual.carrier, g v).re = (f 0).re + (∑' v : L.dual.carrier, g v).re := by rw [h0]
+        _ = (f 0 + ∑' v : L.dual.carrier, g v).re := by simp [Complex.add_re]
+        _ = (∑' v : L.dual.carrier, f v).re := by simpa using hsplit'.symm
+    calc
+      rhoMass u L = (1 / L.det) * (∑' v : L.dual.carrier, f v).re := hmain
+      _ = (1 / L.det) * (1 + (∑' v : L.dual.carrier, g v).re) := by rw [hsplit_re]
+      _ = (1 / L.det) * (1 + (∑' v : L.dual.carrier,
+          (if v = 0 then 0 else cexp (-2 * π * Complex.I * inner ℝ u (v : 𝓔 n)) * (rho v : ℂ))).re) := by
+            rfl
 
 end AristotleLemmas
 
