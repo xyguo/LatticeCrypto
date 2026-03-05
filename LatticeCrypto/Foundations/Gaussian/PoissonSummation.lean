@@ -406,16 +406,9 @@ The Fourier transform of the shifted Gaussian `rhoS(· - u)` is `e^{-2πi <u, w>
 -/
 lemma rhoS_shift_FT (s : ℝ) (u : 𝓔 n) (w : 𝓔 n) :
     𝓕 (fun v => (rhoS s (v - u) : ℂ)) w = cexp (-2 * π * Complex.I * (inner ℝ u w : ℂ)) * rhoS_FT s w := by
-      -- Apply the translation property of the Fourier transform.
-      have h_translation : ∀ (f : 𝓔 n → ℂ), 𝓕 (fun v => f (v - u)) w = cexp (-2 * Real.pi * Complex.I * ⟪u, w⟫) * 𝓕 f w := by
-        intro f;
-        simp +decide [ Real.fourierIntegral, mul_comm ];
-        rw [ VectorFourier.fourierIntegral, VectorFourier.fourierIntegral ];
-        rw [ ← MeasureTheory.integral_const_mul ] ; rw [ ← MeasureTheory.integral_add_right_eq_self _ u ] ; congr; ext; simp +decide [ ← mul_assoc ] ; ring_nf;
-        simp +decide [ sub_eq_add_neg, mul_assoc, mul_comm, mul_left_comm, Real.fourierChar ];
-        simp +decide [ mul_comm, mul_left_comm, ← Complex.exp_neg, ← Complex.exp_add, Circle.smul_def ] ; ring_nf;
-        norm_num;
-      convert h_translation ( fun v => ( rhoS s v : ℂ ) ) using 1
+  simpa [rhoS_FT] using
+    (fourier_transform_comp_sub_right
+      (n := n) (f := fun v => (rhoS s v : ℂ)) (u := u) (w := w))
 
 /-
 `rhoSCosetMass s L u` is equal to the lattice sum of `rhoS s (v - u)`.
@@ -451,13 +444,6 @@ lemma rhoSMass_on_coset_eq_latticeSum_sub (s : ℝ) (L : EuclideanLattice n n) (
         rw [hx, norm_neg]
     aesop
 
-/-- handy lemmas for the shifted rhoS' Fourier transforms -/
-lemma rhoS_sub_FT (s : ℝ) (u : 𝓔 n) (w : 𝓔 n) (hs : 0 < s) :
-  𝓕 (fun v => (rhoS s (v - u) : ℂ)) w =
-  (s ^ (n : ℕ) : ℂ) * cexp (-2 * π * Complex.I * (inner ℝ u w : ℂ)) * (rhoS (1 / s) w : ℂ) := by
-  rw [rhoS_shift_FT, rhoS_FT_eq s hs]
-  ring
-
 /-- The Fourier coefficients of the shifted `rhoS` are summable -/
 lemma summable_fourier_rhoS_sub (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s) (u : 𝓔 n) :
   Summable (fourierCoefficient L (periodize (fun v => (rhoS s (v - u) : ℂ)) L)) := by
@@ -473,10 +459,19 @@ lemma summable_fourier_rhoS_sub (L : EuclideanLattice n n) (s : ℝ) (hs : 0 < s
         have h_fourier_coeff_summable : Summable (fun w : L.dual.carrier => ‖(rhoS (1 / s) (w : 𝓔 n))‖) := by
           have h_fourier_coeff_summable : Summable (fun w : L.dual.carrier => (rhoS (1 / s) (w : 𝓔 n))) := by
             have := @summable_rhoS;
-            simpa using this L.dual ( 1 / s ) 0;
-          exact h_fourier_coeff_summable.norm;
-        simpa [ Complex.norm_exp ] using h_fourier_coeff_summable.mul_left _;
-      convert h_fourier_coeff_summable using 2 ; rw [ LatticeCrypto.Foundations.Gaussian.rhoS_sub_FT ] ; aesop;
+            simpa using this L.dual (1 / s) 0
+          exact h_fourier_coeff_summable.norm
+        simpa [Complex.norm_exp] using h_fourier_coeff_summable.mul_left _
+      have h_eq :
+          (fun w : L.dual.carrier => ‖𝓕 (fun v => (rhoS s (v - u) : ℂ)) (w : 𝓔 n)‖)
+            =
+          (fun w : L.dual.carrier =>
+            ‖(s ^ (n : ℕ) : ℂ) * cexp (-2 * Real.pi * Complex.I * (inner ℝ u (w : 𝓔 n) : ℂ)) *
+              (rhoS (1 / s) (w : 𝓔 n))‖) := by
+        funext w
+        rw [rhoS_shift_FT, rhoS_FT_eq s hs]
+        ring_nf
+      simpa [h_eq] using h_fourier_coeff_summable
     rw [ summable_congr fun w => this L _ h_integrable w ];
     exact Summable.mul_left _ <| .of_norm h_fourier_coeff_summable
 
@@ -516,10 +511,9 @@ theorem poisson_summation_rhoS_coset (L : EuclideanLattice n n) (s : ℝ) (h_s :
     -- Substitute the expression for the Fourier transform of the shifted Gaussian into the Poisson sum formula.
     have h_subst : L.dual.latticeSum (fun w => 𝓕 (fun v => (rhoS s (v - u) : ℂ)) w) = (s ^ (n : ℕ)) * L.dual.latticeSum (fun w => Complex.exp (-(2 * Real.pi * Complex.I * (inner ℝ u w : ℂ))) * (rhoS (1 / s) w : ℂ)) := by
       have h_subst : ∀ w : 𝓔 n, 𝓕 (fun v => (rhoS s (v - u) : ℂ)) w = (s ^ (n : ℕ)) * Complex.exp (-(2 * Real.pi * Complex.I * (inner ℝ u w : ℂ))) * (rhoS (1 / s) w : ℂ) := by
-        apply_rules [ rhoS_sub_FT ];
-        funext w; exact (by
-        convert rhoS_sub_FT s u w _ using 1 ; norm_num [ h_s ];
-        exact h_s);
+        intro w
+        rw [rhoS_shift_FT, rhoS_FT_eq s h_s]
+        ring_nf
       simp_all +decide [ mul_assoc ];
       exact tsum_mul_left;
     rw [rhoSMass_on_coset_eq_latticeSum_sub]
@@ -593,6 +587,17 @@ theorem rhoSMass_shift_mono (L : EuclideanLattice n n) (s : ℝ) (hs: 0 < s) (u 
       exact tsum_congr fun v => by
         simpa using (abs_of_nonneg (rhoS_nonneg (1 / s) (v : 𝓔 n))).symm
     · positivity
+
+/-- Shift monotonicity for `rhoSTMass`, reduced to `rhoSMass_shift_mono` on `L.map T`. -/
+theorem rhoSTMass_shift_mono
+    (L : EuclideanLattice n n) (T : 𝓔 n ≃L[ℝ] 𝓔 n)
+    (s : ℝ) (hs : 0 < s) (c : 𝓔 n) :
+    rhoSTMass s T c L ≤ rhoSTMass s T 0 L := by
+  rw [rhoSTMass_eq_rhoSMass_map (L := L) (T := T) (s := s) (c := c)]
+  rw [rhoSTMass_eq_rhoSMass_map (L := L) (T := T) (s := s) (c := (0 : 𝓔 n))]
+  simpa using rhoSMass_shift_mono (L := L.map T) (s := s) (hs := hs) (u := T c)
+
+
 
 noncomputable section AristotleLemmas
 

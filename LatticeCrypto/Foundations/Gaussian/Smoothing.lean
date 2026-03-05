@@ -328,6 +328,130 @@ theorem smoothingParameter_pos (L : EuclideanLattice n n) (ε : ℝ) (hε : ε >
     obtain ⟨ δ, hδ_pos, hδ ⟩ := h_inf_pos; exact lt_of_lt_of_le hδ_pos <| le_csInf h_nonempty fun x hx => le_of_not_gt fun hx' => hδ ( abs_lt.mpr ⟨ by linarith [ hx.1 ], by linarith [ hx.1 ] ⟩ ) hx.1 hx;
   exact h_inf_pos
 
+/-- Membership in the dual of a rotated lattice is equivalent to membership of the rotated-back point in the original dual. -/
+private lemma mem_dual_mapLinearIsometry_iff
+    (L : EuclideanLattice n n) (R : 𝓔 n ≃ₗᵢ[ℝ] 𝓔 n) (y : 𝓔 n) :
+    y ∈ (L.mapLinearIsometry R).dual ↔ R.symm y ∈ L.dual := by
+  constructor
+  · intro hy
+    have hyInt : y ∈ integralDualSet (L.mapLinearIsometry R) := by
+      have hy' : y ∈ (((L.mapLinearIsometry R).dual).carrier : Set (𝓔 n)) := hy
+      rw [EuclideanLattice.dual_carrier_eq_integralDual (L := L.mapLinearIsometry R)] at hy'
+      exact hy'
+    have hyInt' : R.symm y ∈ integralDualSet L := by
+      intro x hx
+      have hxL : x ∈ L := by
+        simpa [EuclideanLattice.mem_def] using hx
+      have hxMap : R x ∈ L.mapLinearIsometry R := by
+        exact (EuclideanLattice.mem_mapLinearIsometry_iff (L := L) (R := R) (x := R x)).2
+          (by simpa using hxL)
+      have hxMap' : R x ∈ (L.mapLinearIsometry R).carrier := by
+        simpa [EuclideanLattice.mem_def] using hxMap
+      rcases hyInt (R x) hxMap' with ⟨m, hm⟩
+      refine ⟨m, ?_⟩
+      have hinner : inner ℝ x (R.symm y) = inner ℝ (R x) y := by
+        calc
+          inner ℝ x (R.symm y) = inner ℝ (R x) (R (R.symm y)) := by
+            simpa using (LinearIsometryEquiv.inner_map_map (f := R) x (R.symm y)).symm
+          _ = inner ℝ (R x) y := by simp
+      exact hinner.trans hm
+    have hyOut : R.symm y ∈ ((L.dual).carrier : Set (𝓔 n)) := by
+      rw [EuclideanLattice.dual_carrier_eq_integralDual (L := L)]
+      exact hyInt'
+    simpa [EuclideanLattice.mem_def] using hyOut
+  · intro hy
+    have hyInt : R.symm y ∈ integralDualSet L := by
+      have hy' : R.symm y ∈ ((L.dual).carrier : Set (𝓔 n)) := hy
+      rw [EuclideanLattice.dual_carrier_eq_integralDual (L := L)] at hy'
+      exact hy'
+    have hyInt' : y ∈ integralDualSet (L.mapLinearIsometry R) := by
+      intro x hx
+      have hxMap : x ∈ L.mapLinearIsometry R := by
+        simpa [EuclideanLattice.mem_def] using hx
+      have hxL : R.symm x ∈ L := by
+        exact (EuclideanLattice.mem_mapLinearIsometry_iff (L := L) (R := R) (x := x)).1 hxMap
+      have hxL' : R.symm x ∈ L.carrier := by
+        simpa [EuclideanLattice.mem_def] using hxL
+      rcases hyInt (R.symm x) hxL' with ⟨m, hm⟩
+      refine ⟨m, ?_⟩
+      have hinner : inner ℝ x y = inner ℝ (R.symm x) (R.symm y) := by
+        calc
+          inner ℝ x y = inner ℝ (R (R.symm x)) (R (R.symm y)) := by simp
+          _ = inner ℝ (R.symm x) (R.symm y) := by
+            exact (LinearIsometryEquiv.inner_map_map (f := R) (R.symm x) (R.symm y))
+      exact hinner.trans hm
+    have hyOut : y ∈ ((((L.mapLinearIsometry R).dual).carrier) : Set (𝓔 n)) := by
+      rw [EuclideanLattice.dual_carrier_eq_integralDual (L := L.mapLinearIsometry R)]
+      exact hyInt'
+    simpa [EuclideanLattice.mem_def] using hyOut
+
+/-- Carrier equivalence between the dual lattice and the dual of its rotation. -/
+private def dual_mapLinearIsometryCarrierEquiv
+    (L : EuclideanLattice n n) (R : 𝓔 n ≃ₗᵢ[ℝ] 𝓔 n) :
+    L.dual.carrier ≃ (L.mapLinearIsometry R).dual.carrier where
+  toFun z := ⟨R z, by
+    have hzL : (z : 𝓔 n) ∈ L.dual := by
+      exact z.2
+    have hzMap : R (z : 𝓔 n) ∈ (L.mapLinearIsometry R).dual := by
+      exact (mem_dual_mapLinearIsometry_iff (L := L) (R := R) (y := R z)).2
+        (by simpa using hzL)
+    simpa [EuclideanLattice.mem_def] using hzMap⟩
+  invFun z := ⟨R.symm z, by
+    have hzMap : (z : 𝓔 n) ∈ (L.mapLinearIsometry R).dual := by
+      exact z.2
+    have hzL : R.symm (z : 𝓔 n) ∈ L.dual := by
+      exact (mem_dual_mapLinearIsometry_iff (L := L) (R := R) (y := (z : 𝓔 n))).1 hzMap
+    simpa [EuclideanLattice.mem_def] using hzL⟩
+  left_inv z := by
+    ext
+    simp
+  right_inv z := by
+    ext
+    simp
+
+/-- The Gaussian mass on dual lattices is invariant under ambient rotations. -/
+private lemma rhoSMass_dual_mapLinearIsometry_eq
+    (L : EuclideanLattice n n) (R : 𝓔 n ≃ₗᵢ[ℝ] 𝓔 n) (s : ℝ) :
+    rhoSMass s (0 : 𝓔 n) ((L.mapLinearIsometry R).dual)
+      = rhoSMass s (0 : 𝓔 n) (L.dual) := by
+  let e : L.dual.carrier ≃ (L.mapLinearIsometry R).dual.carrier :=
+    dual_mapLinearIsometryCarrierEquiv (L := L) (R := R)
+  unfold rhoSMass
+  calc
+    ∑' v' : (L.mapLinearIsometry R).dual.carrier, rhoS s ((v' : 𝓔 n) + (0 : 𝓔 n))
+      =
+    ∑' v : L.dual.carrier, rhoS s (((e v : (L.mapLinearIsometry R).dual.carrier) : 𝓔 n) + (0 : 𝓔 n)) := by
+      simpa [e] using
+        (e.tsum_eq
+          (fun v' : (L.mapLinearIsometry R).dual.carrier =>
+            rhoS s ((v' : 𝓔 n) + (0 : 𝓔 n)))).symm
+    _ =
+    ∑' v : L.dual.carrier, rhoS s ((v : 𝓔 n) + (0 : 𝓔 n)) := by
+      refine tsum_congr ?_
+      intro v
+      have hcoe : (((e v : (L.mapLinearIsometry R).dual.carrier) : 𝓔 n)) = R (v : 𝓔 n) := by
+        rfl
+      simpa [hcoe] using
+        (rhoS_map_linearIsometry (n := n) (R := R) (s := s) (x := ((v : 𝓔 n) + (0 : 𝓔 n))))
+
+/-- The smoothing parameter `η` is invariant under ambient rotations of the lattice. -/
+theorem smoothingParameter_mapLinearIsometry_eq
+    (L : EuclideanLattice n n) (R : 𝓔 n ≃ₗᵢ[ℝ] 𝓔 n) (ε : ℝ) :
+    (L.mapLinearIsometry R).η ε = L.η ε := by
+  change (L.mapLinearIsometry R).smoothingParameter ε = L.smoothingParameter ε
+  rw [smoothingParameter_eq_sInf_smoothingSet, smoothingParameter_eq_sInf_smoothingSet]
+  congr 1
+  ext t
+  constructor <;> intro ht
+  · refine ⟨ht.1, ?_⟩
+    have ht2 := ht.2
+    rw [rhoSMass_dual_mapLinearIsometry_eq (L := L) (R := R) (s := 1 / t)] at ht2
+    exact ht2
+  · refine ⟨ht.1, ?_⟩
+    rw [rhoSMass_dual_mapLinearIsometry_eq (L := L) (R := R) (s := 1 / t)]
+    exact ht.2
+
+
 end defs
 
 /-!

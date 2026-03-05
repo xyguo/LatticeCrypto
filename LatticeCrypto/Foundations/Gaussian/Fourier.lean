@@ -109,6 +109,66 @@ lemma fourier_transform_comp_linear_map
     congr! 3;
   aesop
 
+/-- The Fourier transform of a right-shifted function acquires the expected phase factor. -/
+lemma fourier_transform_comp_shift
+    {n : ℕ+} (f : 𝓔 n → ℂ) (u w : 𝓔 n) :
+    𝓕 (fun v => f (v + u)) w
+      = Complex.exp (2 * Real.pi * Complex.I * (inner ℝ u w : ℂ)) * 𝓕 f w := by
+  have h :=
+    (VectorFourier.fourierIntegral_comp_add_right
+      (𝕜 := ℝ) (V := 𝓔 n) (W := 𝓔 n) (E := ℂ)
+      Real.fourierChar MeasureTheory.volume (innerₗ (𝓔 n)) f u)
+  simpa [Real.fourierIntegral, VectorFourier.fourierIntegral, Circle.smul_def, Real.fourierChar_apply,
+    mul_comm, mul_left_comm, mul_assoc] using
+    congrFun h w
+
+/-- The Fourier transform of a translated function `v ↦ f (v - u)` acquires the negative phase. -/
+lemma fourier_transform_comp_sub_right
+    {n : ℕ+} (f : 𝓔 n → ℂ) (u w : 𝓔 n) :
+    𝓕 (fun v => f (v - u)) w
+      = Complex.exp (-2 * Real.pi * Complex.I * (inner ℝ u w : ℂ)) * 𝓕 f w := by
+  simpa [sub_eq_add_neg, inner_neg_left, Complex.exp_neg] using
+    (fourier_transform_comp_shift (n := n) f (-u) w)
+
+/--
+The Fourier transform of an affine pullback `v ↦ f (B v + u)` combines the determinant factor,
+the transpose-inverse frequency change, and the translation phase.
+-/
+lemma fourier_transform_comp_affine_map
+    {n : ℕ+} (f : 𝓔 n → ℂ) (B : (𝓔 n) ≃L[ℝ] (𝓔 n)) (u y : 𝓔 n) :
+    𝓕 (fun v => f (B v + u)) y
+      =
+    Complex.exp
+        (2 * Real.pi * Complex.I *
+          (inner ℝ u (((LinearMap.toMatrix stdBasis stdBasis B.symm.toLinearMap).transpose.mulVec y)) : ℂ))
+      * |LinearMap.det B.toLinearMap|⁻¹
+      * 𝓕 f (((LinearMap.toMatrix stdBasis stdBasis B.symm.toLinearMap).transpose.mulVec y)) := by
+  calc
+    𝓕 (fun v => f (B v + u)) y
+      = 𝓕 ((fun x => f (x + u)) ∘ B) y := by
+          rfl
+    _ =
+      |LinearMap.det B.toLinearMap|⁻¹ *
+        𝓕 (fun x => f (x + u))
+          (((LinearMap.toMatrix stdBasis stdBasis B.symm.toLinearMap).transpose.mulVec y)) := by
+            simpa using
+              (fourier_transform_comp_linear_map
+                (f := fun x => f (x + u)) (B := B) (y := y))
+    _ =
+      |LinearMap.det B.toLinearMap|⁻¹ *
+        (Complex.exp
+            (2 * Real.pi * Complex.I *
+              (inner ℝ u (((LinearMap.toMatrix stdBasis stdBasis B.symm.toLinearMap).transpose.mulVec y)) : ℂ))
+          * 𝓕 f (((LinearMap.toMatrix stdBasis stdBasis B.symm.toLinearMap).transpose.mulVec y))) := by
+            rw [fourier_transform_comp_shift]
+    _ =
+      Complex.exp
+          (2 * Real.pi * Complex.I *
+            (inner ℝ u (((LinearMap.toMatrix stdBasis stdBasis B.symm.toLinearMap).transpose.mulVec y)) : ℂ))
+        * |LinearMap.det B.toLinearMap|⁻¹
+        * 𝓕 f (((LinearMap.toMatrix stdBasis stdBasis B.symm.toLinearMap).transpose.mulVec y)) := by
+          ring
+
 /-- Specialization of theorem `fourier_transform_comp_linear_map` with the linear
   map coming from a lattice basis.
 -/

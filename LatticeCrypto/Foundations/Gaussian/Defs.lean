@@ -111,6 +111,24 @@ theorem rhoS_nonneg (s : ℝ) (x : E) : 0 ≤ rhoS s x :=
     · subst hs; by_cases hx : x = 0 <;> simp [rhoS, hx]
     · simpa [rhoS, hs] using (Real.exp_pos (-(π * ‖s⁻¹ • x‖^2))).le
 
+/-- A linear isometry of Euclidean space preserves the scaled Gaussian `rhoS`. -/
+lemma rhoS_map_linearIsometry (R : 𝓔 n ≃ₗᵢ[ℝ] 𝓔 n) (s : ℝ) (x : 𝓔 n) :
+    rhoS s (R x) = rhoS s x := by
+  by_cases hs : s = 0
+  · subst hs
+    by_cases hx : x = 0
+    · subst hx
+      simp
+    · have hRx : R x ≠ 0 := by
+        intro hRx
+        exact hx (R.injective (by simpa using hRx))
+      simp [rhoS, hx, hRx]
+  · have hnorm : ‖s⁻¹ • R x‖ = ‖s⁻¹ • x‖ := by
+      calc
+        ‖s⁻¹ • R x‖ = ‖R (s⁻¹ • x)‖ := by simp [R.map_smul]
+        _ = ‖s⁻¹ • x‖ := R.norm_map (s⁻¹ • x)
+    simp [rhoS, hs, hnorm]
+
 /-- Larger Gaussian width implies smaller density -/
 lemma rhoST_mono {s₁ s₂ : ℝ} (h1 : 0 < s₁) (h : s₁ ≤ s₂) (T : E ≃L[ℝ] E) (x : E) :
     rhoST s₁ T x ≤ rhoST s₂ T x := by
@@ -374,6 +392,25 @@ lemma rhoSMassOn_scale {n : ℕ+} (L : EuclideanLattice n n) (s : ℝ) (hs : s �
       congr! 2; simp [Set.indicator];
       split_ifs <;> simp_all +decide [ Set.mem_smul_set_iff_inv_smul_mem₀ ];
 
+/-- `rhoSTMass` equals a `rhoSMass` on the lattice mapped by the linear equivalence. -/
+theorem rhoSTMass_eq_rhoSMass_map
+    (L : EuclideanLattice n n) (T : 𝓔 n ≃L[ℝ] 𝓔 n) (s : ℝ) (c : 𝓔 n) :
+    rhoSTMass s T c L = rhoSMass s (T c) (L.map T) := by
+  let e : L.carrier ≃ (L.map T).carrier := L.mapCarrierEquiv T
+  unfold rhoSTMass rhoSMass EuclideanLattice.latticeSum
+  calc
+    ∑' v : L.carrier, rhoST s T ((v : 𝓔 n) + c)
+      =
+    ∑' v : L.carrier, rhoS s (((e v : (L.map T).carrier) : 𝓔 n) + T c) := by
+      refine tsum_congr ?_
+      intro v
+      have hcoe : (((e v : (L.map T).carrier) : 𝓔 n)) = T (v : 𝓔 n) := by
+        rfl
+      simp [rhoST_eq_rhoS_T_x, hcoe, map_add]
+    _ =
+    ∑' v' : (L.map T).carrier, rhoS s ((v' : 𝓔 n) + T c) := by
+      simpa [e] using
+        (e.tsum_eq (fun v' : (L.map T).carrier => rhoS s ((v' : 𝓔 n) + T c)))
 
 end gaussian
 

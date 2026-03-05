@@ -11,12 +11,8 @@ scope = "leanprover-community"
 # Uncomment to pin mathlib to a specific version. Note to also specify lean version in the lean-toolchain file, and delete the lake-manifest.json before `lake update` and `lake exec cache get`.
 version = "git#v4.24.0"
 
+# for fast state inspection during development
 [[require]]
-name = "Canonical"
-scope = "chasenorman"
-rev = "v4.24.0"
-
-[[require]]
-name = "batteries"
-scope = "leanprover-community"
+name = "REPL"
+git = "https://github.com/leanprover-community/repl"
 rev = "v4.24.0"

@@ -289,6 +289,129 @@ theorem EuclideanLattice.smul_carrier (L : EuclideanLattice n k) (c : ℝ) (hc :
 
 end smul
 
+/-
+## Mapping by ambient automorphisms
+-/
+
+noncomputable section map
+
+/-- Apply an ambient linear automorphism to each basis vector. -/
+def LatticeBasis.map (B : LatticeBasis n k) (f : (𝓔 n) ≃L[ℝ] (𝓔 n)) : LatticeBasis n k :=
+  { basis := fun i => f (B.basis i)
+    le_dim := B.le_dim
+    li := by
+      have hker : LinearMap.ker (f.toLinearMap) = ⊥ := by
+        exact (LinearEquiv.ker (f.toLinearEquiv))
+      simpa [Function.comp] using
+        B.li.map' (f.toLinearMap) hker }
+
+/-- Mapping a basis by the identity map leaves it unchanged. -/
+theorem LatticeBasis.map_id (B : LatticeBasis n k) :
+    B.map (ContinuousLinearEquiv.refl ℝ (𝓔 n)) = B := by
+  ext i
+  rfl
+
+/-- Mapping by `f` and then `g` equals mapping once by `f.trans g`. -/
+theorem LatticeBasis.map_comp (B : LatticeBasis n k)
+    (f g : (𝓔 n) ≃L[ℝ] (𝓔 n)) :
+    (B.map f).map g = B.map (f.trans g) := by
+  ext i
+  rfl
+
+/-- Apply an ambient linear automorphism to a lattice. -/
+def EuclideanLattice.map (L : EuclideanLattice n k) (f : (𝓔 n) ≃L[ℝ] (𝓔 n)) :
+    EuclideanLattice n k :=
+  (L.basis.map f).toLattice
+
+/-- Mapping a lattice by the identity map leaves it unchanged. -/
+theorem EuclideanLattice.map_id (L : EuclideanLattice n k) :
+    L.map (ContinuousLinearEquiv.refl ℝ (𝓔 n)) = L := by
+  calc
+    L.map (ContinuousLinearEquiv.refl ℝ (𝓔 n))
+        = (L.basis.map (ContinuousLinearEquiv.refl ℝ (𝓔 n))).toLattice := rfl
+    _ = L.basis.toLattice := by rw [LatticeBasis.map_id]
+    _ = L := by simpa using (EuclideanLattice.eq_basis_toLattice (L := L)).symm
+
+/-- Mapping by `f` and then `g` equals mapping once by `f.trans g`. -/
+theorem EuclideanLattice.map_comp (L : EuclideanLattice n k)
+    (f g : (𝓔 n) ≃L[ℝ] (𝓔 n)) :
+    (L.map f).map g = L.map (f.trans g) := by
+  simpa [EuclideanLattice.map] using
+    congrArg LatticeBasis.toLattice (LatticeBasis.map_comp (B := L.basis) f g)
+
+/-- Carrier description of a mapped lattice. -/
+theorem EuclideanLattice.map_carrier (L : EuclideanLattice n k) (f : (𝓔 n) ≃L[ℝ] (𝓔 n)) :
+    (L.map f).carrier = Submodule.map (f.toLinearMap.restrictScalars ℤ) L.carrier := by
+  calc
+    (L.map f).carrier = Submodule.span ℤ (Set.range ((L.basis.map f).cols)) := by
+      simpa [EuclideanLattice.map] using (L.map f).carrier_eq
+    _ = Submodule.span ℤ ((f.toLinearMap.restrictScalars ℤ) '' Set.range L.basis.cols) := by
+      congr
+      ext x
+      constructor
+      · rintro ⟨i, rfl⟩
+        exact ⟨L.basis.cols i, ⟨i, rfl⟩, rfl⟩
+      · rintro ⟨y, ⟨i, rfl⟩, rfl⟩
+        exact ⟨i, rfl⟩
+    _ = Submodule.map (f.toLinearMap.restrictScalars ℤ) (Submodule.span ℤ (Set.range L.basis.cols)) := by
+      symm
+      exact Submodule.map_span (f.toLinearMap.restrictScalars ℤ) (Set.range L.basis.cols)
+    _ = Submodule.map (f.toLinearMap.restrictScalars ℤ) L.carrier := by
+      rw [L.carrier_eq]
+
+/-- Membership in a mapped lattice is equivalent to membership of the preimage point. -/
+theorem EuclideanLattice.mem_map_iff (L : EuclideanLattice n k)
+    (f : (𝓔 n) ≃L[ℝ] (𝓔 n)) (x : 𝓔 n) :
+    x ∈ L.map f ↔ f.symm x ∈ L := by
+  rw [EuclideanLattice.mem_def, EuclideanLattice.map_carrier, Submodule.mem_map]
+  constructor
+  · rintro ⟨y, hy, hyx⟩
+    have hy' : y = f.symm x := by
+      simpa using congrArg f.symm hyx
+    simpa [EuclideanLattice.mem_def, hy'] using hy
+  · intro hx
+    refine ⟨f.symm x, ?_, by simp⟩
+    simpa [EuclideanLattice.mem_def] using hx
+
+/-- Explicit equivalence between carrier types of `L` and `L.map f`. -/
+def EuclideanLattice.mapCarrierEquiv (L : EuclideanLattice n k)
+    (f : (𝓔 n) ≃L[ℝ] (𝓔 n)) :
+    L.carrier ≃ (L.map f).carrier where
+  toFun x := ⟨f x, by
+    have hx : (x : 𝓔 n) ∈ L := x.2
+    simpa [EuclideanLattice.mem_def] using
+      (EuclideanLattice.mem_map_iff (L := L) (f := f) (x := f x)).2
+        (by simpa using hx)⟩
+  invFun x := ⟨f.symm x, by
+    simpa [EuclideanLattice.mem_def] using
+      (EuclideanLattice.mem_map_iff (L := L) (f := f) (x := x)).1 x.2⟩
+  left_inv x := by
+    ext
+    simp
+  right_inv x := by
+    ext
+    simp
+
+/-- Rotation-specialized lattice map via a linear isometry equivalence. -/
+abbrev EuclideanLattice.mapLinearIsometry (L : EuclideanLattice n k)
+    (R : (𝓔 n) ≃ₗᵢ[ℝ] (𝓔 n)) : EuclideanLattice n k :=
+  L.map R.toContinuousLinearEquiv
+
+/-- Membership in a rotation-mapped lattice is equivalent to membership of the rotated-back point. -/
+theorem EuclideanLattice.mem_mapLinearIsometry_iff (L : EuclideanLattice n k)
+    (R : (𝓔 n) ≃ₗᵢ[ℝ] (𝓔 n)) (x : 𝓔 n) :
+    x ∈ L.mapLinearIsometry R ↔ R.symm x ∈ L := by
+  simpa [EuclideanLattice.mapLinearIsometry] using
+    EuclideanLattice.mem_map_iff (L := L) (f := R.toContinuousLinearEquiv) (x := x)
+
+/-- Carrier equivalence induced by a lattice rotation map. -/
+abbrev EuclideanLattice.mapLinearIsometryCarrierEquiv (L : EuclideanLattice n k)
+    (R : (𝓔 n) ≃ₗᵢ[ℝ] (𝓔 n)) :
+    L.carrier ≃ (L.mapLinearIsometry R).carrier :=
+  L.mapCarrierEquiv R.toContinuousLinearEquiv
+
+end map
+
 /-- Negation of a lattice -/
 def EuclideanLattice.neg (L : EuclideanLattice n k) : EuclideanLattice n k :=
   L.smul (-1) (by norm_num)
