@@ -9,6 +9,7 @@ Aristotle-*
 *aristotle*
 
 # Ignore virtual environment and other files
+.env
 /.venv
 main.py
 /.vscode
